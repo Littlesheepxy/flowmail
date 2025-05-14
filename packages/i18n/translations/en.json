@@ -1,0 +1,778 @@
+{
+	"admin": {
+		"menu": {
+			"organizations": "Organizations",
+			"users": "Users"
+		},
+		"organizations": {
+			"backToList": "Back to organizations",
+			"confirmDelete": {
+				"confirm": "Delete",
+				"message": "Are you sure you want to delete this organization? This action cannot be undone.",
+				"title": "Delete organization"
+			},
+			"create": "Create",
+			"delete": "Delete",
+			"deleteOrganization": {
+				"deleted": "Organization has been deleted successfully!",
+				"deleting": "Deleting organization...",
+				"notDeleted": "Organization could not be deleted. Please try again."
+			},
+			"edit": "Edit",
+			"form": {
+				"createTitle": "Create an organization",
+				"name": "Organization name",
+				"notifications": {
+					"error": "Could not save the organization. Please try again later.",
+					"success": "Organization has been saved."
+				},
+				"save": "Save",
+				"updateTitle": "Edit organization"
+			},
+			"loading": "Loading organizations...",
+			"membersCount": "{count} {count, plural, one {member} other {members}}",
+			"search": "Search for an organization...",
+			"title": "Manage organizations"
+		},
+		"title": "Administration",
+		"users": {
+			"confirmDelete": {
+				"confirm": "Delete",
+				"message": "Are you sure you want to delete this user? This action cannot be undone.",
+				"title": "Delete user"
+			},
+			"delete": "Delete",
+			"deleteUser": {
+				"deleted": "User has been deleted successfully!",
+				"deleting": "Deleting user...",
+				"notDeleted": "User could not be deleted. Please try again."
+			},
+			"emailVerified": {
+				"verified": "Email verified",
+				"waiting": "Email waiting for verification"
+			},
+			"impersonate": "Impersonate",
+			"impersonation": {
+				"impersonating": "Impersonating as {name}..."
+			},
+			"loading": "Loading users...",
+			"resendVerificationMail": {
+				"error": "Could not resend verification mail. Please try again.",
+				"submitting": "Resending verification mail...",
+				"success": "Verification mail has been sent.",
+				"title": "Resend verification mail"
+			},
+			"search": "Search for name or email...",
+			"title": "Manage users",
+			"assignAdminRole": "Assign admin role",
+			"removeAdminRole": "Remove admin role"
+		},
+		"description": "Manage your application."
+	},
+	"app": {
+		"menu": {
+			"accountSettings": "Account settings",
+			"admin": "Admin",
+			"aiChatbot": "AI Chatbot",
+			"organizationSettings": "Organization settings",
+			"start": "Start"
+		},
+		"userMenu": {
+			"accountSettings": "Account settings",
+			"colorMode": "Color mode",
+			"documentation": "Documentation",
+			"home": "Home",
+			"logout": "Logout"
+		}
+	},
+	"auth": {
+		"errors": {
+			"invalidEmailOrPassword": "The credentials you entered are invalid. Please check them and try again.",
+			"unknown": "Something went wrong. Please try again.",
+			"userNotFound": "This user does not exists",
+			"failedToCreateUser": "Could not create user. Please try again.",
+			"failedToCreateSession": "Could not create a session. Please try again.",
+			"failedToUpdateUser": "Could not update user. Please try again.",
+			"failedToGetSession": "Could not get the session.",
+			"invalidPassword": "The entered password is incorrect.",
+			"invalidEmail": "The entered email is invalid.",
+			"invalidToken": "The token you entered is invalid or has expired.",
+			"credentialAccountNotFound": "Account not found.",
+			"emailCanNotBeUpdated": "Email could not be updated. Please try again.",
+			"emailNotVerified": "Please verify your email first before logging in.",
+			"failedToGetUserInfo": "Could not load user information.",
+			"idTokenNotSupported": "ID token is not supported.",
+			"passwordTooLong": "Password is too long.",
+			"passwordTooShort": "Password is too short.",
+			"providerNotFound": "This provider is not suppported.",
+			"socialAccountAlreadyLinked": "This account is already linked to a user.",
+			"userEmailNotFound": "Email not found.",
+			"userAlreadyExists": "This user already exists.",
+			"invalidInvitation": "The invitation is invalid or expired.",
+			"sessionExpired": "The session has expired.",
+			"failedToUnlinkLastAccount": "Failed to unlink account",
+			"accountNotFound": "Account not found"
+		},
+		"forgotPassword": {
+			"backToSignin": "Back to signin",
+			"email": "Email",
+			"hints": {
+				"linkNotSent": {
+					"message": "We are sorry, but we were unable to send you a link to reset your password. Please try again later.",
+					"title": "Link not sent"
+				},
+				"linkSent": {
+					"message": "We have sent you a link to continue. Please check your inbox.",
+					"title": "Link sent"
+				}
+			},
+			"message": "Please enter your email address and we will send you a link to reset your password.",
+			"submit": "Send link",
+			"title": "Forgot your password?"
+		},
+		"login": {
+			"continueWith": "Or continue with",
+			"createAnAccount": "Create an account",
+			"dontHaveAnAccount": "Don't have an account yet?",
+			"forgotPassword": "Forgot password?",
+			"hints": {
+				"invalidCredentials": "The email or password you entered are invalid. Please try again.",
+				"linkSent": {
+					"message": "We have sent you a link to continue. Please check your inbox.",
+					"title": "Link sent"
+				}
+			},
+			"loginWithPasskey": "Login with passkey",
+			"modes": {
+				"magicLink": "Magic link",
+				"password": "Password"
+			},
+			"submit": "Sign in",
+			"subtitle": "Please enter your credentials to sign in.",
+			"title": "Welcome back",
+			"sendMagicLink": "Send magic link"
+		},
+		"resetPassword": {
+			"backToSignin": "Back to signin",
+			"hints": {
+				"error": "We are sorry, but we were unable to reset your password. Please try again.",
+				"success": "Your password has been reset successfully."
+			},
+			"message": "Please enter a new password.",
+			"newPassword": "New password",
+			"submit": "Reset password",
+			"title": "Reset your password"
+		},
+		"signup": {
+			"alreadyHaveAccount": "Already have an account?",
+			"email": "Email",
+			"hints": {
+				"signupFailed": "We are sorry, but we were unable to create your account. Please try again later.",
+				"verifyEmail": "We have sent you a link to verify your email. Please check your inbox."
+			},
+			"message": "We are happy that you want to join us. Please fill in the form below to create your account.",
+			"name": "Name",
+			"password": "Password",
+			"signIn": "Sign in",
+			"submit": "Create account",
+			"title": "Create an account"
+		}
+	},
+	"blog": {
+		"description": "Read the latest news from our company",
+		"title": "My awesome blog",
+		"back": "Back to blog"
+	},
+	"changelog": {
+		"description": "Stay up to date with the latest changes in our product.",
+		"title": "Changelog"
+	},
+	"common": {
+		"confirmation": {
+			"cancel": "Cancel",
+			"confirm": "Confirm"
+		},
+		"menu": {
+			"blog": "Blog",
+			"changelog": "Changelog",
+			"contact": "Contact",
+			"dashboard": "Dashboard",
+			"docs": "Docs",
+			"faq": "FAQ",
+			"login": "Login",
+			"pricing": "Pricing"
+		},
+		"tableOfContents": {
+			"title": "On this page"
+		}
+	},
+	"contact": {
+		"description": "We are here to help you. Please use the form below to get in touch with us.",
+		"form": {
+			"email": "Email",
+			"message": "Message",
+			"name": "Name",
+			"notifications": {
+				"error": "We are sorry, but we were unable to send your message. Please try again later.",
+				"success": "Your message has been sent successfully. We will get back to you as soon as possible."
+			},
+			"submit": "Send message"
+		},
+		"title": "Contact us"
+	},
+	"documentation": {
+		"title": "Documentation"
+	},
+	"faq": {
+		"description": "Do you have any questions? We have got you covered.",
+		"title": "Frequently asked questions"
+	},
+	"mail": {
+		"common": {
+			"openLinkInBrowser": "If you want to open the link in a different browser than your default one, copy and paste this link:",
+			"otp": "One-time password",
+			"useLink": "or use the following link:"
+		},
+		"emailVerification": {
+			"body": "Hey,\nplease click the link below to verify this new email address.",
+			"confirmEmail": "Verify email",
+			"subject": "Verify your email"
+		},
+		"forgotPassword": {
+			"body": "Hey,\nyou requested a password reset.\n\nClick the button below to reset your password.",
+			"resetPassword": "Reset password",
+			"subject": "Reset your password"
+		},
+		"magicLink": {
+			"body": "Hey,\nyou requested a login email from supastarter.\n\nClick the link below to login.",
+			"login": "Login",
+			"subject": "Login to supastarter"
+		},
+		"newUser": {
+			"body": "Hey,\nthanks for signing up for supastarter.\n\nTo start using our app, please confirm your email address by clicking the link below.",
+			"confirmEmail": "Confirm email",
+			"subject": "Confirm your email"
+		},
+		"newsletterSignup": {
+			"body": "Thank you for signing up for the supastarter newsletter. We will keep you updated with the latest news and updates.",
+			"subject": "Welcome to our newsletter"
+		},
+		"organizationInvitation": {
+			"body": "You have been invited to join the organization {organizationName}. Click the button below or copy and paste the link into your browser of choice to accept the invitation and join the organization.",
+			"headline": "Join the organization {organizationName}",
+			"join": "Join the organization",
+			"subject": "You have been invited to join an organization"
+		}
+	},
+	"newsletter": {
+		"email": "Email",
+		"hints": {
+			"error": {
+				"message": "Could not subscribe to newsletter. Please try again later."
+			},
+			"success": {
+				"message": "Thank you for subscribing to our newsletter. We will keep you posted.",
+				"title": "Subscribed"
+			}
+		},
+		"submit": "Subscribe",
+		"subtitle": "Be among the first to get access to supastarter.nextjs.",
+		"title": "Get early access"
+	},
+	"onboarding": {
+		"account": {
+			"avatar": "Avatar",
+			"avatarDescription": "Click the circle or drop an image to it to upload your avatar.",
+			"name": "Name"
+		},
+		"continue": "Continue",
+		"message": "Just a few quick steps to get you started.",
+		"notifications": {
+			"accountSetupFailed": "We are sorry, but we were unable to set up your account. Please try again later."
+		},
+		"step": "Step {step} / {total}",
+		"title": "Set up your account"
+	},
+	"organizations": {
+		"createForm": {
+			"name": "Organization name",
+			"notifications": {
+				"error": "We are sorry, but we were unable to create your organization. Please try again later.",
+				"success": "Your organization has been created. You can now invite members."
+			},
+			"submit": "Create organization",
+			"subtitle": "Enter a name for your organization to get started. You can change the name later in the organization settings.",
+			"title": "Create an organization"
+		},
+		"invitationAlert": {
+			"description": "You need to sign in or create an account to join the organization.",
+			"title": "You have been invited to join an organization."
+		},
+		"invitationModal": {
+			"accept": "Accept",
+			"decline": "Decline",
+			"description": "You have been invited to join the organization {organizationName}. Do you want to accept the invitation and join the organization?",
+			"title": "Join the organization"
+		},
+		"organizationSelect": {
+			"createNewOrganization": "Create new organization",
+			"organizations": "Organizations",
+			"personalAccount": "Personal account"
+		},
+		"organizationsGrid": {
+			"createNewOrganization": "Create new organization",
+			"title": "Your organizations"
+		},
+		"roles": {
+			"admin": "Admin",
+			"member": "Member",
+			"owner": "Owner"
+		},
+		"settings": {
+			"changeName": {
+				"title": "Organization name"
+			},
+			"deleteOrganization": {
+				"confirmation": "Are you sure you want to delete your organization?",
+				"description": "Permanently delete your organization. Once you delete your organization, there is no going back. To confirm, please enter your password below:",
+				"submit": "Delete organization",
+				"title": "Delete organization"
+			},
+			"logo": {
+				"description": "Upload a logo for your organization.",
+				"title": "Organization logo"
+			},
+			"members": {
+				"activeMembers": "Active members",
+				"description": "See all active members and the pending invites of your organization.",
+				"invitations": {
+					"empty": "You have not invited any members yet.",
+					"expiresAt": "Expires at {date}",
+					"invitationStatus": {
+						"accepted": "Accepted",
+						"canceled": "Canceled",
+						"pending": "Pending",
+						"rejected": "Rejected"
+					},
+					"revoke": "Revoke invitation",
+					"resend": "Resend invitation"
+				},
+				"inviteMember": {
+					"description": "To invite a new member, send them an invitation.",
+					"email": "Email",
+					"notifications": {
+						"error": {
+							"description": "We were unable to invite the member. Please try again later.",
+							"title": "Could not invite member"
+						},
+						"success": {
+							"description": "The member has been invited.",
+							"title": "Member invited"
+						}
+					},
+					"role": "Role",
+					"submit": "Invite",
+					"title": "Invite member"
+				},
+				"leaveOrganization": "Leave organization",
+				"notifications": {
+					"removeMember": {
+						"error": {
+							"description": "Could not remove the member from your organization. Please try again."
+						},
+						"loading": {
+							"description": "Removing member from organization..."
+						},
+						"success": {
+							"description": "The member has been successfully removed from your organization."
+						}
+					},
+					"revokeInvitation": {
+						"error": {
+							"description": "The invitation could not be revoked. Please try again later."
+						},
+						"loading": {
+							"description": "Revoking invitation..."
+						},
+						"success": {
+							"description": "The invitation has been revoked."
+						}
+					},
+					"updateMembership": {
+						"error": {
+							"description": "Could not update organization membership. Please try again."
+						},
+						"loading": {
+							"description": "Updating membership..."
+						},
+						"success": {
+							"description": "Membership was updated successfully"
+						}
+					},
+					"resendInvitation": {
+						"loading": {
+							"description": "Resending invitation..."
+						},
+						"success": {
+							"description": "Invitation sent"
+						},
+						"error": {
+							"description": "Could not sent invitation. Please try again."
+						}
+					}
+				},
+				"pendingInvitations": "Pending invitations",
+				"removeMember": "Remove member",
+				"title": "Members"
+			},
+			"notifications": {
+				"organizationDeleted": "Your organization has been deleted.",
+				"organizationNameNotUpdated": "We were unable to update your organization name. Please try again later.",
+				"organizationNameUpdated": "Your organization name has been updated.",
+				"organizationNotDeleted": "We were unable to delete your organization. Please try again later."
+			},
+			"subtitle": "Manage the settings of the organization.",
+			"title": "Organization",
+			"dangerZone": {
+				"title": "Danger zone"
+			}
+		},
+		"start": {
+			"subtitle": "Welcome to the start page of this organization!"
+		}
+	},
+	"pricing": {
+		"choosePlan": "Choose plan",
+		"contactSales": "Contact sales",
+		"description": "Choose the plan that works best for you.",
+		"getStarted": "Get started",
+		"month": "{count, plural, one {month} other {{count} months}}",
+		"monthly": "Monthly",
+		"products": {
+			"basic": {
+				"description": "Perfect to small teams.",
+				"features": {
+					"anotherFeature": "Another amazing feature",
+					"limitedSupport": "Limited support"
+				},
+				"title": "Basic"
+			},
+			"enterprise": {
+				"description": "Custom plan tailored to your requirements",
+				"features": {
+					"enterpriseSupport": "Enterprise support",
+					"unlimitedProjects": "Unlimited projects"
+				},
+				"title": "Enterprise"
+			},
+			"free": {
+				"description": "Start for free",
+				"features": {
+					"anotherFeature": "Another amazing feature",
+					"limitedSupport": "Limited support"
+				},
+				"title": "Free"
+			},
+			"lifetime": {
+				"description": "Buy once. Use forever.",
+				"features": {
+					"extendSupport": "Extended support",
+					"noRecurringCosts": "No recurring costs"
+				},
+				"title": "Lifetime"
+			},
+			"pro": {
+				"description": "Best for teams",
+				"features": {
+					"anotherFeature": "Another amazing feature",
+					"fiveMembers": "Up to 5 members",
+					"fullSupport": "Full support"
+				},
+				"title": "Pro"
+			}
+		},
+		"purchase": "Purchase",
+		"recommended": "Recommended",
+		"subscribe": "Subscribe",
+		"title": "Pricing",
+		"trialPeriod": "{days} {days, plural, one {day} other {days}} free trial",
+		"year": "{count, plural, one {year} other {{count} years}}",
+		"yearly": "Yearly",
+		"perSeat": "seat"
+	},
+	"settings": {
+		"account": {
+			"avatar": {
+				"description": "To change your avatar click the picture in this block and select a file from your computer to upload.",
+				"notifications": {
+					"error": "Could not update avatar",
+					"success": "Avatar was updated successfully"
+				},
+				"title": "Your avatar"
+			},
+			"changeEmail": {
+				"description": "To change your email, enter the new email and hit save. You will have to confirm the new email before it will become active.",
+				"notifications": {
+					"error": "Could not update email",
+					"success": "Email was updated successfully"
+				},
+				"title": "Your email"
+			},
+			"changeName": {
+				"notifications": {
+					"error": "Could not update name",
+					"success": "Name was updated successfully"
+				},
+				"title": "Your name"
+			},
+			"deleteAccount": {
+				"confirmation": "Are you sure you want to delete your account?",
+				"description": "Permanently delete your account. Once you delete your account, there is no going back. To confirm, please enter your password below:",
+				"notifications": {
+					"error": "Could not delete account",
+					"success": "Account was deleted successfully"
+				},
+				"submit": "Delete account",
+				"title": "Delete account"
+			},
+			"language": {
+				"description": "To change the language of the app for your account, select a language from the list and click save.",
+				"notifications": {
+					"error": "Could not update language",
+					"success": "Language was updated successfully"
+				},
+				"title": "Your language"
+			},
+			"security": {
+				"activeSessions": {
+					"description": "These are all the active sessions of your account. Click the X to end a specifc session.",
+					"title": "Active sessions",
+					"notifications": {
+						"revokeSession": {
+							"success": "Session revoked"
+						}
+					}
+				},
+				"changePassword": {
+					"currentPassword": "Current password",
+					"newPassword": "New password",
+					"notifications": {
+						"error": "Could not update password",
+						"success": "Password was updated successfully"
+					},
+					"title": "Your password"
+				},
+				"connectedAccounts": {
+					"connect": "Connect",
+					"disconnect": "Disconnect",
+					"title": "Connected accounts"
+				},
+				"passkeys": {
+					"description": "Use passkeys as a secure alternative to passwords.",
+					"notifications": {
+						"addPasskey": {
+							"error": {
+								"title": "Could not add passkey"
+							},
+							"success": {
+								"title": "Passkey added"
+							}
+						},
+						"deletePasskey": {
+							"error": {
+								"title": "Could not delete passkey"
+							},
+							"loading": {
+								"title": "Deleting passkey..."
+							},
+							"success": {
+								"title": "Passkey deleted"
+							}
+						}
+					},
+					"title": "Passkeys"
+				},
+				"setPassword": {
+					"description": "You have not set a password yet. To set one, you need to go through the password reset flow. Click the button below to send an email to reset your password and follow the instructions in the email.",
+					"notifications": {
+						"error": "Could not set password",
+						"success": "Password was set successfully"
+					},
+					"submit": "Set password",
+					"title": "Your password"
+				},
+				"title": "Security"
+			},
+			"subtitle": "Manage the settings of your personal account.",
+			"title": "Account settings"
+		},
+		"billing": {
+			"createCustomerPortal": {
+				"label": "Manage billing",
+				"notifications": {
+					"error": {
+						"title": "Could not create a customer portal session. Please try again."
+					}
+				}
+			},
+			"activePlan": {
+				"status": {
+					"active": "Active",
+					"canceled": "Canceled",
+					"expired": "Expired",
+					"incomplete": "Incomplete",
+					"past_due": "Past due",
+					"paused": "Paused",
+					"trialing": "Trialing",
+					"unpaid": "Unpaid"
+				},
+				"title": "Your plan"
+			},
+			"changePlan": {
+				"description": "Choose a plan to subscribe to.",
+				"title": "Change your plan"
+			},
+			"title": "Billing"
+		},
+		"menu": {
+			"account": {
+				"billing": "Billing",
+				"dangerZone": "Danger zone",
+				"general": "General",
+				"security": "Security",
+				"title": "Account"
+			},
+			"organization": {
+				"billing": "Billing",
+				"general": "General",
+				"members": "Members",
+				"title": "Organization",
+				"dangerZone": "Danger zone"
+			}
+		},
+		"save": "Save"
+	},
+	"start": {
+		"subtitle": "See the latest stats of your awesome business.",
+		"welcome": "Welcome {name}!"
+	},
+	"zod": {
+		"errors": {
+			"invalid_arguments": "Invalid function arguments",
+			"invalid_date": "Invalid date",
+			"invalid_enum_value": "Invalid enum value. Expected {- options}, received '{received}'",
+			"invalid_intersection_types": "Intersection results could not be merged",
+			"invalid_literal": "Invalid literal value, expected {expected}",
+			"invalid_return_type": "Invalid function return type",
+			"invalid_string": {
+				"cuid": "Invalid {validation}",
+				"datetime": "Invalid {validation}",
+				"email": "Invalid {validation}",
+				"endsWith": "Invalid input: must end with \"{endsWith}\"",
+				"regex": "Invalid",
+				"startsWith": "Invalid input: must start with \"{startsWith}\"",
+				"url": "Invalid {validation}",
+				"uuid": "Invalid {validation}"
+			},
+			"invalid_type": "Expected {expected}, received {received}",
+			"invalid_type_received_undefined": "Required",
+			"invalid_union": "Invalid input",
+			"invalid_union_discriminator": "Invalid discriminator value. Expected {- options}",
+			"not_finite": "Number must be finite",
+			"not_multiple_of": "Number must be a multiple of {multipleOf}",
+			"too_big": {
+				"array": {
+					"exact": "Array must contain exactly {maximum} element(s)",
+					"inclusive": "Array must contain at most {maximum} element(s)",
+					"not_inclusive": "Array must contain less than {maximum} element(s)"
+				},
+				"date": {
+					"exact": "Date must be exactly {- maximum, datetime}",
+					"inclusive": "Date must be smaller than or equal to {- maximum, datetime}",
+					"not_inclusive": "Date must be smaller than {- maximum, datetime}"
+				},
+				"number": {
+					"exact": "Number must be exactly {maximum}",
+					"inclusive": "Number must be less than or equal to {maximum}",
+					"not_inclusive": "Number must be less than {maximum}"
+				},
+				"set": {
+					"exact": "Invalid input",
+					"inclusive": "Invalid input",
+					"not_inclusive": "Invalid input"
+				},
+				"string": {
+					"exact": "String must contain exactly {maximum} character(s)",
+					"inclusive": "String must contain at most {maximum} character(s)",
+					"not_inclusive": "String must contain under {maximum} character(s)"
+				}
+			},
+			"too_small": {
+				"array": {
+					"exact": "Array must contain exactly {minimum} element(s)",
+					"inclusive": "Array must contain at least {minimum} element(s)",
+					"not_inclusive": "Array must contain more than {minimum} element(s)"
+				},
+				"date": {
+					"exact": "Date must be exactly {- minimum, datetime}",
+					"inclusive": "Date must be greater than or equal to {- minimum, datetime}",
+					"not_inclusive": "Date must be greater than {- minimum, datetime}"
+				},
+				"number": {
+					"exact": "Number must be exactly {minimum}",
+					"inclusive": "Number must be greater than or equal to {minimum}",
+					"not_inclusive": "Number must be greater than {minimum}"
+				},
+				"set": {
+					"exact": "Invalid input",
+					"inclusive": "Invalid input",
+					"not_inclusive": "Invalid input"
+				},
+				"string": {
+					"exact": "String must contain exactly {minimum} character(s)",
+					"inclusive": "String must contain at least {minimum} character(s)",
+					"not_inclusive": "String must contain over {minimum} character(s)"
+				}
+			},
+			"unrecognized_keys": "Unrecognized key(s) in object: {- keys}"
+		},
+		"types": {
+			"array": "array",
+			"bigint": "bigint",
+			"boolean": "boolean",
+			"date": "date",
+			"float": "float",
+			"function": "function",
+			"integer": "integer",
+			"map": "map",
+			"nan": "nan",
+			"never": "never",
+			"null": "null",
+			"number": "number",
+			"object": "object",
+			"promise": "promise",
+			"set": "set",
+			"string": "string",
+			"symbol": "symbol",
+			"undefined": "undefined",
+			"unknown": "unknown",
+			"void": "void"
+		},
+		"validations": {
+			"cuid": "cuid",
+			"cuid2": "cuid2",
+			"datetime": "datetime",
+			"email": "email",
+			"emoji": "emoji",
+			"ip": "up",
+			"regex": "regex",
+			"ulid": "ulid",
+			"url": "url",
+			"uuid": "uuid"
+		}
+	},
+	"choosePlan": {
+		"title": "Choose your plan",
+		"description": "To continue, please select a plan."
+	}
+}

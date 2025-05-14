@@ -1,0 +1,39 @@
+name: Validate PRs
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+jobs:
+  lint:
+    name: Lint code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+      - name: Run Biome
+        run: biome ci .
+  e2e:
+    name: Run e2e tests
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - uses: pnpm/action-setup@v4
+      - name: Install dependencies
+        run: pnpm install && pnpm -filter database push && pnpm --filter database generate
+      - name: Run Playwright tests
+        run: pnpm --filter web e2e:ci
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 30

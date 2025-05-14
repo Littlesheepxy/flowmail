@@ -1,0 +1,16 @@
+{
+	"dependencies": {
+		"@repo/config": "workspace:*",
+		"deepmerge": "^4.3.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^22.14.1"
+	},
+	"name": "@repo/i18n",
+	"scripts": {
+		"type-check": "tsc --noEmit"
+	},
+	"version": "0.0.0"
+}

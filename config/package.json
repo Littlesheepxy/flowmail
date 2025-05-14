@@ -1,0 +1,11 @@
+{
+	"devDependencies": {
+		"@repo/tsconfig": "workspace:*"
+	},
+	"name": "@repo/config",
+	"private": true,
+	"scripts": {
+		"type-check": "tsc --noEmit"
+	},
+	"version": "0.0.0"
+}

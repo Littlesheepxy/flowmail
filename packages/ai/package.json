@@ -1,0 +1,22 @@
+{
+	"dependencies": {
+		"@ai-sdk/anthropic": "^1.2.9",
+		"@ai-sdk/openai": "^1.3.9",
+		"@ai-sdk/react": "^1.2.8",
+		"ai": "^4.3.4",
+		"openai": "^4.93.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@repo/tsconfig": "workspace:*",
+		"@types/react": "19.1.1",
+		"typescript": "5.8.3"
+	},
+	"main": "./index.ts",
+	"name": "@repo/ai",
+	"scripts": {
+		"type-check": "tsc --noEmit"
+	},
+	"types": "./**/.tsx",
+	"version": "0.0.0"
+}

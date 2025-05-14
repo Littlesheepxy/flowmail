@@ -1,0 +1,30 @@
+{
+	"name": "supastarter-nextjs",
+	"private": true,
+	"scripts": {
+		"build": "dotenv -c -- turbo build",
+		"dev": "dotenv -c -- turbo dev --concurrency 15",
+		"start": "dotenv -c -- turbo start",
+		"lint": "biome lint .",
+		"clean": "turbo clean",
+		"format": "biome format . --write"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"packageManager": "pnpm@9.3.0",
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^22.14.1",
+		"dotenv-cli": "^8.0.0",
+		"turbo": "^2.5.0",
+		"typescript": "5.8.3"
+	},
+	"pnpm": {
+		"overrides": {
+			"@types/react": "19.0.0",
+			"@types/react-dom": "19.0.0"
+		}
+	}
+}

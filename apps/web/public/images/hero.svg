@@ -1,0 +1,17 @@
+<svg width="1875" height="1060" viewBox="0 0 1875 1060" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M221.003 0H1651C1675.3 0 1695 19.6995 1695 44V1000C1695 1024.3 1675.3 1044 1651 1044H221.003C196.702 1044 177.003 1024.3 177.003 1000V44C177.003 19.6995 196.702 0 221.003 0Z" fill="#DEDEDE"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M221.003 4H1651C1673.09 4 1691 21.9086 1691 44V1000C1691 1022.09 1673.09 1040 1651 1040H221.003C198.912 1040 181.003 1022.09 181.003 1000V44C181.003 21.9086 198.912 4 221.003 4Z" fill="white"/>
+<path d="M0.00292969 1021C0.00292969 1016.58 3.58465 1013 8.00293 1013H1866C1870.42 1013 1874 1016.58 1874 1021V1043H0.00292969V1021Z" fill="#DEDEDE"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M4.00293 1021C4.00293 1018.79 5.79379 1017 8.00293 1017H1866C1868.21 1017 1870 1018.79 1870 1021V1039H4.00293V1021Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M0.00292969 1043H1874L1866.06 1047.24C1851.58 1054.96 1835.42 1059 1819 1059H55.003C38.5889 1059 22.4271 1054.96 7.94411 1047.24L0.00292969 1043Z" fill="#DEDEDE"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M6.00293 1043H1868L1858.87 1046.92C1846.42 1052.25 1833.02 1055 1819.48 1055H54.5287C40.986 1055 27.5845 1052.25 15.1368 1046.92L6.00293 1043Z" fill="white"/>
+<path d="M803.003 1013H1072V1014C1072 1025.05 1063.05 1034 1052 1034H823.003C811.957 1034 803.003 1025.05 803.003 1014V1013Z" fill="#DEDEDE"/>
+<rect x="216.003" y="63.002" width="1440" height="900" fill="#F3F3F3"/>
+<rect x="363" y="125" width="168" height="33" rx="16.5" fill="#3B82F6"/>
+<rect x="713" y="409" width="446" height="33" rx="16.5" fill="#9D9D9D"/>
+<rect x="736" y="458" width="399" height="33" rx="16.5" fill="#9D9D9D"/>
+<rect x="781" y="545" width="310" height="72" rx="30" fill="#3B82F6"/>
+<rect x="1207" y="134" width="81" height="16" rx="8" fill="#CFCFCF"/>
+<rect x="1303" y="134" width="82" height="16" rx="8" fill="#CFCFCF"/>
+<rect x="1400" y="134" width="81" height="16" rx="8" fill="#CFCFCF"/>
+</svg>

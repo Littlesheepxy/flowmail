@@ -1,0 +1,27 @@
+{
+	"dependencies": {
+		"@repo/config": "workspace:*",
+		"@repo/database": "workspace:*",
+		"@repo/i18n": "workspace:*",
+		"@repo/logs": "workspace:*",
+		"@repo/mail": "workspace:*",
+		"@repo/payments": "workspace:*",
+		"@repo/utils": "workspace:*",
+		"better-auth": "1.1.21",
+		"cookie": "^1.0.2",
+		"next": "15.3.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@repo/tsconfig": "workspace:*",
+		"@types/node": "^22.14.1"
+	},
+	"main": "./index.ts",
+	"name": "@repo/auth",
+	"scripts": {
+		"migrate": "dotenv -e ../../.env.local -- pnpm dlx @better-auth/cli@latest generate --config ./auth.ts --output ../database/prisma/schema.prisma",
+		"type-check": "tsc --noEmit"
+	},
+	"types": "./**/.tsx",
+	"version": "0.0.0"
+}

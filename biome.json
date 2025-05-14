@@ -1,0 +1,56 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"formatter": {
+		"enabled": true,
+		"useEditorconfig": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noExplicitAny": "off",
+				"noArrayIndexKey": "off"
+			},
+			"complexity": {
+				"noForEach": "off"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": "off",
+				"noUnusedImports": "error",
+				"noUnusedFunctionParameters": "warn"
+			},
+			"style": {
+				"noUnusedTemplateLiteral": {
+					"level": "error",
+					"fix": "safe"
+				},
+				"noNonNullAssertion": "warn",
+				"useBlockStatements": "warn"
+			}
+		}
+	},
+	"organizeImports": {
+		"enabled": true
+	},
+	"files": {
+		"ignore": ["./packages/database/prisma/zod/index.ts"]
+	},
+	"javascript": {
+		"jsxRuntime": "reactClassic"
+	},
+	"css": {
+		"formatter": {
+			"enabled": false
+		},
+		"linter": {
+			"enabled": false
+		}
+	},
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"defaultBranch": "main",
+		"useIgnoreFile": true
+	}
+}

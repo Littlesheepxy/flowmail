@@ -1,0 +1,29 @@
+{
+	"editor.defaultFormatter": "biomejs.biome",
+	"editor.formatOnSave": true,
+	"editor.formatOnPaste": true,
+	"emmet.showExpandedAbbreviation": "never",
+	"tailwindCSS.experimental.classRegex": [
+		["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+	],
+	"editor.codeActionsOnSave": {
+		"quickfix.biome": "explicit",
+		"source.organizeImports.biome": "explicit"
+	},
+	"typescript.preferences.importModuleSpecifier": "non-relative",
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"i18n-ally.localesPaths": ["packages/i18n/translations"],
+	"i18n-ally.keystyle": "nested",
+	"i18n-ally.enabledFrameworks": ["next-intl"],
+	"i18n-ally.keysInUse": ["mail.organizationInvitation.headline"],
+	"i18n-ally.tabStyle": "tab",
+	"[typescript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	}
+}

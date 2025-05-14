@@ -1,0 +1,14 @@
+{
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@types/node": "^22.14.1",
+		"@repo/tsconfig": "workspace:*"
+	},
+	"main": "./index.ts",
+	"name": "@repo/utils",
+	"scripts": {
+		"type-check": "tsc --noEmit"
+	},
+	"types": "./**/.tsx",
+	"version": "0.0.0"
+}

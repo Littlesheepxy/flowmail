@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+@import "@repo/tailwind-config/theme.css";
+@import "@repo/tailwind-config/tailwind-animate.css";
+
+@source "../node_modules/fumadocs-ui/dist/**/*.js";
+
+@variant dark (&:where(.dark, .dark *));
+
+pre.shiki {
+	@apply mb-4 rounded-lg p-6;
+}
+
+#nd-sidebar {
+	@apply bg-card! top-[4.5rem] md:h-[calc(100dvh-4.5rem)]!;
+
+	button[data-search-full] {
+		@apply bg-transparent;
+	}
+}
+
+#nd-page .prose {
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		a {
+			@apply no-underline!;
+		}
+	}
+}
+
+div[role="tablist"].bg-secondary {
+	@apply bg-muted!;
+}
+
+input[cmdk-input] {
+	@apply border-none focus-visible:ring-0;
+}
