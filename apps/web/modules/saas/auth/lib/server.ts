@@ -54,6 +54,18 @@ export const getUserAccounts = cache(async () => {
 	}
 });
 
+export const getUserPasskeys = cache(async () => {
+	try {
+		const userPasskeys = await auth.api.listPasskeys({
+			headers: await headers(),
+		});
+
+		return userPasskeys;
+	} catch (error) {
+		return [];
+	}
+});
+
 export const getInvitation = cache(async (id: string) => {
 	try {
 		return await getInvitationById(id);

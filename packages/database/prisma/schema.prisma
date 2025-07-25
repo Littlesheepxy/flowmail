@@ -1,201 +1,212 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 generator zod {
-  provider         = "zod-prisma-types"
-  output           = "./zod"
-  createInputTypes = true
-  addIncludeType   = false
-  addSelectType    = false
+    provider         = "zod-prisma-types"
+    output           = "./zod"
+    createInputTypes = true
+    addIncludeType   = false
+    addSelectType    = false
 }
 
 generator json {
-  provider = "prisma-json-types-generator"
+    provider = "prisma-json-types-generator"
 }
 
 model User {
-  id                 String       @id @default(cuid())
-  name               String
-  email              String
-  emailVerified      Boolean
-  image              String?
-  createdAt          DateTime
-  updatedAt          DateTime
-  username           String?
-  role               String?
-  banned             Boolean?
-  banReason          String?
-  banExpires         DateTime?
-  onboardingComplete Boolean      @default(false)
-  paymentsCustomerId String?
-  locale             String?
-  sessions           Session[]
-  accounts           Account[]
-  passkeys           Passkey[]
-  invitations        Invitation[]
-  purchases          Purchase[]
-  memberships        Member[]
-  aiChats            AiChat[]
+    id                 String       @id @default(cuid())
+    name               String
+    email              String
+    emailVerified      Boolean
+    image              String?
+    createdAt          DateTime
+    updatedAt          DateTime
+    username           String?
+    role               String?
+    banned             Boolean?
+    banReason          String?
+    banExpires         DateTime?
+    onboardingComplete Boolean      @default(false)
+    paymentsCustomerId String?
+    locale             String?
+    twoFactorEnabled   Boolean?
+    sessions           Session[]
+    accounts           Account[]
+    passkeys           Passkey[]
+    invitations        Invitation[]
+    purchases          Purchase[]
+    members            Member[]
+    twofactors         TwoFactor[]
+    aiChats            AiChat[]
 
-  @@unique([email])
-  @@unique([username])
-  @@map("user")
+    @@unique([email])
+    @@unique([username])
+    @@map("user")
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id        String   @id @default(cuid())
+    expiresAt DateTime
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  impersonatedBy String?
+    impersonatedBy String?
 
-  activeOrganizationId String?
+    activeOrganizationId String?
 
-  token     String
-  createdAt DateTime
-  updatedAt DateTime
+    token     String
+    createdAt DateTime
+    updatedAt DateTime
 
-  @@unique([token])
-  @@map("session")
+    @@unique([token])
+    @@map("session")
 }
 
 model Account {
-  id           String    @id @default(cuid())
-  accountId    String
-  providerId   String
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken  String? @db.Text
-  refreshToken String? @db.Text
-  idToken      String? @db.Text
-  expiresAt    DateTime?
-  password     String?
+    id           String    @id @default(cuid())
+    accountId    String
+    providerId   String
+    userId       String
+    user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken  String?   @db.Text
+    refreshToken String?   @db.Text
+    idToken      String?   @db.Text
+    expiresAt    DateTime?
+    password     String?
 
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  createdAt             DateTime
-  updatedAt             DateTime
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    createdAt             DateTime
+    updatedAt             DateTime
 
-  @@map("account")
+    @@map("account")
 }
 
 model Verification {
-  id         String   @id @default(cuid())
-  identifier String
-  value      String   @db.Text
-  expiresAt  DateTime
+    id         String   @id @default(cuid())
+    identifier String
+    value      String   @db.Text
+    expiresAt  DateTime
 
-  createdAt DateTime?
-  updatedAt DateTime?
+    createdAt DateTime?
+    updatedAt DateTime?
 
-  @@map("verification")
+    @@map("verification")
 }
 
 model Passkey {
-  id           String    @id @default(cuid())
-  name         String?
-  publicKey    String
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credentialID String
-  counter      Int
-  deviceType   String
-  backedUp     Boolean
-  transports   String?
-  createdAt    DateTime?
+    id           String    @id @default(cuid())
+    name         String?
+    publicKey    String
+    userId       String
+    user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    credentialID String
+    counter      Int
+    deviceType   String
+    backedUp     Boolean
+    transports   String?
+    createdAt    DateTime?
 
-  @@map("passkey")
+    @@map("passkey")
+}
+
+model TwoFactor {
+    id          String @id @default(cuid())
+    secret      String
+    backupCodes String
+    userId      String
+    user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("twoFactor")
 }
 
 model Organization {
-  id                 String       @id @default(cuid())
-  name               String
-  slug               String?
-  logo               String?
-  createdAt          DateTime
-  metadata           String?
-  paymentsCustomerId String?
-  members            Member[]
-  invitations        Invitation[]
-  purchases          Purchase[]
-  aiChats            AiChat[]
+    id                 String       @id @default(cuid())
+    name               String
+    slug               String?
+    logo               String?
+    createdAt          DateTime
+    metadata           String?
+    paymentsCustomerId String?
+    members            Member[]
+    invitations        Invitation[]
+    purchases          Purchase[]
+    aiChats            AiChat[]
 
-  @@unique([slug])
-  @@map("organization")
+    @@unique([slug])
+    @@map("organization")
 }
 
 model Member {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           String
-  createdAt      DateTime
+    id             String       @id @default(cuid())
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    userId         String
+    user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role           String
+    createdAt      DateTime
 
-  @@unique([organizationId, userId])
-  @@map("member")
+    @@unique([organizationId, userId])
+    @@map("member")
 }
 
 model Invitation {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  email          String
-  role           String?
-  status         String
-  expiresAt      DateTime
-  inviterId      String
-  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+    id             String       @id @default(cuid())
+    organizationId String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    email          String
+    role           String?
+    status         String
+    expiresAt      DateTime
+    inviterId      String
+    user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
 
-  @@map("invitation")
+    @@map("invitation")
 }
 
 enum PurchaseType {
-  SUBSCRIPTION
-  ONE_TIME
+    SUBSCRIPTION
+    ONE_TIME
 }
 
 model Purchase {
-  id             String        @id @default(cuid())
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId String?
-  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String?
-  type           PurchaseType
-  customerId     String
-  subscriptionId String?       @unique
-  productId      String
-  status         String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+    id             String        @id @default(cuid())
+    organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String?
+    user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId         String?
+    type           PurchaseType
+    customerId     String
+    subscriptionId String?       @unique
+    productId      String
+    status         String?
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
 
-  @@index([subscriptionId])
-
-  @@map("purchase")
+    @@index([subscriptionId])
+    @@map("purchase")
 }
 
 model AiChat {
-  id             String        @id @default(cuid())
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String?
-  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title          String?
-  /// [Array<{role: "user" | "assistant"; content: string;}>]
-  messages       Json @default("[]") /// @zod.custom.use(z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })))
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+    id             String        @id @default(cuid())
+    organizationId String?
+    organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    userId         String?
+    user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    title          String?
+    /// [Array<{role: "user" | "assistant"; content: string;}>]
+    messages       Json          @default("[]") /// @zod.custom.use(z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })))
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
 
-  @@map("ai_chat")
+    @@map("ai_chat")
 }

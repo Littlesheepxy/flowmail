@@ -49,7 +49,7 @@ export function ContactForm() {
 		<div>
 			{form.formState.isSubmitSuccessful ? (
 				<Alert variant="success">
-					<MailCheckIcon className="size-6" />
+					<MailCheckIcon />
 					<AlertTitle>
 						{t("contact.form.notifications.success")}
 					</AlertTitle>
@@ -62,7 +62,7 @@ export function ContactForm() {
 					>
 						{form.formState.errors.root?.message && (
 							<Alert variant="error">
-								<MailIcon className="size-6" />
+								<MailIcon />
 								<AlertTitle>
 									{form.formState.errors.root.message}
 								</AlertTitle>

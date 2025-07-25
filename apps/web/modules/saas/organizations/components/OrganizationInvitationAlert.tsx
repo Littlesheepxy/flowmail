@@ -8,7 +8,7 @@ export function OrganizationInvitationAlert({
 	const t = useTranslations();
 	return (
 		<Alert variant="primary" className={className}>
-			<MailCheckIcon className="size-6" />
+			<MailCheckIcon />
 			<AlertTitle>{t("organizations.invitationAlert.title")}</AlertTitle>
 			<AlertDescription>
 				{t("organizations.invitationAlert.description")}

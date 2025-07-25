@@ -110,6 +110,17 @@ export const passkey = sqliteTable("passkey", {
 	createdAt: integer("createdAt", { mode: "timestamp" }),
 });
 
+export const twoFactor = sqliteTable("twoFactor", {
+	id: text("id")
+		.$defaultFn(() => cuid())
+		.primaryKey(),
+	secret: text("secret").notNull(),
+	backupCodes: text("backupCodes").notNull(),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+});
+
 export const organization = sqliteTable(
 	"organization",
 	{
@@ -213,6 +224,7 @@ export const userRelations = relations(user, ({ many }) => ({
 	purchases: many(purchase),
 	memberships: many(member),
 	aiChats: many(aiChat),
+	twoFactors: many(twoFactor),
 }));
 
 export const organizationRelations = relations(organization, ({ many }) => ({

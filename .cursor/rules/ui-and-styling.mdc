@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+This rule describes guidelines for creating UI and styling components:
+
+- Use Shadcn UI, Radix, and Tailwind for components and styling.
+- Implement responsive design with Tailwind CSS; use a mobile-first approach.
+- Use the `cn` function for class name concatenation.
+- The global theme variables and tailwind config are defined in `tooling/tailwind/theme.css`.

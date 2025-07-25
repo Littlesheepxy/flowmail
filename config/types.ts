@@ -1,4 +1,5 @@
 export type Config = {
+	appName: string;
 	i18n: {
 		enabled: boolean;
 		locales: { [locale: string]: { currency: string; label: string } };
@@ -24,6 +25,7 @@ export type Config = {
 		enableSocialLogin: boolean;
 		enablePasskeys: boolean;
 		enablePasswordLogin: boolean;
+		enableTwoFactor: boolean;
 		redirectAfterSignIn: string;
 		redirectAfterLogout: string;
 		sessionCookieMaxAge: number;

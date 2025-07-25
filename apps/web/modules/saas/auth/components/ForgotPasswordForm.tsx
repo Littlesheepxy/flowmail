@@ -7,16 +7,17 @@ import { Input } from "@ui/components/input";
 import { AlertTriangleIcon, ArrowLeftIcon, MailboxIcon } from "lucide-react";
 
 import { authClient } from "@repo/auth/client";
+import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
 	FormLabel,
+	FormMessage,
 } from "@ui/components/form";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -28,10 +29,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function ForgotPasswordForm() {
 	const t = useTranslations();
-	const [serverError, setServerError] = useState<null | {
-		title: string;
-		message: string;
-	}>(null);
+	const { getAuthErrorMessage } = useAuthErrorMessages();
 
 	const form = useForm<FormValues>({
 		resolver: zodResolver(formSchema),
@@ -56,16 +54,19 @@ export function ForgotPasswordForm() {
 				throw error;
 			}
 		} catch (e) {
-			setServerError({
-				title: t("auth.forgotPassword.hints.linkNotSent.title"),
-				message: t("auth.forgotPassword.hints.linkNotSent.message"),
+			form.setError("root", {
+				message: getAuthErrorMessage(
+					e && typeof e === "object" && "code" in e
+						? (e.code as string)
+						: undefined,
+				),
 			});
 		}
 	});
 
 	return (
 		<>
-			<h1 className="font-extrabold text-2xl md:text-3xl">
+			<h1 className="font-bold text-xl md:text-2xl">
 				{t("auth.forgotPassword.title")}
 			</h1>
 			<p className="mt-1 mb-6 text-foreground/60">
@@ -74,7 +75,7 @@ export function ForgotPasswordForm() {
 
 			{form.formState.isSubmitSuccessful ? (
 				<Alert variant="success">
-					<MailboxIcon className="size-6" />
+					<MailboxIcon />
 					<AlertTitle>
 						{t("auth.forgotPassword.hints.linkSent.title")}
 					</AlertTitle>
@@ -88,6 +89,15 @@ export function ForgotPasswordForm() {
 						className="flex flex-col items-stretch gap-4"
 						onSubmit={onSubmit}
 					>
+						{form.formState.errors.root && (
+							<Alert variant="error">
+								<AlertTriangleIcon />
+								<AlertTitle>
+									{form.formState.errors.root.message}
+								</AlertTitle>
+							</Alert>
+						)}
+
 						<FormField
 							control={form.control}
 							name="email"
@@ -102,19 +112,10 @@ export function ForgotPasswordForm() {
 											autoComplete="email"
 										/>
 									</FormControl>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
-
-						{form.formState.isSubmitted && serverError && (
-							<Alert variant="error">
-								<AlertTriangleIcon className="size-6" />
-								<AlertTitle>{serverError.title}</AlertTitle>
-								<AlertDescription>
-									{serverError.message}
-								</AlertDescription>
-							</Alert>
-						)}
 
 						<Button loading={form.formState.isSubmitting}>
 							{t("auth.forgotPassword.submit")}

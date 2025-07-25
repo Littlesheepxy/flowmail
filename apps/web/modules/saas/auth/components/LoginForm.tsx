@@ -91,12 +91,22 @@ export function LoginForm() {
 	const onSubmit: SubmitHandler<FormValues> = async (values) => {
 		try {
 			if (values.mode === "password") {
-				const { error } = await authClient.signIn.email({
+				const { data, error } = await authClient.signIn.email({
 					...values,
 				});
 
 				if (error) {
 					throw error;
+				}
+
+				if ((data as any).twoFactorRedirect) {
+					router.replace(
+						withQuery(
+							"/auth/verify",
+							Object.fromEntries(searchParams.entries()),
+						),
+					);
+					return;
 				}
 
 				queryClient.invalidateQueries({
@@ -145,7 +155,7 @@ export function LoginForm() {
 
 	return (
 		<div>
-			<h1 className="font-extrabold text-2xl md:text-3xl">
+			<h1 className="font-bold text-xl md:text-2xl">
 				{t("auth.login.title")}
 			</h1>
 			<p className="mt-1 mb-6 text-foreground/60">
@@ -155,7 +165,7 @@ export function LoginForm() {
 			{form.formState.isSubmitSuccessful &&
 			signinMode === "magic-link" ? (
 				<Alert variant="success">
-					<MailboxIcon className="size-6" />
+					<MailboxIcon />
 					<AlertTitle>
 						{t("auth.login.hints.linkSent.title")}
 					</AlertTitle>
@@ -190,7 +200,7 @@ export function LoginForm() {
 							{form.formState.isSubmitted &&
 								form.formState.errors.root?.message && (
 									<Alert variant="error">
-										<AlertTriangleIcon className="size-6" />
+										<AlertTriangleIcon />
 										<AlertTitle>
 											{form.formState.errors.root.message}
 										</AlertTitle>

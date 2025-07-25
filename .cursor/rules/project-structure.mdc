@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+This rule describes the basic project structure of the repository and where to find or add certain parts of the application:
+
+- The main application is in the `packages/app` directory which is a Next.js App Router. Put all frontend-only code in this directory.
+- Put all backend logic into one of the `packages` directories:
+  - `packages/ai` contains all AI-related code
+  - `packages/api` contains all API routes
+  - `packages/auth` contains the config for better-auth and helper functions
+  - `packages/database` contains the database schema and auto-generated types
+  - `packages/i18n` contains translations and internationalization helper functions
+  - `packages/logs` contains the logging config and helper functions
+  - `packages/mail` contains providers for sending mails and email templates
+  - `packages/payments` contains code for payment providers and payment processing
+  - `packages/storage` contains providers for storing files and images
+  - `packages/utils` contains utility functions
+  - `config` contains the application configuration

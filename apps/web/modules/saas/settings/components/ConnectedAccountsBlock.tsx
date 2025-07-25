@@ -4,8 +4,8 @@ import {
 	type OAuthProvider,
 	oAuthProviders,
 } from "@saas/auth/constants/oauth-providers";
+import { useUserAccountsQuery } from "@saas/auth/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import { Skeleton } from "@ui/components/skeleton";
 import { CheckCircle2Icon, LinkIcon } from "lucide-react";
@@ -14,18 +14,7 @@ import { useTranslations } from "next-intl";
 export function ConnectedAccountsBlock() {
 	const t = useTranslations();
 
-	const { data, isPending } = useQuery({
-		queryKey: ["userAccounts"],
-		queryFn: async () => {
-			const { data, error } = await authClient.listAccounts();
-
-			if (error) {
-				throw error;
-			}
-
-			return data;
-		},
-	});
+	const { data, isPending } = useUserAccountsQuery();
 
 	const isProviderLinked = (provider: OAuthProvider) =>
 		data?.some((account) => account.provider === provider);

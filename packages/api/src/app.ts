@@ -1,4 +1,5 @@
 import { auth } from "@repo/auth";
+import { config } from "@repo/config";
 import { getBaseUrl } from "@repo/utils";
 import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
@@ -41,7 +42,7 @@ app.get(
 	openAPISpecs(app, {
 		documentation: {
 			info: {
-				title: "supastarter API",
+				title: `${config.appName} API`,
 				version: "1.0.0",
 			},
 			servers: [

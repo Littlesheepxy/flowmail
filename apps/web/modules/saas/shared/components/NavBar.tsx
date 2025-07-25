@@ -54,14 +54,13 @@ export function NavBar() {
 						isActive: pathname.startsWith(`${basePath}/settings/`),
 					},
 				]
-			: [
-					{
-						label: t("app.menu.accountSettings"),
-						href: "/app/settings",
-						icon: UserCog2Icon,
-						isActive: pathname.startsWith("/app/settings/"),
-					},
-				]),
+			: []),
+		{
+			label: t("app.menu.accountSettings"),
+			href: "/app/settings",
+			icon: UserCog2Icon,
+			isActive: pathname.startsWith("/app/settings/"),
+		},
 		...(user?.role === "admin"
 			? [
 					{

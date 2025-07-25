@@ -106,7 +106,7 @@ export function OrganizationLogoForm() {
 
 				{uploading && (
 					<div className="absolute inset-0 z-20 flex items-center justify-center bg-card/90">
-						<Spinner className="size-6" />
+						<Spinner />
 					</div>
 				)}
 			</div>

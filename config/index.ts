@@ -1,6 +1,7 @@
 import type { Config } from "./types";
 
 export const config = {
+	appName: "supastarter for Next.js Demo",
 	// Internationalization
 	i18n: {
 		// Whether internationalization should be enabled (if disabled, you still need to define the locale you want to use below and set it as the default locale)
@@ -64,6 +65,8 @@ export const config = {
 		enablePasskeys: true,
 		// Whether users should be able to sign in with a password
 		enablePasswordLogin: true,
+		// Whether users should be activate two factor authentication
+		enableTwoFactor: true,
 		// where users should be redirected after the sign in
 		redirectAfterSignIn: "/app",
 		// where users should be redirected after logout

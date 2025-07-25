@@ -109,6 +109,17 @@ export const passkey = pgTable("passkey", {
 	createdAt: timestamp("createdAt"),
 });
 
+export const twoFactor = pgTable("twoFactor", {
+	id: varchar("id", { length: 255 })
+		.$defaultFn(() => cuid())
+		.primaryKey(),
+	secret: text("secret").notNull(),
+	backupCodes: text("backupCodes").notNull(),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+});
+
 export const organization = pgTable(
 	"organization",
 	{
@@ -213,6 +224,7 @@ export const userRelations = relations(user, ({ many }) => ({
 	purchases: many(purchase),
 	memberships: many(member),
 	aiChats: many(aiChat),
+	twoFactors: many(twoFactor),
 }));
 
 export const organizationRelations = relations(organization, ({ many }) => ({

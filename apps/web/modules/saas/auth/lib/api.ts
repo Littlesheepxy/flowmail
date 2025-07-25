@@ -27,13 +27,28 @@ export const useSessionQuery = () => {
 	});
 };
 
-const listAccountQueryKey = ["user", "accounts"] as const;
-
+export const userAccountQueryKey = ["user", "accounts"] as const;
 export const useUserAccountsQuery = () => {
 	return useQuery({
-		queryKey: listAccountQueryKey,
+		queryKey: userAccountQueryKey,
 		queryFn: async () => {
 			const { data, error } = await authClient.listAccounts();
+
+			if (error) {
+				throw error;
+			}
+
+			return data;
+		},
+	});
+};
+
+export const userPasskeyQueryKey = ["user", "passkeys"] as const;
+export const useUserPasskeysQuery = () => {
+	return useQuery({
+		queryKey: userPasskeyQueryKey,
+		queryFn: async () => {
+			const { data, error } = await authClient.passkey.listUserPasskeys();
 
 			if (error) {
 				throw error;

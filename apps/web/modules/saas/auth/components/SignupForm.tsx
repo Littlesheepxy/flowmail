@@ -117,7 +117,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 
 	return (
 		<div>
-			<h1 className="font-bold text-2xl md:text-3xl">
+			<h1 className="font-bold text-xl md:text-2xl">
 				{t("auth.signup.title")}
 			</h1>
 			<p className="mt-1 mb-6 text-foreground/60">
@@ -126,7 +126,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 
 			{form.formState.isSubmitSuccessful && !invitationOnlyMode ? (
 				<Alert variant="success">
-					<MailboxIcon className="size-6" />
+					<MailboxIcon />
 					<AlertTitle>
 						{t("auth.signup.hints.verifyEmail")}
 					</AlertTitle>
@@ -145,7 +145,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 							{form.formState.isSubmitted &&
 								form.formState.errors.root && (
 									<Alert variant="error">
-										<AlertTriangleIcon className="size-6" />
+										<AlertTriangleIcon />
 										<AlertDescription>
 											{form.formState.errors.root.message}
 										</AlertDescription>

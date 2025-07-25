@@ -45,7 +45,7 @@ export function OrganizationsGrid() {
 						href="/app/new-organization"
 						className="flex h-full items-center justify-center gap-2 rounded-2xl bg-primary/5 p-4 text-primary transition-colors duration-150 hover:bg-primary/10"
 					>
-						<PlusCircleIcon className="size-6" />
+						<PlusCircleIcon />
 						<span className="font-medium text-sm">
 							{t(
 								"organizations.organizationsGrid.createNewOrganization",

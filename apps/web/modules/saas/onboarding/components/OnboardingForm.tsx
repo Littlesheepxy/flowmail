@@ -44,7 +44,7 @@ export function OnboardingForm() {
 
 	return (
 		<div>
-			<h1 className="font-bold text-2xl md:text-3xl">
+			<h1 className="font-bold text-xl md:text-2xl">
 				{t("onboarding.title")}
 			</h1>
 			<p className="mt-2 mb-6 text-foreground/60">

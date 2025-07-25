@@ -176,6 +176,13 @@
 			"signIn": "Anmelden",
 			"submit": "Benutzerkonto erstellen",
 			"title": "Ein Konto erstellen"
+		},
+		"verify": {
+			"backToSignin": "Zurück zur Anmeldung",
+			"code": "Einmaliges Passwort",
+			"message": "Gib das Einmalpasswort aus deiner Authentifizierungs-App ein, um fortzufahren.",
+			"submit": "Verifizieren",
+			"title": "Verifiziere dein Konto"
 		}
 	},
 	"blog": {
@@ -204,6 +211,10 @@
 		},
 		"tableOfContents": {
 			"title": "Auf dieser Seite"
+		},
+		"actions": {
+			"continue": "Weiter",
+			"verify": "Überprüfen Sie"
 		}
 	},
 	"contact": {
@@ -548,7 +559,8 @@
 						"revokeSession": {
 							"success": "Session beendet"
 						}
-					}
+					},
+					"currentSession": "Aktuelle Sitzung"
 				},
 				"changePassword": {
 					"currentPassword": "Aktuelles Passwort",
@@ -592,13 +604,49 @@
 				"setPassword": {
 					"description": "Du hast noch kein Passwort festgelegt. Um ein solches festzulegen, musst du den Ablauf der Passwortrücksetzung durchlaufen. Klicke auf die Schaltfläche unten, um eine E-Mail zum Zurücksetzen deines Passworts zu senden, und folge den Anweisungen in der E-Mail.",
 					"notifications": {
-						"error": "Passwort konnte nicht gesetzt werden",
-						"success": "Passwort wurde erfolgreich gesetzt"
+						"error": "Der Link zum Festlegen des Passworts konnte nicht gesendet werden. Bitte versuche es erneut.",
+						"success": "Prüfen deinen Posteingang auf den Link, um Ihr Passwort festzulegen."
 					},
 					"submit": "Passwort festlegen",
 					"title": "Dein Passwort"
 				},
-				"title": "Sicherheit"
+				"title": "Sicherheit",
+				"twoFactor": {
+					"description": "Füge deinem Konto eine zusätzliche Sicherheitsebene hinzu.",
+					"dialog": {
+						"password": {
+							"description": "Bitte verifiziere dein Konto, indem du dein Passwort eingibst:",
+							"label": "Dein Passwort:",
+							"title": "Mit Passwort verifizieren"
+						},
+						"totpUrl": {
+							"code": "Geben Sie den 6-stelligen Code ein, um die Einrichtung zu bestätigen:",
+							"description": "Verwende deine bevorzugte Authentifizierungs-App und scanne den QR-Code damit oder gib das unten stehende Geheimnis manuell ein, um die Zwei-Faktor-Authentifizierung einzurichten.",
+							"title": "Zwei-Faktor-Authentifizierung aktivieren"
+						}
+					},
+					"disable": "Zwei-Faktor-Authentifizierung deaktivieren",
+					"enable": "Zwei-Faktor-Authentifizierung aktivieren",
+					"enabled": "Du hast die Zwei-Faktor-Authentifizierung für dein Konto aktiviert.",
+					"notifications": {
+						"disable": {
+							"success": {
+								"title": "Die Zwei-Faktor-Authentifizierung wurde erfolgreich deaktiviert."
+							}
+						},
+						"enable": {
+							"error": {
+								"title": "Dein Konto konnte mit dem angegebenen Passwort nicht verifiziert werden. Bitte versuche es erneut."
+							}
+						},
+						"verify": {
+							"success": {
+								"title": "Die Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert."
+							}
+						}
+					},
+					"title": "Zwei-Faktor-Authentifizierung"
+				}
 			},
 			"subtitle": "Verwalte die Einstellungen deines persönlichen Kontos.",
 			"title": "Kontoeinstellungen"

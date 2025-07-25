@@ -71,7 +71,7 @@ export function CreateOrganizationForm({
 
 	return (
 		<div className="mx-auto w-full max-w-md">
-			<h1 className="font-extrabold text-2xl md:text-3xl">
+			<h1 className="font-bold text-xl md:text-2xl">
 				{t("organizations.createForm.title")}
 			</h1>
 			<p className="mt-2 mb-6 text-foreground/60">

@@ -1,4 +1,5 @@
 import { LocaleLink } from "@i18n/routing";
+import { config } from "@repo/config";
 import { Logo } from "@shared/components/Logo";
 
 export function Footer() {
@@ -8,9 +9,11 @@ export function Footer() {
 				<div>
 					<Logo className="opacity-70 grayscale" />
 					<p className="mt-3 text-sm opacity-70">
+						© {new Date().getFullYear()} {config.appName}.{" "}
 						<a href="https://supastarter.dev">
 							Built with supastarter
 						</a>
+						.
 					</p>
 				</div>
 

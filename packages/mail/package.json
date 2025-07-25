@@ -6,10 +6,10 @@
 		"@repo/i18n": "workspace:*",
 		"@repo/logs": "workspace:*",
 		"next-intl": "4.0.2",
-		"nodemailer": "^6.10.0",
+		"nodemailer": "^6.10.1",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
-		"react-email": "^4.0.6",
+		"react-email": "^4.0.7",
 		"use-intl": "^4.0.2"
 	},
 	"devDependencies": {
@@ -18,7 +18,7 @@
 		"@tailwindcss/line-clamp": "^0.4.4",
 		"@types/node": "22.14.1",
 		"@types/nodemailer": "^6.4.17",
-		"@types/react": "19.1.1"
+		"@types/react": "19.1.2"
 	},
 	"main": "./index.ts",
 	"name": "@repo/mail",

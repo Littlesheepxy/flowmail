@@ -176,6 +176,13 @@
 			"signIn": "Sign in",
 			"submit": "Create account",
 			"title": "Create an account"
+		},
+		"verify": {
+			"title": "Verify your account",
+			"code": "One-time password",
+			"submit": "Verify",
+			"backToSignin": "Back to login",
+			"message": "Enter the one-time password from your authenticator app to continue."
 		}
 	},
 	"blog": {
@@ -204,6 +211,10 @@
 		},
 		"tableOfContents": {
 			"title": "On this page"
+		},
+		"actions": {
+			"continue": "Continue",
+			"verify": "Verify"
 		}
 	},
 	"contact": {
@@ -551,7 +562,8 @@
 						"revokeSession": {
 							"success": "Session revoked"
 						}
-					}
+					},
+					"currentSession": "Current session"
 				},
 				"changePassword": {
 					"currentPassword": "Current password",
@@ -595,13 +607,49 @@
 				"setPassword": {
 					"description": "You have not set a password yet. To set one, you need to go through the password reset flow. Click the button below to send an email to reset your password and follow the instructions in the email.",
 					"notifications": {
-						"error": "Could not set password",
-						"success": "Password was set successfully"
+						"error": "Could not send link to set password. Please try again.",
+						"success": "Check your inbox for the link to set your password."
 					},
 					"submit": "Set password",
 					"title": "Your password"
 				},
-				"title": "Security"
+				"title": "Security",
+				"twoFactor": {
+					"title": "Two-factor authentication",
+					"description": "Add an extra layer of security to your account.",
+					"dialog": {
+						"password": {
+							"title": "Verify with password",
+							"description": "Please verify your account by entering your password:",
+							"label": "Your password:"
+						},
+						"totpUrl": {
+							"description": "Use your preferred authenticator app and scan the QR code with it or enter the secret below manually to set up two-factor authentication.",
+							"code": "Enter 6-digit code to verify the setup:",
+							"title": "Enable two-factor authentication"
+						}
+					},
+					"enable": "Enable two-factor authentication",
+					"notifications": {
+						"verify": {
+							"success": {
+								"title": "Two-factor authentication has been enabled successfully."
+							}
+						},
+						"enable": {
+							"error": {
+								"title": "Could not verify your account with the provided password. Please try again."
+							}
+						},
+						"disable": {
+							"success": {
+								"title": "Two-factor authentication has been disabled successfully."
+							}
+						}
+					},
+					"disable": "Disable two-factor authentication",
+					"enabled": "You have two-factor authentication enabled for your account."
+				}
 			},
 			"subtitle": "Manage the settings of your personal account.",
 			"title": "Account settings"

@@ -1,7 +1,8 @@
 "use client";
 import { authClient } from "@repo/auth/client";
+import { useUserPasskeysQuery } from "@saas/auth/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import { Skeleton } from "@ui/components/skeleton";
 import { KeyIcon, PlusIcon, TrashIcon } from "lucide-react";
@@ -13,18 +14,7 @@ export function PasskeysBlock() {
 	const queryClient = useQueryClient();
 	const formatter = useFormatter();
 
-	const { data: passkeys, isPending } = useQuery({
-		queryKey: ["passkeys"],
-		queryFn: async () => {
-			const { data, error } = await authClient.passkey.listUserPasskeys();
-
-			if (error) {
-				throw error;
-			}
-
-			return data;
-		},
-	});
+	const { data: passkeys, isPending } = useUserPasskeysQuery();
 
 	const addPasskey = async () => {
 		await authClient.passkey.addPasskey({
@@ -111,10 +101,13 @@ export function PasskeysBlock() {
 						</div>
 					))
 				)}
-				<Button className="w-full" variant="light" onClick={addPasskey}>
-					<PlusIcon className="mr-1.5 size-4" />
-					Add passkey
-				</Button>
+
+				<div className="flex justify-start">
+					<Button variant="light" onClick={addPasskey}>
+						<PlusIcon className="mr-1.5 size-4" />
+						Add passkey
+					</Button>
+				</div>
 			</div>
 		</SettingsItem>
 	);

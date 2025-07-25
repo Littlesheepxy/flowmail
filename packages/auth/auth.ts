@@ -13,6 +13,7 @@ import {
 	magicLink,
 	openAPI,
 	organization,
+	twoFactor,
 	username,
 } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
@@ -33,6 +34,7 @@ const appUrl = getBaseUrl();
 export const auth = betterAuth({
 	baseURL: appUrl,
 	trustedOrigins: [appUrl],
+	appName: config.appName,
 	database: prismaAdapter(db, {
 		provider: "postgresql",
 	}),
@@ -207,6 +209,7 @@ export const auth = betterAuth({
 		}),
 		openAPI(),
 		invitationOnlyPlugin(),
+		twoFactor(),
 	],
 	onAPIError: {
 		onError(error, ctx) {

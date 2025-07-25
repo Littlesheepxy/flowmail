@@ -1,5 +1,6 @@
 "use client";
 import { authClient } from "@repo/auth/client";
+import { useSession } from "@saas/auth/hooks/use-session";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useRouter } from "@shared/hooks/router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ export function ActiveSessionsBlock() {
 	const t = useTranslations();
 	const router = useRouter();
 	const queryClient = useQueryClient();
+	const { session: currentSession } = useSession();
 
 	const { data: sessions, isPending } = useQuery({
 		queryKey: ["active-sessions"],
@@ -79,7 +81,11 @@ export function ActiveSessionsBlock() {
 								<ComputerIcon className="size-6 shrink-0 text-primary/50" />
 								<div>
 									<strong className="block text-sm">
-										{session.ipAddress}
+										{session.id === currentSession?.id
+											? t(
+													"settings.account.security.activeSessions.currentSession",
+												)
+											: session.ipAddress}
 									</strong>
 									<small className="block text-foreground/60 text-xs leading-tight">
 										{session.userAgent}

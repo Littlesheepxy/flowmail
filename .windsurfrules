@@ -20,6 +20,7 @@ Project Structure
   - `packages/payments` contains code for payment providers and payment processing
   - `packages/storage` contains providers for storing files and images
   - `packages/utils` contains utility functions
+  - `config` contains the application configuration
 
 Naming Conventions
 - Use lowercase with dashes for directories (e.g., components/auth-wizard).
