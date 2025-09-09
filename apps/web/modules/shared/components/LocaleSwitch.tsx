@@ -13,8 +13,8 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu";
 import { LanguagesIcon } from "lucide-react";
-import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useState } from "react";
 
 const { locales } = config.i18n;
@@ -47,7 +47,7 @@ export function LocaleSwitch({
 
 						if (withLocaleInUrl) {
 							localeRouter.replace(
-								`/${localePathname}?${searchParams.toString()}`,
+								`${localePathname}?${searchParams.toString()}`,
 								{
 									locale: value,
 								},

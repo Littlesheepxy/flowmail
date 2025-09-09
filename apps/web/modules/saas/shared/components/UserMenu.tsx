@@ -29,9 +29,9 @@ import {
 	SettingsIcon,
 	SunIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
-import Link from "next/link";
 import { useState } from "react";
 
 export function UserMenu({ showUserName }: { showUserName?: boolean }) {

@@ -1,10 +1,6 @@
 import React from "react";
 
-export function Logo({
-	withLabel = true,
-}: {
-	withLabel?: boolean;
-}) {
+export function Logo({ withLabel = true }: { withLabel?: boolean }) {
 	return (
 		<span className="flex items-center font-semibold text-primary leading-none">
 			<svg className="h-12 w-12" viewBox="0 0 734 635">

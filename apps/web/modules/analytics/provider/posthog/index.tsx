@@ -18,6 +18,8 @@ export function AnalyticsScript() {
 			person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well
 		});
 	}, []);
+
+	return null;
 }
 
 export function useAnalytics() {

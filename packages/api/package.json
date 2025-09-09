@@ -1,5 +1,10 @@
 {
 	"dependencies": {
+		"@orpc/client": "^1.8.3",
+		"@orpc/json-schema": "^1.8.3",
+		"@orpc/openapi": "^1.8.3",
+		"@orpc/server": "^1.8.3",
+		"@orpc/zod": "^1.8.3",
 		"@repo/ai": "workspace:*",
 		"@repo/auth": "workspace:*",
 		"@repo/config": "workspace:*",
@@ -10,23 +15,22 @@
 		"@repo/payments": "workspace:*",
 		"@repo/storage": "workspace:*",
 		"@repo/utils": "workspace:*",
-		"@scalar/hono-api-reference": "^0.8.2",
+		"@scalar/hono-api-reference": "^0.9.13",
 		"@sindresorhus/slugify": "^2.2.1",
-		"hono": "^4.7.7",
-		"hono-openapi": "^0.4.6",
+		"cookie": "^1.0.2",
+		"hono": "^4.9.4",
 		"nanoid": "^5.1.5",
-		"openai": "^4.95.0",
+		"openai": "^5.15.0",
 		"openapi-merge": "^1.3.3",
-		"use-intl": "^4.0.2",
-		"zod": "^3.24.3"
+		"use-intl": "^4.3.5",
+		"zod": "^4.0.17"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
+		"@biomejs/biome": "2.2.0",
 		"@repo/tsconfig": "workspace:*",
-		"@types/react": "19.1.2",
+		"@types/react": "19.1.11",
 		"encoding": "^0.1.13",
-		"prisma": "^6.6.0",
-		"typescript": "5.8.3"
+		"typescript": "5.9.2"
 	},
 	"main": "./index.ts",
 	"name": "@repo/api",

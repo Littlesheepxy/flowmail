@@ -58,7 +58,7 @@ export function OrganizationInvitationModal({
 
 				router.replace("/app");
 			}
-		} catch (error) {
+		} catch {
 			// TODO: handle error
 		} finally {
 			setSubmitting(false);

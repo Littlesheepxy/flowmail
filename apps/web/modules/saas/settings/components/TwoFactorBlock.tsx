@@ -87,7 +87,7 @@ export function TwoFactorBlock() {
 	const disableTwoFactorMutation = useMutation({
 		mutationKey: ["disableTwoFactor"],
 		mutationFn: async () => {
-			const { data, error } = await authClient.twoFactor.disable({
+			const { error } = await authClient.twoFactor.disable({
 				password,
 			});
 
@@ -243,7 +243,7 @@ export function TwoFactorBlock() {
 									)}
 								</p>
 								<Card className="flex flex-col items-center gap-4 p-6">
-									<QRCode value={totpURI} />
+									<QRCode title={totpURI} value={totpURI} />
 
 									{totpURISecret && (
 										<p className="text-xs text-muted-foreground text-center">

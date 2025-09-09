@@ -8,6 +8,7 @@ import {
 import { logger } from "@repo/logs";
 import { joinURL } from "ufo";
 import type {
+	CancelSubscription,
 	CreateCheckoutLink,
 	CreateCustomerPortalLink,
 	SetSubscriptionSeats,
@@ -102,6 +103,12 @@ export const setSubscriptionSeats: SetSubscriptionSeats = async ({
 				},
 			],
 		}),
+	});
+};
+
+export const cancelSubscription: CancelSubscription = async (id) => {
+	await creemFetch(`/subscriptions/${id}/cancel`, {
+		method: "POST",
 	});
 };
 

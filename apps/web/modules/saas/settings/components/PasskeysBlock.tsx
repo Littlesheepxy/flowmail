@@ -66,16 +66,14 @@ export function PasskeysBlock() {
 		>
 			<div className="grid grid-cols-1 gap-2">
 				{isPending ? (
-					<>
-						<div className="flex gap-2">
-							<Skeleton className="size-6 shrink-0" />
-							<div className="flex-1">
-								<Skeleton className="mb-0.5 h-4 w-full" />
-								<Skeleton className="h-8 w-full" />
-							</div>
-							<Skeleton className="size-9 shrink-0" />
+					<div className="flex gap-2">
+						<Skeleton className="size-6 shrink-0" />
+						<div className="flex-1">
+							<Skeleton className="mb-0.5 h-4 w-full" />
+							<Skeleton className="h-8 w-full" />
 						</div>
-					</>
+						<Skeleton className="size-9 shrink-0" />
+					</div>
 				) : (
 					passkeys?.map((passkey) => (
 						<div key={passkey.id} className="flex gap-2">

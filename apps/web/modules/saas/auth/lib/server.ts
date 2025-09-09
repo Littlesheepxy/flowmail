@@ -25,7 +25,7 @@ export const getActiveOrganization = cache(async (slug: string) => {
 		});
 
 		return activeOrganization;
-	} catch (error) {
+	} catch {
 		return null;
 	}
 });
@@ -37,7 +37,7 @@ export const getOrganizationList = cache(async () => {
 		});
 
 		return organizationList;
-	} catch (error) {
+	} catch {
 		return [];
 	}
 });
@@ -49,7 +49,7 @@ export const getUserAccounts = cache(async () => {
 		});
 
 		return userAccounts;
-	} catch (error) {
+	} catch {
 		return [];
 	}
 });
@@ -61,7 +61,7 @@ export const getUserPasskeys = cache(async () => {
 		});
 
 		return userPasskeys;
-	} catch (error) {
+	} catch {
 		return [];
 	}
 });
@@ -69,7 +69,7 @@ export const getUserPasskeys = cache(async () => {
 export const getInvitation = cache(async (id: string) => {
 	try {
 		return await getInvitationById(id);
-	} catch (error) {
+	} catch {
 		return null;
 	}
 });

@@ -22,6 +22,8 @@ export type SetSubscriptionSeats = (params: {
 	seats: number;
 }) => Promise<void>;
 
+export type CancelSubscription = (id: string) => Promise<void>;
+
 export type WebhookHandler = (req: Request) => Promise<Response>;
 
 export type PaymentProvider = {

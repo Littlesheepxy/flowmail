@@ -5,18 +5,13 @@ datasource db {
 
 generator client {
     provider = "prisma-client-js"
+    output   = "./generated/client"
 }
 
 generator zod {
-    provider         = "zod-prisma-types"
-    output           = "./zod"
-    createInputTypes = true
-    addIncludeType   = false
-    addSelectType    = false
-}
-
-generator json {
-    provider = "prisma-json-types-generator"
+    provider = "prisma-zod-generator"
+    output   = "./zod"
+    config   = "./zod-generator.config.json"
 }
 
 model User {
@@ -203,8 +198,8 @@ model AiChat {
     userId         String?
     user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
     title          String?
-    /// [Array<{role: "user" | "assistant"; content: string;}>]
-    messages       Json          @default("[]") /// @zod.custom.use(z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })))
+    /// [ChatMessages]
+    messages       Json          @default("[]")
     createdAt      DateTime      @default(now())
     updatedAt      DateTime      @updatedAt
 

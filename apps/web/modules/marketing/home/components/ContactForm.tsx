@@ -1,11 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useContactFormMutation } from "@marketing/home/lib/api";
 import {
 	type ContactFormValues,
 	contactFormSchema,
-} from "@repo/api/src/routes/contact/types";
+} from "@repo/api/modules/contact/types";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation } from "@tanstack/react-query";
 import { Alert, AlertTitle } from "@ui/components/alert";
 import { Button } from "@ui/components/button";
 import {
@@ -24,7 +25,9 @@ import { useForm } from "react-hook-form";
 
 export function ContactForm() {
 	const t = useTranslations();
-	const contactFormMutation = useContactFormMutation();
+	const contactFormMutation = useMutation(
+		orpc.contact.submit.mutationOptions(),
+	);
 
 	const form = useForm<ContactFormValues>({
 		resolver: zodResolver(contactFormSchema),

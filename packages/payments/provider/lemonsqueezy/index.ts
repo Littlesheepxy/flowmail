@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
+	cancelSubscription as cancelSubscriptionResolver,
 	createCheckout,
 	getCustomer,
 	getSubscription,
@@ -14,6 +15,7 @@ import {
 } from "@repo/database";
 import { setCustomerIdToEntity } from "../../src/lib/customer";
 import type {
+	CancelSubscription,
 	CreateCheckoutLink,
 	CreateCustomerPortalLink,
 	SetSubscriptionSeats,
@@ -29,7 +31,7 @@ function initLemonsqueezyApi() {
 export const createCheckoutLink: CreateCheckoutLink = async (options) => {
 	initLemonsqueezyApi();
 
-	const { customerId, seats, productId, redirectUrl, email, name } = options;
+	const { seats, productId, redirectUrl, email, name } = options;
 
 	const response = await createCheckout(
 		String(process.env.LEMONSQUEEZY_STORE_ID),
@@ -37,14 +39,14 @@ export const createCheckoutLink: CreateCheckoutLink = async (options) => {
 		{
 			productOptions: {
 				redirectUrl,
-				enabledVariants: [Number.parseInt(productId)],
+				enabledVariants: [Number.parseInt(productId, 10)],
 			},
 			checkoutData: {
 				email,
 				name,
 				variantQuantities: [
 					{
-						variantId: Number.parseInt(productId),
+						variantId: Number.parseInt(productId, 10),
 						quantity: seats ?? 1,
 					},
 				],
@@ -97,6 +99,12 @@ export const setSubscriptionSeats: SetSubscriptionSeats = async ({
 	await updateSubscriptionItem(subscriptionItem.id, {
 		quantity: seats,
 	});
+};
+
+export const cancelSubscription: CancelSubscription = async (id) => {
+	initLemonsqueezyApi();
+
+	await cancelSubscriptionResolver(id);
 };
 
 export const webhookHandler: WebhookHandler = async (req: Request) => {

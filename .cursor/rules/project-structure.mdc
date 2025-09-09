@@ -5,7 +5,7 @@ alwaysApply: true
 ---
 This rule describes the basic project structure of the repository and where to find or add certain parts of the application:
 
-- The main application is in the `packages/app` directory which is a Next.js App Router. Put all frontend-only code in this directory.
+- The main application is in the `apps/web/app` directory which is a Next.js App Router. Put all frontend-only code in this directory.
 - Put all backend logic into one of the `packages` directories:
   - `packages/ai` contains all AI-related code
   - `packages/api` contains all API routes

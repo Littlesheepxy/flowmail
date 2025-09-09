@@ -5,9 +5,9 @@ import { config } from "@repo/config";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { organizationListQueryKey } from "@saas/organizations/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { useSignedUploadUrlMutation } from "@saas/shared/lib/api";
 import { Spinner } from "@shared/components/Spinner";
-import { useQueryClient } from "@tanstack/react-query";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -24,7 +24,9 @@ export function OrganizationLogoForm() {
 	const { activeOrganization, refetchActiveOrganization } =
 		useActiveOrganization();
 	const queryClient = useQueryClient();
-	const getSignedUploadUrlMutation = useSignedUploadUrlMutation();
+	const getSignedUploadUrlMutation = useMutation(
+		orpc.organizations.createLogoUploadUrl.mutationOptions(),
+	);
 
 	const { getRootProps, getInputProps } = useDropzone({
 		onDrop: (acceptedFiles) => {
@@ -50,12 +52,13 @@ export function OrganizationLogoForm() {
 		setUploading(true);
 		try {
 			const path = `${activeOrganization.id}-${uuid()}.png`;
-			const { signedUrl } = await getSignedUploadUrlMutation.mutateAsync({
-				path,
-				bucket: config.storage.bucketNames.avatars,
-			});
+			const { signedUploadUrl } =
+				await getSignedUploadUrlMutation.mutateAsync({
+					path,
+					bucket: config.storage.bucketNames.avatars,
+				});
 
-			const response = await fetch(signedUrl, {
+			const response = await fetch(signedUploadUrl, {
 				method: "PUT",
 				body: croppedImageData,
 				headers: {
@@ -84,7 +87,7 @@ export function OrganizationLogoForm() {
 			queryClient.invalidateQueries({
 				queryKey: organizationListQueryKey,
 			});
-		} catch (e) {
+		} catch {
 			toast.error(t("settings.account.avatar.notifications.error"));
 		} finally {
 			setUploading(false);

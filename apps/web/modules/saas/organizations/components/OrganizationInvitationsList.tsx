@@ -36,9 +36,8 @@ import {
 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useMemo } from "react";
-import { OrganizationRoleSelect } from "./OrganizationRoleSelect";
-
 import { toast } from "sonner";
+import { OrganizationRoleSelect } from "./OrganizationRoleSelect";
 export function OrganizationInvitationsList({
 	organizationId,
 }: {
@@ -149,7 +148,6 @@ export function OrganizationInvitationsList({
 			accessorKey: "actions",
 			cell: ({ row }) => {
 				const isPending = row.original.status === "pending";
-				const isAccepted = row.original.status === "accepted";
 
 				return (
 					<div className="flex flex-row justify-end gap-2">

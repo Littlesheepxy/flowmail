@@ -1,17 +1,10 @@
-import { getServerApiClient } from "@shared/lib/server";
+import { orpcClient } from "@shared/lib/orpc-client";
 import { cache } from "react";
 
 export const getPurchases = cache(async (organizationId?: string) => {
-	const apiClient = await getServerApiClient();
-	const response = await apiClient.payments.purchases.$get({
-		query: {
-			organizationId,
-		},
+	const { purchases } = await orpcClient.payments.listPurchases({
+		organizationId,
 	});
 
-	if (!response.ok) {
-		throw new Error("Failed to fetch purchases");
-	}
-
-	return response.json();
+	return purchases;
 });

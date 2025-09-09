@@ -6,9 +6,9 @@
 		"@repo/logs": "workspace:*"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
+		"@biomejs/biome": "2.2.0",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "^22.14.1"
+		"@types/node": "^24.3.0"
 	},
 	"main": "./index.ts",
 	"name": "@repo/storage",

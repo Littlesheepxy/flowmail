@@ -1,5 +1,4 @@
 import { db } from "../client";
-import type { AiChat } from "../zod";
 
 export async function getAiChatsByUserId({
 	limit,
@@ -70,7 +69,7 @@ export async function updateAiChat({
 }: {
 	id: string;
 	title?: string;
-	messages?: AiChat["messages"];
+	messages?: Array<object>;
 }) {
 	return await db.aiChat.update({
 		where: {

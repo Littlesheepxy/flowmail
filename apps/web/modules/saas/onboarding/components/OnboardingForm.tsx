@@ -3,8 +3,8 @@ import { authClient } from "@repo/auth/client";
 import { useRouter } from "@shared/hooks/router";
 import { clearCache } from "@shared/lib/cache";
 import { Progress } from "@ui/components/progress";
-import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { withQuery } from "ufo";
 import { OnboardingStep1 } from "./OnboardingStep1";
 
@@ -19,6 +19,7 @@ export function OnboardingForm() {
 		? Number.parseInt(stepSearchParam, 10)
 		: 1;
 
+	// biome-ignore lint/correctness/noUnusedVariables: Will be used with more steps
 	const setStep = (step: number) => {
 		router.replace(
 			withQuery(window.location.search ?? "", {

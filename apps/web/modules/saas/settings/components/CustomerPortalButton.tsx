@@ -1,6 +1,7 @@
 "use client";
 
-import { useCreateCustomerPortalLinkMutation } from "@saas/payments/lib/api";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import { CreditCardIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -8,7 +9,9 @@ import { toast } from "sonner";
 
 export function CustomerPortalButton({ purchaseId }: { purchaseId: string }) {
 	const t = useTranslations();
-	const createCustomerPortalMutation = useCreateCustomerPortalLinkMutation();
+	const createCustomerPortalMutation = useMutation(
+		orpc.payments.createCustomerPortalLink.mutationOptions(),
+	);
 
 	const createCustomerPortal = async () => {
 		try {

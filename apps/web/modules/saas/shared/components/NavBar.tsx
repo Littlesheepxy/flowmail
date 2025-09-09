@@ -13,9 +13,9 @@ import {
 	UserCog2Icon,
 	UserCogIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { OrganzationSelect } from "../../organizations/components/OrganizationSelect";
 
 export function NavBar() {
@@ -45,7 +45,7 @@ export function NavBar() {
 			icon: BotMessageSquareIcon,
 			isActive: pathname.includes("/chatbot"),
 		},
-		...(activeOrganization
+		...(activeOrganization && !config.organizations.hideOrganization
 			? [
 					{
 						label: t("app.menu.organizationSettings"),
@@ -158,6 +158,7 @@ export function NavBar() {
 											useSidebarLayout,
 									},
 								)}
+								prefetch
 							>
 								<menuItem.icon
 									className={`size-4 shrink-0 ${

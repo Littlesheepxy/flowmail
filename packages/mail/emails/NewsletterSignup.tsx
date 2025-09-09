@@ -2,8 +2,7 @@ import { Heading, Text } from "@react-email/components";
 import React from "react";
 import { createTranslator } from "use-intl/core";
 import Wrapper from "../src/components/Wrapper";
-import { defaultTranslations } from "../src/util/translations";
-import { defaultLocale } from "../src/util/translations";
+import { defaultLocale, defaultTranslations } from "../src/util/translations";
 import type { BaseMailProps } from "../types";
 
 export function NewsletterSignup({ locale, translations }: BaseMailProps) {

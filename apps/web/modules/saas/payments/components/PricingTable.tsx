@@ -2,10 +2,11 @@
 import { LocaleLink } from "@i18n/routing";
 import { type Config, config } from "@repo/config";
 import { usePlanData } from "@saas/payments/hooks/plan-data";
-import { useCreateCheckoutLinkMutation } from "@saas/payments/lib/api";
 import type { PlanId } from "@saas/payments/types";
 import { useLocaleCurrency } from "@shared/hooks/locale-currency";
 import { useRouter } from "@shared/hooks/router";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs";
 import { cn } from "@ui/lib";
@@ -16,7 +17,7 @@ import {
 	PhoneIcon,
 	StarIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 
 const plans = config.payments.plans as Config["payments"]["plans"];
@@ -33,6 +34,7 @@ export function PricingTable({
 	activePlanId?: string;
 }) {
 	const t = useTranslations();
+	const format = useFormatter();
 	const router = useRouter();
 	const localeCurrency = useLocaleCurrency();
 	const [loading, setLoading] = useState<PlanId | false>(false);
@@ -40,11 +42,14 @@ export function PricingTable({
 
 	const { planData } = usePlanData();
 
-	const createCheckoutLinkMutation = useCreateCheckoutLinkMutation();
+	const createCheckoutLinkMutation = useMutation(
+		orpc.payments.createCheckoutLink.mutationOptions(),
+	);
 
 	const onSelectPlan = async (planId: PlanId, productId?: string) => {
 		if (!(userId || organizationId)) {
 			router.push("/auth/signup");
+			return;
 		}
 
 		const plan = plans[planId];
@@ -215,11 +220,10 @@ export function PricingTable({
 												className="block font-medium text-2xl lg:text-3xl"
 												data-test="price-table-plan-price"
 											>
-												{Intl.NumberFormat("en-US", {
+												{format.number(price.amount, {
 													style: "currency",
 													currency: price.currency,
-													minimumFractionDigits: 0,
-												}).format(price.amount)}
+												})}
 												{"interval" in price && (
 													<span className="font-normal text-xs opacity-60">
 														{" / "}

@@ -3,9 +3,10 @@
 import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
 import { useSession } from "@saas/auth/hooks/use-session";
-import { useSignedUploadUrlMutation } from "@saas/shared/lib/api";
 import { Spinner } from "@shared/components/Spinner";
 import { UserAvatar } from "@shared/components/UserAvatar";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { v4 as uuid } from "uuid";
@@ -23,7 +24,9 @@ export function UserAvatarUpload({
 	const [cropDialogOpen, setCropDialogOpen] = useState(false);
 	const [image, setImage] = useState<File | null>(null);
 
-	const getSignedUploadUrlMutation = useSignedUploadUrlMutation();
+	const getSignedUploadUrlMutation = useMutation(
+		orpc.users.avatarUploadUrl.mutationOptions(),
+	);
 
 	const { getRootProps, getInputProps } = useDropzone({
 		onDrop: (acceptedFiles) => {
@@ -48,12 +51,13 @@ export function UserAvatarUpload({
 		setUploading(true);
 		try {
 			const path = `${user.id}-${uuid()}.png`;
-			const { signedUrl } = await getSignedUploadUrlMutation.mutateAsync({
-				path,
-				bucket: config.storage.bucketNames.avatars,
-			});
+			const { signedUploadUrl } =
+				await getSignedUploadUrlMutation.mutateAsync({
+					path,
+					bucket: config.storage.bucketNames.avatars,
+				});
 
-			const response = await fetch(signedUrl, {
+			const response = await fetch(signedUploadUrl, {
 				method: "PUT",
 				body: croppedImageData,
 				headers: {
@@ -76,7 +80,7 @@ export function UserAvatarUpload({
 			await reloadSession();
 
 			onSuccess();
-		} catch (e) {
+		} catch {
 			onError();
 		} finally {
 			setUploading(false);

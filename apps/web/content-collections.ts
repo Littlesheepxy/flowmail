@@ -7,6 +7,7 @@ import {
 } from "@fumadocs/content-collections/configuration";
 import rehypeShiki from "@shikijs/rehype";
 import { remarkImage } from "fumadocs-core/mdx-plugins";
+import { z } from "zod";
 import { config } from "../../config";
 
 function sanitizePath(path: string) {
@@ -29,7 +30,7 @@ const posts = defineCollection({
 	name: "posts",
 	directory: "content/posts",
 	include: "**/*.{mdx,md}",
-	schema: (z) => ({
+	schema: z.object({
 		title: z.string(),
 		date: z.string(),
 		image: z.string().optional(),
@@ -65,7 +66,7 @@ const legalPages = defineCollection({
 	name: "legalPages",
 	directory: "content/legal",
 	include: "**/*.{mdx,md}",
-	schema: (z) => ({
+	schema: z.object({
 		title: z.string(),
 	}),
 	transform: async (document, context) => {
@@ -84,7 +85,7 @@ const docs = defineCollection({
 	name: "docs",
 	directory: "content/docs",
 	include: "**/*.mdx",
-	schema: createDocSchema,
+	schema: z.object(createDocSchema(z)),
 	transform: async (document, context) =>
 		transformMDX(document, context, {
 			remarkPlugins: [
@@ -101,9 +102,9 @@ const docs = defineCollection({
 const docsMeta = defineCollection({
 	name: "docsMeta",
 	directory: "content/docs",
-	include: "**/meta.json",
+	include: "**/meta*.json",
 	parser: "json",
-	schema: createMetaSchema,
+	schema: z.object(createMetaSchema(z)),
 });
 
 export default defineConfig({

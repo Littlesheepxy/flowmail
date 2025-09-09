@@ -1,10 +1,14 @@
 import { type Config, config } from "@repo/config";
-import type { Purchase } from "@repo/database";
+import type { PurchaseSchema } from "@repo/database";
+import type { z } from "zod";
 
 const plans = config.payments.plans as Config["payments"]["plans"];
 
 type PlanId = keyof typeof config.payments.plans;
-type PurchaseWithoutTimestamps = Omit<Purchase, "createdAt" | "updatedAt">;
+type PurchaseWithoutTimestamps = Omit<
+	z.infer<typeof PurchaseSchema>,
+	"createdAt" | "updatedAt"
+>;
 
 function getActivePlanFromPurchases(purchases?: PurchaseWithoutTimestamps[]) {
 	const subscriptionPurchase = purchases?.find(

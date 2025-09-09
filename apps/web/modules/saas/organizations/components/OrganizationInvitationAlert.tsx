@@ -4,7 +4,9 @@ import { useTranslations } from "next-intl";
 
 export function OrganizationInvitationAlert({
 	className,
-}: { className?: string }) {
+}: {
+	className?: string;
+}) {
 	const t = useTranslations();
 	return (
 		<Alert variant="primary" className={className}>

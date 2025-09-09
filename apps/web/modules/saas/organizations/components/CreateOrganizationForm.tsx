@@ -64,7 +64,7 @@ export function CreateOrganizationForm({
 			});
 
 			router.replace(`/app/${newOrganization.slug}`);
-		} catch (e) {
+		} catch {
 			toast.error(t("organizations.createForm.notifications.error"));
 		}
 	});

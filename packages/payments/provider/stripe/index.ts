@@ -8,6 +8,7 @@ import { logger } from "@repo/logs";
 import Stripe from "stripe";
 import { setCustomerIdToEntity } from "../../src/lib/customer";
 import type {
+	CancelSubscription,
 	CreateCheckoutLink,
 	CreateCustomerPortalLink,
 	SetSubscriptionSeats,
@@ -43,6 +44,7 @@ export const createCheckoutLink: CreateCheckoutLink = async (options) => {
 		userId,
 		trialPeriodDays,
 		seats,
+		email,
 	} = options;
 
 	const metadata = {
@@ -59,7 +61,7 @@ export const createCheckoutLink: CreateCheckoutLink = async (options) => {
 				price: productId,
 			},
 		],
-		customer: customerId,
+		...(customerId ? { customer: customerId } : { customer_email: email }),
 		...(type === "one-time"
 			? {
 					payment_intent_data: {
@@ -113,6 +115,12 @@ export const setSubscriptionSeats: SetSubscriptionSeats = async ({
 			},
 		],
 	});
+};
+
+export const cancelSubscription: CancelSubscription = async (id) => {
+	const stripeClient = getStripeClient();
+
+	await stripeClient.subscriptions.cancel(id);
 };
 
 export const webhookHandler: WebhookHandler = async (req) => {

@@ -5,8 +5,8 @@ import { ChangeNameForm } from "@saas/settings/components/ChangeNameForm";
 import { UserAvatarForm } from "@saas/settings/components/UserAvatarForm";
 import { UserLanguageForm } from "@saas/settings/components/UserLanguageForm";
 import { SettingsList } from "@saas/shared/components/SettingsList";
-import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata() {
 	const t = await getTranslations();
@@ -20,7 +20,7 @@ export default async function AccountSettingsPage() {
 	const session = await getSession();
 
 	if (!session) {
-		return redirect("/auth/login");
+		redirect("/auth/login");
 	}
 
 	return (

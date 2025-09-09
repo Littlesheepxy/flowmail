@@ -3,8 +3,8 @@ import { getActiveOrganization, getSession } from "@saas/auth/lib/server";
 import { InviteMemberForm } from "@saas/organizations/components/InviteMemberForm";
 import { OrganizationMembersBlock } from "@saas/organizations/components/OrganizationMembersBlock";
 import { SettingsList } from "@saas/shared/components/SettingsList";
-import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 export async function generateMetadata() {
 	const t = await getTranslations();
 

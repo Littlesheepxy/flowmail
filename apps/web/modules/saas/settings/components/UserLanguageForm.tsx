@@ -13,8 +13,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@ui/components/select";
-import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 

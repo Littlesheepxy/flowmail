@@ -1,15 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, AlertTitle } from "@ui/components/alert";
-import { Button } from "@ui/components/button";
-import { AlertTriangleIcon, ArrowLeftIcon, MailboxIcon } from "lucide-react";
-
 import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
 import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { useRouter } from "@shared/hooks/router";
+import { Alert, AlertTitle } from "@ui/components/alert";
+import { Button } from "@ui/components/button";
 import {
 	Form,
 	FormControl,
@@ -19,9 +17,10 @@ import {
 	FormMessage,
 } from "@ui/components/form";
 import { PasswordInput } from "@ui/components/password-input";
-import { useTranslations } from "next-intl";
+import { AlertTriangleIcon, ArrowLeftIcon, MailboxIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 

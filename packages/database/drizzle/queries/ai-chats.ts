@@ -74,7 +74,7 @@ export async function updateAiChat({
 }: {
 	id: string;
 	title?: string;
-	messages?: typeof aiChat.$inferInsert.messages;
+	messages?: (typeof aiChat.$inferInsert)["messages"];
 }) {
 	return await db
 		.update(aiChat)

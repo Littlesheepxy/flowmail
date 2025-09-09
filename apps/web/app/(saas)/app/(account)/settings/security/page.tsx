@@ -13,8 +13,8 @@ import { SetPasswordForm } from "@saas/settings/components/SetPassword";
 import { TwoFactorBlock } from "@saas/settings/components/TwoFactorBlock";
 import { SettingsList } from "@saas/shared/components/SettingsList";
 import { getServerQueryClient } from "@shared/lib/server";
-import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata() {
 	const t = await getTranslations();
@@ -28,7 +28,7 @@ export default async function AccountSettingsPage() {
 	const session = await getSession();
 
 	if (!session) {
-		return redirect("/auth/login");
+		redirect("/auth/login");
 	}
 
 	const userAccounts = await getUserAccounts();

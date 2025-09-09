@@ -1,7 +1,7 @@
 import { ContactForm } from "@marketing/home/components/ContactForm";
 import { config } from "@repo/config";
-import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata() {
 	const t = await getTranslations();

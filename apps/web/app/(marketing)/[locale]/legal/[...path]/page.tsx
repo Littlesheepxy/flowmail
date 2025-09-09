@@ -12,9 +12,7 @@ type Params = {
 	locale: string;
 };
 
-export async function generateMetadata(props: {
-	params: Promise<Params>;
-}) {
+export async function generateMetadata(props: { params: Promise<Params> }) {
 	const params = await props.params;
 
 	const { path } = params;
@@ -35,9 +33,7 @@ export async function generateMetadata(props: {
 	};
 }
 
-export default async function BlogPostPage(props: {
-	params: Promise<Params>;
-}) {
+export default async function BlogPostPage(props: { params: Promise<Params> }) {
 	const params = await props.params;
 
 	const { path } = params;

@@ -204,13 +204,7 @@ export const aiChat = pgTable("aiChat", {
 	}),
 	userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
 	title: text("title"),
-	messages:
-		json("messages").$type<
-			{
-				role: "user" | "assistant";
-				content: string;
-			}[]
-		>(),
+	messages: json("messages").$type<Array<object>>(),
 	createdAt: timestamp("createdAt").defaultNow().notNull(),
 	updatedAt: timestamp("updatedAt"),
 });
@@ -232,4 +226,76 @@ export const organizationRelations = relations(organization, ({ many }) => ({
 	invitations: many(invitation),
 	purchases: many(purchase),
 	aiChats: many(aiChat),
+}));
+
+export const memberRelations = relations(member, ({ one }) => ({
+	organization: one(organization, {
+		fields: [member.organizationId],
+		references: [organization.id],
+	}),
+	user: one(user, {
+		fields: [member.userId],
+		references: [user.id],
+	}),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+	user: one(user, {
+		fields: [session.userId],
+		references: [user.id],
+	}),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+	user: one(user, {
+		fields: [account.userId],
+		references: [user.id],
+	}),
+}));
+
+export const passkeyRelations = relations(passkey, ({ one }) => ({
+	user: one(user, {
+		fields: [passkey.userId],
+		references: [user.id],
+	}),
+}));
+
+export const invitationRelations = relations(invitation, ({ one }) => ({
+	organization: one(organization, {
+		fields: [invitation.organizationId],
+		references: [organization.id],
+	}),
+	inviter: one(user, {
+		fields: [invitation.inviterId],
+		references: [user.id],
+	}),
+}));
+
+export const purchaseRelations = relations(purchase, ({ one }) => ({
+	organization: one(organization, {
+		fields: [purchase.organizationId],
+		references: [organization.id],
+	}),
+	user: one(user, {
+		fields: [purchase.userId],
+		references: [user.id],
+	}),
+}));
+
+export const aiChatRelations = relations(aiChat, ({ one }) => ({
+	organization: one(organization, {
+		fields: [aiChat.organizationId],
+		references: [organization.id],
+	}),
+	user: one(user, {
+		fields: [aiChat.userId],
+		references: [user.id],
+	}),
+}));
+
+export const twoFactorRelations = relations(twoFactor, ({ one }) => ({
+	user: one(user, {
+		fields: [twoFactor.userId],
+		references: [user.id],
+	}),
 }));

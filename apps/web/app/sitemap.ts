@@ -30,12 +30,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			url: new URL(`/${page.locale}/legal/${page.path}`, baseUrl).href,
 			lastModified: new Date(),
 		})),
-		...docsSource.getPages().map((page) => ({
-			url: new URL(
-				`/${page.locale}/docs/${page.slugs.join("/")}`,
-				baseUrl,
-			).href,
-			lastModified: new Date(),
-		})),
+		...docsSource.getLanguages().flatMap((locale) =>
+			docsSource.getPages(locale.language).map((page) => ({
+				url: new URL(
+					`/${locale.language}/docs/${page.slugs.join("/")}`,
+					baseUrl,
+				).href,
+				lastModified: new Date(),
+			})),
+		),
 	];
 }

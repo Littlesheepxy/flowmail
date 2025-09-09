@@ -30,7 +30,7 @@ export function DeleteOrganizationForm() {
 			),
 			destructive: true,
 			onConfirm: async () => {
-				const { data, error } = await authClient.organization.delete({
+				const { error } = await authClient.organization.delete({
 					organizationId: activeOrganization.id,
 				});
 
@@ -56,20 +56,18 @@ export function DeleteOrganizationForm() {
 	};
 
 	return (
-		<>
-			<SettingsItem
-				danger
-				title={t("organizations.settings.deleteOrganization.title")}
-				description={t(
-					"organizations.settings.deleteOrganization.description",
-				)}
-			>
-				<div className="mt-4 flex justify-end">
-					<Button variant="error" onClick={handleDelete}>
-						{t("organizations.settings.deleteOrganization.submit")}
-					</Button>
-				</div>
-			</SettingsItem>
-		</>
+		<SettingsItem
+			danger
+			title={t("organizations.settings.deleteOrganization.title")}
+			description={t(
+				"organizations.settings.deleteOrganization.description",
+			)}
+		>
+			<div className="mt-4 flex justify-end">
+				<Button variant="error" onClick={handleDelete}>
+					{t("organizations.settings.deleteOrganization.submit")}
+				</Button>
+			</div>
+		</SettingsItem>
 	);
 }

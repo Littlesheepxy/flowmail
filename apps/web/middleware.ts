@@ -1,19 +1,16 @@
 import { routing } from "@i18n/routing";
 import { config as appConfig } from "@repo/config";
-import { createPurchasesHelper } from "@repo/payments/lib/helper";
-import {
-	getOrganizationsForSession,
-	getPurchasesForSession,
-	getSession,
-} from "@shared/lib/middleware-helpers";
-import createMiddleware from "next-intl/middleware";
+import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
+import createMiddleware from "next-intl/middleware";
 import { withQuery } from "ufo";
 
 const intlMiddleware = createMiddleware(routing);
 
 export default async function middleware(req: NextRequest) {
 	const { pathname, origin } = req.nextUrl;
+
+	const sessionCookie = getSessionCookie(req);
 
 	if (pathname.startsWith("/app")) {
 		const response = NextResponse.next();
@@ -22,10 +19,7 @@ export default async function middleware(req: NextRequest) {
 			return NextResponse.redirect(new URL("/", origin));
 		}
 
-		const session = await getSession(req);
-		let locale = req.cookies.get(appConfig.i18n.localeCookieName)?.value;
-
-		if (!session) {
+		if (!sessionCookie) {
 			return NextResponse.redirect(
 				new URL(
 					withQuery("/auth/login", {
@@ -36,83 +30,6 @@ export default async function middleware(req: NextRequest) {
 			);
 		}
 
-		if (
-			appConfig.users.enableOnboarding &&
-			!session.user.onboardingComplete &&
-			pathname !== "/app/onboarding"
-		) {
-			return NextResponse.redirect(
-				new URL(
-					withQuery("/app/onboarding", {
-						redirectTo: pathname,
-					}),
-					origin,
-				),
-			);
-		}
-
-		if (
-			!locale ||
-			(session.user.locale && locale !== session.user.locale)
-		) {
-			locale = session.user.locale ?? appConfig.i18n.defaultLocale;
-			response.cookies.set(appConfig.i18n.localeCookieName, locale);
-		}
-
-		if (
-			appConfig.organizations.enable &&
-			appConfig.organizations.requireOrganization &&
-			pathname === "/app"
-		) {
-			const organizations = await getOrganizationsForSession(req);
-			const organization =
-				organizations.find(
-					(org) => org.id === session?.session.activeOrganizationId,
-				) || organizations[0];
-
-			return NextResponse.redirect(
-				new URL(
-					organization
-						? `/app/${organization.slug}`
-						: "/app/new-organization",
-					origin,
-				),
-			);
-		}
-
-		const hasFreePlan = Object.values(appConfig.payments.plans).some(
-			(plan) => "isFree" in plan,
-		);
-		if (
-			((appConfig.organizations.enable &&
-				appConfig.organizations.enableBilling) ||
-				appConfig.users.enableBilling) &&
-			!hasFreePlan
-		) {
-			const organizationId = appConfig.organizations.enable
-				? session?.session.activeOrganizationId ||
-					(await getOrganizationsForSession(req))?.at(0)?.id
-				: undefined;
-
-			const purchases = await getPurchasesForSession(req, organizationId);
-			const { activePlan } = createPurchasesHelper(purchases);
-
-			const validPathsWithoutPlan = [
-				"/app/choose-plan",
-				"/app/onboarding",
-				"/app/new-organization",
-				"/app/organization-invitation/",
-			];
-			if (
-				!activePlan &&
-				!validPathsWithoutPlan.some((path) => pathname.startsWith(path))
-			) {
-				return NextResponse.redirect(
-					new URL("/app/choose-plan", origin),
-				);
-			}
-		}
-
 		return response;
 	}
 
@@ -121,12 +38,17 @@ export default async function middleware(req: NextRequest) {
 			return NextResponse.redirect(new URL("/", origin));
 		}
 
-		const session = await getSession(req);
+		return NextResponse.next();
+	}
 
-		if (session && pathname !== "/auth/reset-password") {
-			return NextResponse.redirect(new URL("/app", origin));
-		}
+	const pathsWithoutLocale = [
+		"/onboarding",
+		"/new-organization",
+		"/choose-plan",
+		"/organization-invitation",
+	];
 
+	if (pathsWithoutLocale.some((path) => pathname.startsWith(path))) {
 		return NextResponse.next();
 	}
 

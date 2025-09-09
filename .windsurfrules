@@ -8,7 +8,7 @@ Key Principles
 - Structure files: exported component, subcomponents, helpers, static content, types.
 
 Project Structure
-- The main application is in the `packages/app` directory which is a Next.js App Router. Put all frontend-only code in this directory.
+- The main application is in the `apps/web/app` directory which is a Next.js App Router. Put all frontend-only code in this directory.
 - Put all backend logic into one of the `packages` directories:
   - `packages/ai` contains all AI-related code
   - `packages/api` contains all API routes

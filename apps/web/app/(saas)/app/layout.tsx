@@ -1,14 +1,9 @@
 import { config } from "@repo/config";
-import { SessionProvider } from "@saas/auth/components/SessionProvider";
-import { sessionQueryKey } from "@saas/auth/lib/api";
+import { createPurchasesHelper } from "@repo/payments/lib/helper";
 import { getOrganizationList, getSession } from "@saas/auth/lib/server";
-import { ActiveOrganizationProvider } from "@saas/organizations/components/ActiveOrganizationProvider";
-import { organizationListQueryKey } from "@saas/organizations/lib/api";
-import { purchasesQueryKey } from "@saas/payments/lib/api";
-import { getPurchases } from "@saas/payments/lib/server";
-import { ConfirmationAlertProvider } from "@saas/shared/components/ConfirmationAlertProvider";
-import { getServerQueryClient } from "@shared/lib/server";
-import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
+import { orpcClient } from "@shared/lib/orpc-client";
+import { attemptAsync } from "es-toolkit";
+import { redirect } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
 export const dynamic = "force-dynamic";
@@ -17,36 +12,61 @@ export const revalidate = 0;
 export default async function Layout({ children }: PropsWithChildren) {
 	const session = await getSession();
 
-	const queryClient = getServerQueryClient();
-
-	await queryClient.prefetchQuery({
-		queryKey: sessionQueryKey,
-		queryFn: () => session,
-	});
-
-	if (config.organizations.enable) {
-		await queryClient.prefetchQuery({
-			queryKey: organizationListQueryKey,
-			queryFn: getOrganizationList,
-		});
+	if (!session) {
+		redirect("/auth/login");
 	}
 
-	if (config.users.enableBilling) {
-		await queryClient.prefetchQuery({
-			queryKey: purchasesQueryKey(),
-			queryFn: () => getPurchases(),
-		});
+	if (config.users.enableOnboarding && !session.user.onboardingComplete) {
+		redirect("/onboarding");
 	}
 
-	return (
-		<HydrationBoundary state={dehydrate(queryClient)}>
-			<SessionProvider>
-				<ActiveOrganizationProvider>
-					<ConfirmationAlertProvider>
-						{children}
-					</ConfirmationAlertProvider>
-				</ActiveOrganizationProvider>
-			</SessionProvider>
-		</HydrationBoundary>
+	const organizations = await getOrganizationList();
+
+	if (
+		config.organizations.enable &&
+		config.organizations.requireOrganization
+	) {
+		const organization =
+			organizations.find(
+				(org) => org.id === session?.session.activeOrganizationId,
+			) || organizations[0];
+
+		if (!organization) {
+			redirect("/new-organization");
+		}
+	}
+
+	const hasFreePlan = Object.values(config.payments.plans).some(
+		(plan) => "isFree" in plan,
 	);
+
+	if (
+		((config.organizations.enable && config.organizations.enableBilling) ||
+			config.users.enableBilling) &&
+		!hasFreePlan
+	) {
+		const organizationId = config.organizations.enable
+			? session?.session.activeOrganizationId || organizations?.at(0)?.id
+			: undefined;
+
+		const [error, data] = await attemptAsync(() =>
+			orpcClient.payments.listPurchases({
+				organizationId,
+			}),
+		);
+
+		if (error) {
+			throw new Error("Failed to fetch purchases");
+		}
+
+		const purchases = data?.purchases ?? [];
+
+		const { activePlan } = createPurchasesHelper(purchases);
+
+		if (!activePlan) {
+			redirect("/choose-plan");
+		}
+	}
+
+	return children;
 }

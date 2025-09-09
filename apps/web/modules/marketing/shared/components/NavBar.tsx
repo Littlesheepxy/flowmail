@@ -15,8 +15,8 @@ import {
 } from "@ui/components/sheet";
 import { cn } from "@ui/lib";
 import { MenuIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
 import NextLink from "next/link";
+import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 
@@ -124,6 +124,7 @@ export function NavBar() {
 										? "font-bold text-foreground"
 										: "",
 								)}
+								prefetch
 							>
 								{menuItem.label}
 							</LocaleLink>
@@ -165,6 +166,7 @@ export function NavBar() {
 													? "font-bold text-foreground"
 													: "",
 											)}
+											prefetch
 										>
 											{menuItem.label}
 										</LocaleLink>
@@ -203,7 +205,7 @@ export function NavBar() {
 									asChild
 									variant="secondary"
 								>
-									<NextLink href="/auth/login">
+									<NextLink href="/auth/login" prefetch>
 										{t("common.menu.login")}
 									</NextLink>
 								</Button>

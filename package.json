@@ -5,21 +5,22 @@
 		"build": "dotenv -c -- turbo build",
 		"dev": "dotenv -c -- turbo dev --concurrency 15",
 		"start": "dotenv -c -- turbo start",
-		"lint": "biome lint .",
+		"lint": "biome lint . ",
+		"check": "biome check",
 		"clean": "turbo clean",
 		"format": "biome format . --write"
 	},
 	"engines": {
 		"node": ">=20"
 	},
-	"packageManager": "pnpm@9.3.0",
+	"packageManager": "pnpm@10.14.0",
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
+		"@biomejs/biome": "2.2.0",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "^22.14.1",
-		"dotenv-cli": "^8.0.0",
-		"turbo": "^2.5.0",
-		"typescript": "5.8.3"
+		"@types/node": "^24.3.0",
+		"dotenv-cli": "^10.0.0",
+		"turbo": "^2.5.6",
+		"typescript": "5.9.2"
 	},
 	"pnpm": {
 		"overrides": {

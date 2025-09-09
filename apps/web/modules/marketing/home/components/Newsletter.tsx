@@ -1,7 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNewsletterSignupMutation } from "@marketing/home/lib/api";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@ui/components/alert";
 import { Button } from "@ui/components/button";
 import { Input } from "@ui/components/input";
@@ -18,7 +19,9 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function Newsletter() {
 	const t = useTranslations();
-	const newsletterSignupMutation = useNewsletterSignupMutation();
+	const newsletterSignupMutation = useMutation(
+		orpc.newsletter.subscribe.mutationOptions(),
+	);
 
 	const form = useForm<FormValues>({
 		resolver: zodResolver(formSchema),

@@ -3,8 +3,7 @@
 import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
 import { Button } from "@ui/components/button";
-import { useQueryState } from "nuqs";
-import { parseAsString } from "nuqs";
+import { parseAsString, useQueryState } from "nuqs";
 import { oAuthProviders } from "../constants/oauth-providers";
 
 export function SocialSigninButton({
@@ -18,7 +17,7 @@ export function SocialSigninButton({
 	const providerData = oAuthProviders[provider];
 
 	const redirectPath = invitationId
-		? `/app/organization-invitation/${invitationId}`
+		? `/organization-invitation/${invitationId}`
 		: config.auth.redirectAfterSignIn;
 
 	const onSignin = () => {

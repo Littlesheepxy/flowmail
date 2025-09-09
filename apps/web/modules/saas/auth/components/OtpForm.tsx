@@ -1,14 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, AlertTitle } from "@ui/components/alert";
-import { Button } from "@ui/components/button";
-import { AlertTriangleIcon, ArrowLeftIcon } from "lucide-react";
-
 import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
 import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { useRouter } from "@shared/hooks/router";
+import { Alert, AlertTitle } from "@ui/components/alert";
+import { Button } from "@ui/components/button";
 import {
 	Form,
 	FormControl,
@@ -23,9 +21,10 @@ import {
 	InputOTPSeparator,
 	InputOTPSlot,
 } from "@ui/components/input-otp";
-import { useTranslations } from "next-intl";
+import { AlertTriangleIcon, ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -45,7 +44,7 @@ export function OtpForm() {
 	const redirectTo = searchParams.get("redirectTo");
 
 	const redirectPath = invitationId
-		? `/app/organization-invitation/${invitationId}`
+		? `/organization-invitation/${invitationId}`
 		: (redirectTo ?? config.auth.redirectAfterSignIn);
 
 	const form = useForm<FormValues>({

@@ -1,6 +1,6 @@
 import type { OrganizationMetadata } from "@repo/auth";
 import { authClient } from "@repo/auth/client";
-import { apiClient } from "@shared/lib/api-client";
+import { orpcClient } from "@shared/lib/orpc-client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 export const organizationListQueryKey = ["user", "organizations"] as const;
@@ -75,22 +75,6 @@ export const useFullOrganizationQuery = (id: string) => {
 	});
 };
 
-export const generateOrganizationSlug = async (name: string) => {
-	const response = await apiClient.organizations["generate-slug"].$get({
-		query: {
-			name,
-		},
-	});
-
-	if (!response.ok) {
-		throw new Error("Failed to generate organization slug");
-	}
-
-	const { slug } = await response.json();
-
-	return slug;
-};
-
 /*
  * Create organization
  */
@@ -105,9 +89,13 @@ export const useCreateOrganizationMutation = () => {
 			name: string;
 			metadata?: OrganizationMetadata;
 		}) => {
+			const { slug } = await orpcClient.organizations.generateSlug({
+				name,
+			});
+
 			const { error, data } = await authClient.organization.create({
 				name,
-				slug: await generateOrganizationSlug(name),
+				slug,
 				metadata,
 			});
 
@@ -138,13 +126,19 @@ export const useUpdateOrganizationMutation = () => {
 			metadata?: OrganizationMetadata;
 			updateSlug?: boolean;
 		}) => {
+			const slug = updateSlug
+				? (
+						await orpcClient.organizations.generateSlug({
+							name,
+						})
+					).slug
+				: undefined;
+
 			const { error, data } = await authClient.organization.update({
 				organizationId: id,
 				data: {
 					name,
-					slug: updateSlug
-						? await generateOrganizationSlug(name)
-						: undefined,
+					slug,
 					metadata,
 				},
 			});

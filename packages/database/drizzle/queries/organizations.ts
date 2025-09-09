@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { db } from "../client";
 import { member, organization } from "../schema/postgres";
@@ -20,9 +20,10 @@ export async function getOrganizations({
 		limit,
 		offset,
 		extras: {
-			membersCount: db
-				.$count(member, eq(member.organizationId, organization.id))
-				.as("membersCount"),
+			membersCount:
+				sql<number>`(SELECT COUNT(*) FROM ${member} WHERE ${member.organizationId} = ${organization.id})`.as(
+					"membersCount",
+				),
 		},
 	});
 }
@@ -81,9 +82,10 @@ export async function getOrganizationWithPurchasesAndMembersCount(
 			purchases: true,
 		},
 		extras: {
-			membersCount: db
-				.$count(member, eq(member.organizationId, organization.id))
-				.as("membersCount"),
+			membersCount:
+				sql<number>`(SELECT COUNT(*) FROM ${member} WHERE ${member.organizationId} = ${organization.id})`.as(
+					"membersCount",
+				),
 		},
 	});
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
-import { adminUsersQueryKey, useAdminUsersQuery } from "@saas/admin/lib/api";
 import { useConfirmationAlert } from "@saas/shared/components/ConfirmationAlertProvider";
 import { Pagination } from "@saas/shared/components/Pagination";
 import { Spinner } from "@shared/components/Spinner";
 import { UserAvatar } from "@shared/components/UserAvatar";
-import { useQueryClient } from "@tanstack/react-query";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
 	flexRender,
@@ -66,11 +66,15 @@ export function UserList() {
 		setDebouncedSearchTerm(searchTerm);
 	}, [searchTerm]);
 
-	const { data, isLoading, refetch } = useAdminUsersQuery({
-		itemsPerPage: ITEMS_PER_PAGE,
-		currentPage,
-		searchTerm: debouncedSearchTerm,
-	});
+	const { data, isLoading, refetch } = useQuery(
+		orpc.admin.users.list.queryOptions({
+			input: {
+				itemsPerPage: ITEMS_PER_PAGE,
+				currentPage,
+				searchTerm: debouncedSearchTerm,
+			},
+		}),
+	);
 
 	useEffect(() => {
 		setCurrentPage(1);
@@ -146,7 +150,7 @@ export function UserList() {
 		});
 
 		await queryClient.invalidateQueries({
-			queryKey: adminUsersQueryKey,
+			queryKey: orpc.admin.users.list.key(),
 		});
 	};
 
@@ -157,7 +161,7 @@ export function UserList() {
 		});
 
 		await queryClient.invalidateQueries({
-			queryKey: adminUsersQueryKey,
+			queryKey: orpc.admin.users.list.key(),
 		});
 	};
 

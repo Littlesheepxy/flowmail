@@ -3,8 +3,8 @@ import { PostContent } from "@marketing/blog/components/PostContent";
 import { getPostBySlug } from "@marketing/blog/utils/lib/posts";
 import { getBaseUrl } from "@repo/utils";
 import { getActivePathFromUrlParam } from "@shared/lib/content";
-import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import Image from "next/image";
+import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 
 type Params = {
 	path: string;

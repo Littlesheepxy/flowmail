@@ -26,9 +26,9 @@ import {
 	KeyIcon,
 	MailboxIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
@@ -79,7 +79,7 @@ export function LoginForm() {
 	});
 
 	const redirectPath = invitationId
-		? `/app/organization-invitation/${invitationId}`
+		? `/organization-invitation/${invitationId}`
 		: (redirectTo ?? config.auth.redirectAfterSignIn);
 
 	useEffect(() => {

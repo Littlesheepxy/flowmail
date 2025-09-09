@@ -1,57 +1,119 @@
 "use client";
 
-import {
-	aiChatListQueryKey,
-	useAiChatListQuery,
-	useAiChatQuery,
-	useCreateAiChatMutation,
-} from "@saas/ai/lib/api";
+import { type UIMessage, useChat } from "@ai-sdk/react";
+import { eventIteratorToStream } from "@orpc/client";
 import { SidebarContentLayout } from "@saas/shared/components/SidebarContentLayout";
-import { useQueryClient } from "@tanstack/react-query";
+import { orpcClient } from "@shared/lib/orpc-client";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import {
+	skipToken,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import { Textarea } from "@ui/components/textarea";
 import { cn } from "@ui/lib";
-import { type Message, useChat } from "ai/react";
 import { EllipsisIcon, PlusIcon, SendIcon } from "lucide-react";
 import { useFormatter } from "next-intl";
 import { useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export function AiChat({ organizationId }: { organizationId?: string }) {
 	const formatter = useFormatter();
 	const queryClient = useQueryClient();
-	const { data: chats, status: chatsStatus } =
-		useAiChatListQuery(organizationId);
+	const [input, setInput] = useState("");
+	const messagesContainerRef = useRef<HTMLDivElement>(null);
+	const { data, status: chatsStatus } = useQuery(
+		orpc.ai.chats.list.queryOptions({
+			input: {
+				organizationId,
+			},
+		}),
+	);
 	const [chatId, setChatId] = useQueryState("chatId");
-	const { data: currentChat } = useAiChatQuery(chatId ?? "new");
-	const createChatMutation = useCreateAiChatMutation();
-	const {
-		messages,
-		input,
-		handleInputChange,
-		handleSubmit,
-		isLoading,
-		setMessages,
-	} = useChat({
-		api: `/api/ai/chats/${chatId}/messages`,
-		credentials: "include",
-		initialMessages: [],
+	const currentChatQuery = useQuery(
+		orpc.ai.chats.find.queryOptions({
+			input: chatId
+				? {
+						id: chatId,
+					}
+				: skipToken,
+		}),
+	);
+
+	const createChatMutation = useMutation(
+		orpc.ai.chats.create.mutationOptions(),
+	);
+
+	const chats = data?.chats ?? [];
+	const currentChat = currentChatQuery.data?.chat ?? null;
+
+	const { messages, setMessages, status, sendMessage } = useChat({
+		id: chatId ?? "new",
+		transport: {
+			async sendMessages(options) {
+				if (!chatId) {
+					throw new Error("Chat ID is required");
+				}
+
+				return eventIteratorToStream(
+					await orpcClient.ai.chats.messages.add(
+						{
+							chatId,
+							messages: options.messages,
+						},
+						{ signal: options.abortSignal },
+					),
+				);
+			},
+			reconnectToStream() {
+				throw new Error("Unsupported");
+			},
+		},
 	});
 
 	useEffect(() => {
-		if (currentChat?.messages?.length) {
-			setMessages(currentChat.messages as unknown as Message[]);
+		if (messages.length && currentChat?.messages) {
+			queryClient.setQueryData(
+				orpc.ai.chats.find.queryKey({
+					input: { id: chatId ?? "new" },
+				}),
+				(oldData) => {
+					if (!oldData) {
+						return undefined;
+					}
+					return {
+						chat: {
+							...oldData.chat,
+							messages: messages,
+						},
+					};
+				},
+			);
 		}
-	}, [currentChat]);
+	}, [messages]);
+
+	useEffect(() => {
+		if (currentChat?.messages) {
+			setMessages(currentChat.messages as unknown as UIMessage[]);
+		}
+	}, [currentChat?.messages]);
 
 	const createNewChat = useCallback(async () => {
 		const newChat = await createChatMutation.mutateAsync({
 			organizationId,
 		});
 		await queryClient.invalidateQueries({
-			queryKey: aiChatListQueryKey(organizationId),
+			queryKey: orpc.ai.chats.list.queryKey({
+				input: {
+					organizationId,
+				},
+			}),
 		});
-		setChatId(newChat.id);
+
+		setChatId(newChat.chat.id);
 	}, [createChatMutation]);
 
 	useEffect(() => {
@@ -81,6 +143,32 @@ export function AiChat({ organizationId }: { organizationId?: string }) {
 			) ?? []
 		);
 	}, [chats]);
+
+	const handleSubmit = async (
+		e:
+			| React.FormEvent<HTMLFormElement>
+			| React.KeyboardEvent<HTMLTextAreaElement>,
+	) => {
+		const text = input.trim();
+		setInput("");
+		e.preventDefault();
+
+		try {
+			await sendMessage({
+				text,
+			});
+		} catch {
+			toast.error("Failed to send message");
+			setInput(text);
+		}
+	};
+
+	useEffect(() => {
+		if (messagesContainerRef.current) {
+			messagesContainerRef.current.scrollTop =
+				messagesContainerRef.current.scrollHeight;
+		}
+	}, [messages.length, status]);
 
 	return (
 		<SidebarContentLayout
@@ -132,7 +220,10 @@ export function AiChat({ organizationId }: { organizationId?: string }) {
 			}
 		>
 			<div className="-mt-8 flex h-[calc(100vh-10rem)] flex-col">
-				<div className="flex flex-1 flex-col gap-2 overflow-y-auto py-8">
+				<div
+					ref={messagesContainerRef}
+					className="flex flex-1 flex-col gap-2 overflow-y-auto py-8"
+				>
 					{messages.map((message, index) => (
 						<div
 							key={index}
@@ -151,12 +242,16 @@ export function AiChat({ organizationId }: { organizationId?: string }) {
 										: "bg-secondary/10",
 								)}
 							>
-								{message.content}
+								{message.parts?.map((part, index) =>
+									part.type === "text" ? (
+										<span key={index}>{part.text}</span>
+									) : null,
+								)}
 							</div>
 						</div>
 					))}
 
-					{isLoading && (
+					{(status === "streaming" || status === "submitted") && (
 						<div className="flex justify-start">
 							<div className="flex max-w-2xl items-center gap-2 rounded-lg bg-secondary/10 px-4 py-2 text-foreground">
 								<EllipsisIcon className="size-6 animate-pulse" />
@@ -167,14 +262,14 @@ export function AiChat({ organizationId }: { organizationId?: string }) {
 
 				<form
 					onSubmit={handleSubmit}
-					className="relative shrink-0 rounded-lg border-none bg-card py-6 pr-14 pl-6 text-lg shadow-sm focus:outline-hidden focus-visible:ring-0"
+					className="relative shrink-0 rounded-lg border bg-card text-lg shadow-sm focus-within:outline-none focus-within:ring focus-within:ring-primary"
 				>
 					<Textarea
 						value={input}
-						onChange={handleInputChange}
+						onChange={(e) => setInput(e.target.value)}
 						disabled={!hasChat}
 						placeholder="Chat with your AI..."
-						className="min-h-8 rounded-none border-none bg-transparent p-0 focus:outline-hidden focus-visible:ring-0 shadow-none"
+						className="min-h-8 rounded-none border-none bg-transparent focus:outline-hidden focus-visible:ring-0 shadow-none p-6 pr-14"
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
 								e.preventDefault();

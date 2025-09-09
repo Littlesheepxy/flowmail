@@ -6,8 +6,8 @@ import { useActiveOrganization } from "@saas/organizations/hooks/use-active-orga
 import { useOrganizationListQuery } from "@saas/organizations/lib/api";
 import { Card } from "@ui/components/card";
 import { ChevronRightIcon, PlusCircleIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export function OrganizationsGrid() {
 	const t = useTranslations();
@@ -42,7 +42,7 @@ export function OrganizationsGrid() {
 
 				{config.organizations.enableUsersToCreateOrganizations && (
 					<Link
-						href="/app/new-organization"
+						href="/new-organization"
 						className="flex h-full items-center justify-center gap-2 rounded-2xl bg-primary/5 p-4 text-primary transition-colors duration-150 hover:bg-primary/10"
 					>
 						<PlusCircleIcon />

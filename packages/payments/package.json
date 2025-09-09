@@ -1,18 +1,21 @@
 {
 	"dependencies": {
 		"@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
-		"@polar-sh/sdk": "^0.32.11",
+		"@polar-sh/sdk": "^0.34.13",
 		"@repo/config": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/logs": "workspace:*",
-		"chargebee-typescript": "^2.46.0",
-		"stripe": "^18.0.0",
-		"ufo": "^1.6.1"
+		"chargebee-typescript": "^2.52.0",
+		"dodopayments": "^1.51.1",
+		"stripe": "^18.4.0",
+		"ufo": "^1.6.1",
+		"zod": "^4.0.17"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
+		"@biomejs/biome": "2.2.0",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "^22.14.1"
+		"@types/node": "^24.3.0",
+		"tsx": "^4.7.0"
 	},
 	"main": "./index.ts",
 	"exports": {
@@ -25,7 +28,8 @@
 	},
 	"name": "@repo/payments",
 	"scripts": {
-		"type-check": "tsc --noEmit"
+		"type-check": "tsc --noEmit",
+		"test:webhook": "tsx ./provider/dodopayments/test-webhook.ts"
 	},
 	"types": "./**/.ts",
 	"version": "0.0.0"

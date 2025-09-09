@@ -1,15 +1,17 @@
 import { config } from "@repo/config";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar";
-import { forwardRef, useMemo } from "react";
+import { useMemo } from "react";
 
-export const UserAvatar = forwardRef<
-	HTMLSpanElement,
-	{
-		name: string;
-		avatarUrl?: string | null;
-		className?: string;
-	}
->(({ name, avatarUrl, className }, ref) => {
+export const UserAvatar = ({
+	name,
+	avatarUrl,
+	className,
+	ref,
+}: React.ComponentProps<typeof Avatar> & {
+	name: string;
+	avatarUrl?: string | null;
+	className?: string;
+}) => {
 	const initials = useMemo(
 		() =>
 			name
@@ -38,6 +40,6 @@ export const UserAvatar = forwardRef<
 			</AvatarFallback>
 		</Avatar>
 	);
-});
+};
 
 UserAvatar.displayName = "UserAvatar";

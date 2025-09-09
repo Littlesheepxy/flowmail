@@ -5,7 +5,6 @@ import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
 import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { OrganizationInvitationAlert } from "@saas/organizations/components/OrganizationInvitationAlert";
-import { useFormErrors } from "@shared/hooks/form-errors";
 import { Alert, AlertDescription, AlertTitle } from "@ui/components/alert";
 import { Button } from "@ui/components/button";
 import {
@@ -24,11 +23,10 @@ import {
 	EyeOffIcon,
 	MailboxIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
-import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { withQuery } from "ufo";
 import { z } from "zod";
@@ -40,16 +38,13 @@ import { SocialSigninButton } from "./SocialSigninButton";
 
 const formSchema = z.object({
 	email: z.string().email(),
-	password: z.string().min(1),
 	name: z.string().min(1),
+	password: z.string(),
 });
-
-type FormValues = z.infer<typeof formSchema>;
 
 export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	const t = useTranslations();
 	const router = useRouter();
-	const { zodErrorMap } = useFormErrors();
 	const { getAuthErrorMessage } = useAuthErrorMessages();
 	const searchParams = useSearchParams();
 
@@ -58,10 +53,8 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	const email = searchParams.get("email");
 	const redirectTo = searchParams.get("redirectTo");
 
-	const form = useForm<FormValues>({
-		resolver: zodResolver(formSchema, {
-			errorMap: zodErrorMap,
-		}),
+	const form = useForm({
+		resolver: zodResolver(formSchema),
 		values: {
 			name: "",
 			email: prefillEmail ?? email ?? "",
@@ -72,21 +65,23 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	const invitationOnlyMode = !config.auth.enableSignup && invitationId;
 
 	const redirectPath = invitationId
-		? `/app/organization-invitation/${invitationId}`
+		? `/organization-invitation/${invitationId}`
 		: (redirectTo ?? config.auth.redirectAfterSignIn);
 
-	const onSubmit: SubmitHandler<FormValues> = async ({
-		email,
-		password,
-		name,
-	}) => {
+	const onSubmit = form.handleSubmit(async ({ email, password, name }) => {
 		try {
-			const { error } = await authClient.signUp.email({
-				email,
-				password,
-				name,
-				callbackURL: redirectPath,
-			});
+			const { error } = await (config.auth.enablePasswordLogin
+				? await authClient.signUp.email({
+						email,
+						password,
+						name,
+						callbackURL: redirectPath,
+					})
+				: authClient.signIn.magicLink({
+						email,
+						name,
+						callbackURL: redirectPath,
+					}));
 
 			if (error) {
 				throw error;
@@ -113,7 +108,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 				),
 			});
 		}
-	};
+	});
 
 	return (
 		<div>
@@ -140,7 +135,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 					<Form {...form}>
 						<form
 							className="flex flex-col items-stretch gap-4"
-							onSubmit={form.handleSubmit(onSubmit)}
+							onSubmit={onSubmit}
 						>
 							{form.formState.isSubmitted &&
 								form.formState.errors.root && (
@@ -188,47 +183,49 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 								)}
 							/>
 
-							<FormField
-								control={form.control}
-								name="password"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											{t("auth.signup.password")}
-										</FormLabel>
-										<FormControl>
-											<div className="relative">
-												<Input
-													type={
-														showPassword
-															? "text"
-															: "password"
-													}
-													className="pr-10"
-													{...field}
-													autoComplete="new-password"
-												/>
-												<button
-													type="button"
-													onClick={() =>
-														setShowPassword(
-															!showPassword,
-														)
-													}
-													className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary text-xl"
-												>
-													{showPassword ? (
-														<EyeOffIcon className="size-4" />
-													) : (
-														<EyeIcon className="size-4" />
-													)}
-												</button>
-											</div>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+							{config.auth.enablePasswordLogin && (
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												{t("auth.signup.password")}
+											</FormLabel>
+											<FormControl>
+												<div className="relative">
+													<Input
+														type={
+															showPassword
+																? "text"
+																: "password"
+														}
+														className="pr-10"
+														{...field}
+														autoComplete="new-password"
+													/>
+													<button
+														type="button"
+														onClick={() =>
+															setShowPassword(
+																!showPassword,
+															)
+														}
+														className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary text-xl"
+													>
+														{showPassword ? (
+															<EyeOffIcon className="size-4" />
+														) : (
+															<EyeIcon className="size-4" />
+														)}
+													</button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
 
 							<Button loading={form.formState.isSubmitting}>
 								{t("auth.signup.submit")}

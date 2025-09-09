@@ -17,8 +17,12 @@
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "off",
-				"noUnusedImports": "error",
-				"noUnusedFunctionParameters": "warn"
+				"noUnusedImports": {
+					"level": "error",
+					"fix": "safe"
+				},
+				"noUnusedFunctionParameters": "warn",
+				"useUniqueElementIds": "off"
 			},
 			"style": {
 				"noUnusedTemplateLiteral": {
@@ -26,15 +30,22 @@
 					"fix": "safe"
 				},
 				"noNonNullAssertion": "warn",
-				"useBlockStatements": "warn"
+				"useBlockStatements": "warn",
+				"noParameterAssign": "error",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"useSingleVarDeclarator": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error"
 			}
 		}
 	},
-	"organizeImports": {
-		"enabled": true
-	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"files": {
-		"ignore": ["./packages/database/prisma/zod/index.ts"]
+		"includes": ["**", "!zod/index.ts", "!tailwind-animate.css"]
 	},
 	"javascript": {
 		"jsxRuntime": "reactClassic"

@@ -1,11 +1,8 @@
 "use client";
 import { StatsTile } from "@saas/start/components/StatsTile";
 import { Card } from "@ui/components/card";
-import { useTranslations } from "next-intl";
 
 export default function OrganizationStart() {
-	const t = useTranslations();
-
 	return (
 		<div className="@container">
 			<div className="grid @2xl:grid-cols-3 gap-4">

@@ -52,7 +52,7 @@ export function OnboardingStep1({ onCompleted }: { onCompleted: () => void }) {
 			});
 
 			onCompleted();
-		} catch (e) {
+		} catch {
 			form.setError("root", {
 				type: "server",
 				message: t("onboarding.notifications.accountSetupFailed"),

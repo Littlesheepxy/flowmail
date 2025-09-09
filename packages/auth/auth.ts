@@ -1,9 +1,15 @@
 import { config } from "@repo/config";
-import { db, getInvitationById } from "@repo/database";
-import { getUserByEmail } from "@repo/database";
+import {
+	db,
+	getInvitationById,
+	getPurchasesByOrganizationId,
+	getPurchasesByUserId,
+	getUserByEmail,
+} from "@repo/database";
 import type { Locale } from "@repo/i18n";
 import { logger } from "@repo/logs";
 import { sendEmail } from "@repo/mail";
+import { cancelSubscription } from "@repo/payments";
 import { getBaseUrl } from "@repo/utils";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -39,7 +45,9 @@ export const auth = betterAuth({
 		provider: "postgresql",
 	}),
 	advanced: {
-		generateId: false,
+		database: {
+			generateId: false,
+		},
 	},
 	session: {
 		expiresIn: config.auth.sessionCookieMaxAge,
@@ -77,6 +85,36 @@ export const auth = betterAuth({
 				}
 
 				await updateSeatsInOrganizationSubscription(organizationId);
+			}
+		}),
+		before: createAuthMiddleware(async (ctx) => {
+			if (
+				ctx.path.startsWith("/delete-user") ||
+				ctx.path.startsWith("/organization/delete")
+			) {
+				const userId = ctx.context.session?.session.userId;
+				const { organizationId } = ctx.body;
+
+				if (userId || organizationId) {
+					const purchases = organizationId
+						? await getPurchasesByOrganizationId(organizationId)
+						: // biome-ignore lint/style/noNonNullAssertion: This is a valid case
+							await getPurchasesByUserId(userId!);
+					const subscriptions = purchases.filter(
+						(purchase) =>
+							purchase.type === "SUBSCRIPTION" &&
+							purchase.subscriptionId !== null,
+					);
+
+					if (subscriptions.length > 0) {
+						for (const subscription of subscriptions) {
+							await cancelSubscription(
+								// biome-ignore lint/style/noNonNullAssertion: This is a valid case
+								subscription.subscriptionId!,
+							);
+						}
+					}
+				}
 			}
 		}),
 	},
@@ -134,6 +172,7 @@ export const auth = betterAuth({
 	},
 	emailVerification: {
 		sendOnSignUp: config.auth.enableSignup,
+		autoSignInAfterVerification: true,
 		sendVerificationEmail: async (
 			{ user: { email, name }, url },
 			request,
@@ -167,7 +206,7 @@ export const auth = betterAuth({
 		admin(),
 		passkey(),
 		magicLink({
-			disableSignUp: true,
+			disableSignUp: false,
 			sendMagicLink: async ({ email, url }, request) => {
 				const locale = getLocaleFromRequest(request);
 				await sendEmail({

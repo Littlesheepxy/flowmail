@@ -1,7 +1,6 @@
-import { nanoid } from "nanoid";
 import type { z } from "zod";
 import { db } from "../client";
-import type { UserUncheckedUpdateInputSchema } from "../zod";
+import type { UserSchema } from "../zod";
 
 export async function getUsers({
 	limit,
@@ -60,7 +59,6 @@ export async function createUser({
 }) {
 	return await db.user.create({
 		data: {
-			id: nanoid(),
 			email,
 			name,
 			role,
@@ -93,7 +91,6 @@ export async function createUserAccount({
 }) {
 	return await db.account.create({
 		data: {
-			id: nanoid(),
 			userId,
 			accountId,
 			providerId,
@@ -105,7 +102,7 @@ export async function createUserAccount({
 }
 
 export async function updateUser(
-	user: z.infer<typeof UserUncheckedUpdateInputSchema> & { id: string },
+	user: Partial<z.infer<typeof UserSchema>> & { id: string },
 ) {
 	return await db.user.update({
 		where: {

@@ -9,9 +9,8 @@ import {
 	activeOrganizationQueryKey,
 	useActiveOrganizationQuery,
 } from "@saas/organizations/lib/api";
-import { purchasesQueryKey } from "@saas/payments/lib/api";
 import { useRouter } from "@shared/hooks/router";
-import { apiClient } from "@shared/lib/api-client";
+import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import nProgress from "nprogress";
@@ -61,28 +60,16 @@ export function ActiveOrganizationProvider({
 			return;
 		}
 
-		await queryClient.setQueryData(
-			activeOrganizationQueryKey(newActiveOrganization.slug),
-			newActiveOrganization,
-		);
+		await refetchActiveOrganization();
 
 		if (config.organizations.enableBilling) {
-			await queryClient.prefetchQuery({
-				queryKey: purchasesQueryKey(newActiveOrganization.id),
-				queryFn: async () => {
-					const response = await apiClient.payments.purchases.$get({
-						query: {
-							organizationId: newActiveOrganization.id,
-						},
-					});
-
-					if (!response.ok) {
-						throw new Error("Failed to fetch purchases");
-					}
-
-					return response.json();
-				},
-			});
+			await queryClient.prefetchQuery(
+				orpc.payments.listPurchases.queryOptions({
+					input: {
+						organizationId: newActiveOrganization.id,
+					},
+				}),
+			);
 		}
 
 		await queryClient.setQueryData(sessionQueryKey, (data: any) => {

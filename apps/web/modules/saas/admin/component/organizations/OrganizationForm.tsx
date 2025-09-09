@@ -1,7 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { adminOrganizationsQueryKey } from "@saas/admin/lib/api";
 import { getAdminPath } from "@saas/admin/lib/links";
 import { InviteMemberForm } from "@saas/organizations/components/InviteMemberForm";
 import { OrganizationMembersBlock } from "@saas/organizations/components/OrganizationMembersBlock";
@@ -12,6 +11,7 @@ import {
 	useUpdateOrganizationMutation,
 } from "@saas/organizations/lib/api";
 import { useRouter } from "@shared/hooks/router";
+import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
@@ -78,7 +78,7 @@ export function OrganizationForm({
 			);
 
 			queryClient.invalidateQueries({
-				queryKey: adminOrganizationsQueryKey,
+				queryKey: orpc.admin.organizations.list.key(),
 			});
 
 			toast.success(t("admin.organizations.form.notifications.success"));
@@ -88,7 +88,7 @@ export function OrganizationForm({
 					getAdminPath(`/organizations/${newOrganization.id}`),
 				);
 			}
-		} catch (error) {
+		} catch {
 			toast.error(t("admin.organizations.form.notifications.error"));
 		}
 	});

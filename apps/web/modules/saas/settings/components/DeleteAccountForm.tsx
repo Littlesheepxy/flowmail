@@ -5,7 +5,6 @@ import { useSession } from "@saas/auth/hooks/use-session";
 import { useConfirmationAlert } from "@saas/shared/components/ConfirmationAlertProvider";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useMutation } from "@tanstack/react-query";
-import {} from "@ui/components/alert-dialog";
 import { Button } from "@ui/components/button";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -47,18 +46,16 @@ export function DeleteAccountForm() {
 	};
 
 	return (
-		<>
-			<SettingsItem
-				danger
-				title={t("settings.account.deleteAccount.title")}
-				description={t("settings.account.deleteAccount.description")}
-			>
-				<div className="mt-4 flex justify-end">
-					<Button variant="error" onClick={() => confirmDelete()}>
-						{t("settings.account.deleteAccount.submit")}
-					</Button>
-				</div>
-			</SettingsItem>
-		</>
+		<SettingsItem
+			danger
+			title={t("settings.account.deleteAccount.title")}
+			description={t("settings.account.deleteAccount.description")}
+		>
+			<div className="mt-4 flex justify-end">
+				<Button variant="error" onClick={() => confirmDelete()}>
+					{t("settings.account.deleteAccount.submit")}
+				</Button>
+			</div>
+		</SettingsItem>
 	);
 }
