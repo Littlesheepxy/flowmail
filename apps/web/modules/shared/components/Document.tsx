@@ -1,10 +1,16 @@
 import { ClientProviders } from "@shared/components/ClientProviders";
 import { ConsentProvider } from "@shared/components/ConsentProvider";
 import { cn } from "@ui/lib";
-import { GeistSans } from "geist/font/sans";
+import { Geist } from "next/font/google";
 import { cookies } from "next/headers";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { PropsWithChildren } from "react";
+
+const sansFont = Geist({
+	weight: ["400", "500", "600", "700"],
+	subsets: ["latin"],
+	variable: "--font-sans",
+});
 
 export async function Document({
 	children,
@@ -17,7 +23,7 @@ export async function Document({
 		<html
 			lang={locale}
 			suppressHydrationWarning
-			className={GeistSans.variable}
+			className={sansFont.className}
 		>
 			<body
 				className={cn(

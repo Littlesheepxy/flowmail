@@ -266,8 +266,7 @@ export const webhookHandler: WebhookHandler = async (req) => {
 					break;
 				}
 
-				case "subscription.cancelled":
-				case "subscription.deleted": {
+				case "subscription.cancelled": {
 					await deletePurchaseBySubscriptionId(data.subscription_id);
 					break;
 				}

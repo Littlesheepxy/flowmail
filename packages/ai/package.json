@@ -1,15 +1,15 @@
 {
 	"dependencies": {
-		"@ai-sdk/anthropic": "^2.0.6",
-		"@ai-sdk/openai": "^2.0.19",
-		"@ai-sdk/react": "^2.0.22",
-		"ai": "^5.0.22",
-		"openai": "^5.15.0"
+		"@ai-sdk/anthropic": "^2.0.18",
+		"@ai-sdk/openai": "^2.0.34",
+		"@ai-sdk/react": "^2.0.51",
+		"ai": "^5.0.51",
+		"openai": "^5.23.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.2.0",
+		"@biomejs/biome": "2.2.4",
 		"@repo/tsconfig": "workspace:*",
-		"@types/react": "19.1.11",
+		"@types/react": "19.1.16",
 		"typescript": "5.9.2"
 	},
 	"main": "./index.ts",

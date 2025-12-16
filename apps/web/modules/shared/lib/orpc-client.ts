@@ -15,6 +15,10 @@ const link = new RPCLink({
 	},
 	interceptors: [
 		onError((error) => {
+			if (error instanceof Error && error.name === "AbortError") {
+				return;
+			}
+
 			console.error(error);
 		}),
 	],

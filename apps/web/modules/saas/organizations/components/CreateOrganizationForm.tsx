@@ -57,7 +57,7 @@ export function CreateOrganizationForm({
 				throw new Error("Failed to create organization");
 			}
 
-			await setActiveOrganization(newOrganization.id);
+			await setActiveOrganization(newOrganization.slug);
 
 			await queryClient.invalidateQueries({
 				queryKey: organizationListQueryKey,

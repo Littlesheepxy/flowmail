@@ -153,7 +153,7 @@ export function TwoFactorBlock() {
 		verifyTwoFactorMutation.mutate();
 	};
 
-	if (!accounts?.some((account) => account.provider === "credential")) {
+	if (!accounts?.some((account) => account.providerId === "credential")) {
 		return null;
 	}
 

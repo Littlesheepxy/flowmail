@@ -4,7 +4,9 @@ import { useTranslations } from "next-intl";
 export function useAuthErrorMessages() {
 	const t = useTranslations();
 
-	const authErrorMessages: Partial<AuthClientErrorCodes> = {
+	const authErrorMessages: Partial<
+		Record<keyof AuthClientErrorCodes, string>
+	> = {
 		INVALID_EMAIL_OR_PASSWORD: t("auth.errors.invalidEmailOrPassword"),
 		USER_NOT_FOUND: t("auth.errors.userNotFound"),
 		FAILED_TO_CREATE_USER: t("auth.errors.failedToCreateUser"),

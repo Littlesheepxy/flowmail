@@ -10,7 +10,7 @@
 				"name": "next"
 			}
 		],
-		"target": "es5"
+		"target": "ES6"
 	},
 	"display": "Next.js",
 	"exclude": ["node_modules"],

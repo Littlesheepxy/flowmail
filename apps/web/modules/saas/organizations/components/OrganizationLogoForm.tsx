@@ -1,7 +1,6 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
-import { config } from "@repo/config";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { organizationListQueryKey } from "@saas/organizations/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
@@ -12,7 +11,6 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-import { v4 as uuid } from "uuid";
 import { CropImageDialog } from "../../settings/components/CropImageDialog";
 import { OrganizationLogo } from "./OrganizationLogo";
 
@@ -51,11 +49,9 @@ export function OrganizationLogoForm() {
 
 		setUploading(true);
 		try {
-			const path = `${activeOrganization.id}-${uuid()}.png`;
-			const { signedUploadUrl } =
+			const { signedUploadUrl, path } =
 				await getSignedUploadUrlMutation.mutateAsync({
-					path,
-					bucket: config.storage.bucketNames.avatars,
+					organizationId: activeOrganization.id,
 				});
 
 			const response = await fetch(signedUploadUrl, {

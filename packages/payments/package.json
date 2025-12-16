@@ -1,21 +1,21 @@
 {
 	"dependencies": {
 		"@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
-		"@polar-sh/sdk": "^0.34.13",
+		"@polar-sh/sdk": "^0.35.2",
 		"@repo/config": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/logs": "workspace:*",
-		"chargebee-typescript": "^2.52.0",
-		"dodopayments": "^1.51.1",
-		"stripe": "^18.4.0",
+		"chargebee-typescript": "^2.53.0",
+		"dodopayments": "^2.1.0",
+		"stripe": "^18.5.0",
 		"ufo": "^1.6.1",
-		"zod": "^4.0.17"
+		"zod": "^4.1.11"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.2.0",
+		"@biomejs/biome": "2.2.4",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "^24.3.0",
-		"tsx": "^4.7.0"
+		"@types/node": "^24.6.0",
+		"tsx": "^4.20.6"
 	},
 	"main": "./index.ts",
 	"exports": {

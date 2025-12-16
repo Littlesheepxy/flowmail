@@ -9,7 +9,7 @@
 		"inlineSources": false,
 		"isolatedModules": true,
 		"module": "Preserve",
-		"target": "ES2021",
+		"target": "ES6",
 		"moduleResolution": "bundler",
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,

@@ -68,6 +68,10 @@ export default async function SettingsLayout({
 									<CreditCardIcon className="size-4 opacity-50" />
 								),
 							},
+						]
+					: []),
+				...(userIsOrganizationAdmin
+					? [
 							{
 								title: t(
 									"settings.menu.organization.dangerZone",

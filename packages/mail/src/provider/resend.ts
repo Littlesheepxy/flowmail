@@ -1,26 +1,17 @@
 import { config } from "@repo/config";
-import { logger } from "@repo/logs";
+import { Resend } from "resend";
 import type { SendEmailHandler } from "../../types";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const { from } = config.mails;
 
-export const send: SendEmailHandler = async ({ to, subject, html }) => {
-	const response = await fetch("https://api.resend.com/emails", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-		},
-		body: JSON.stringify({
-			from,
-			to,
-			subject,
-			html,
-		}),
+export const send: SendEmailHandler = async ({ to, subject, html, text }) => {
+	await resend.emails.send({
+		from,
+		to: [to],
+		subject,
+		html,
+		text,
 	});
-
-	if (!response.ok) {
-		logger.error(await response.json());
-		throw new Error("Could not send email");
-	}
 };

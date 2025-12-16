@@ -1,21 +1,21 @@
 {
 	"dependencies": {
 		"@paralleldrive/cuid2": "^2.2.2",
-		"@prisma/client": "6.14.0",
+		"@prisma/client": "6.16.2",
 		"@repo/config": "workspace:*",
-		"drizzle-orm": "^0.44.4",
+		"drizzle-orm": "^0.44.5",
 		"drizzle-zod": "0.8.3",
 		"pg": "^8.16.0",
-		"zod": "^4.0.17"
+		"zod": "^4.1.11"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.2.0",
+		"@biomejs/biome": "2.2.4",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "24.3.0",
+		"@types/node": "24.6.0",
 		"dotenv-cli": "^10.0.0",
-		"drizzle-kit": "^0.31.1",
-		"prisma": "6.14.0",
-		"prisma-zod-generator": "^1.16.1"
+		"drizzle-kit": "^0.31.5",
+		"prisma": "6.16.2",
+		"prisma-zod-generator": "^1.25.0"
 	},
 	"main": "./index.ts",
 	"name": "@repo/database",

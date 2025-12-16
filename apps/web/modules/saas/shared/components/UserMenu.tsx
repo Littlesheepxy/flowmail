@@ -5,7 +5,6 @@ import { authClient } from "@repo/auth/client";
 import { config } from "@repo/config";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { UserAvatar } from "@shared/components/UserAvatar";
-import { clearCache } from "@shared/lib/cache";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -62,7 +61,6 @@ export function UserMenu({ showUserName }: { showUserName?: boolean }) {
 		authClient.signOut({
 			fetchOptions: {
 				onSuccess: async () => {
-					await clearCache();
 					window.location.href = new URL(
 						config.auth.redirectAfterLogout,
 						window.location.origin,

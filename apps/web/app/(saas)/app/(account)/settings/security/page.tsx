@@ -34,7 +34,7 @@ export default async function AccountSettingsPage() {
 	const userAccounts = await getUserAccounts();
 
 	const userHasPassword = userAccounts?.some(
-		(account) => account.provider === "credential",
+		(account) => account.providerId === "credential",
 	);
 
 	const queryClient = getServerQueryClient();

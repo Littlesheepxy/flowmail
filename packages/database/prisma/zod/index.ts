@@ -8,73 +8,109 @@ import { z } from 'zod';
 
 export const TransactionIsolationLevelSchema = z.enum(['ReadUncommitted', 'ReadCommitted', 'RepeatableRead', 'Serializable'])
 
+export type TransactionIsolationLevel = z.infer<typeof TransactionIsolationLevelSchema>;
+
 // File: UserScalarFieldEnum.schema.ts
 
 export const UserScalarFieldEnumSchema = z.enum(['id', 'name', 'email', 'emailVerified', 'image', 'createdAt', 'updatedAt', 'username', 'role', 'banned', 'banReason', 'banExpires', 'onboardingComplete', 'paymentsCustomerId', 'locale', 'twoFactorEnabled'])
+
+export type UserScalarFieldEnum = z.infer<typeof UserScalarFieldEnumSchema>;
 
 // File: SessionScalarFieldEnum.schema.ts
 
 export const SessionScalarFieldEnumSchema = z.enum(['id', 'expiresAt', 'ipAddress', 'userAgent', 'userId', 'impersonatedBy', 'activeOrganizationId', 'token', 'createdAt', 'updatedAt'])
 
+export type SessionScalarFieldEnum = z.infer<typeof SessionScalarFieldEnumSchema>;
+
 // File: AccountScalarFieldEnum.schema.ts
 
 export const AccountScalarFieldEnumSchema = z.enum(['id', 'accountId', 'providerId', 'userId', 'accessToken', 'refreshToken', 'idToken', 'expiresAt', 'password', 'accessTokenExpiresAt', 'refreshTokenExpiresAt', 'scope', 'createdAt', 'updatedAt'])
+
+export type AccountScalarFieldEnum = z.infer<typeof AccountScalarFieldEnumSchema>;
 
 // File: VerificationScalarFieldEnum.schema.ts
 
 export const VerificationScalarFieldEnumSchema = z.enum(['id', 'identifier', 'value', 'expiresAt', 'createdAt', 'updatedAt'])
 
+export type VerificationScalarFieldEnum = z.infer<typeof VerificationScalarFieldEnumSchema>;
+
 // File: PasskeyScalarFieldEnum.schema.ts
 
 export const PasskeyScalarFieldEnumSchema = z.enum(['id', 'name', 'publicKey', 'userId', 'credentialID', 'counter', 'deviceType', 'backedUp', 'transports', 'createdAt'])
+
+export type PasskeyScalarFieldEnum = z.infer<typeof PasskeyScalarFieldEnumSchema>;
 
 // File: TwoFactorScalarFieldEnum.schema.ts
 
 export const TwoFactorScalarFieldEnumSchema = z.enum(['id', 'secret', 'backupCodes', 'userId'])
 
+export type TwoFactorScalarFieldEnum = z.infer<typeof TwoFactorScalarFieldEnumSchema>;
+
 // File: OrganizationScalarFieldEnum.schema.ts
 
 export const OrganizationScalarFieldEnumSchema = z.enum(['id', 'name', 'slug', 'logo', 'createdAt', 'metadata', 'paymentsCustomerId'])
+
+export type OrganizationScalarFieldEnum = z.infer<typeof OrganizationScalarFieldEnumSchema>;
 
 // File: MemberScalarFieldEnum.schema.ts
 
 export const MemberScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'userId', 'role', 'createdAt'])
 
+export type MemberScalarFieldEnum = z.infer<typeof MemberScalarFieldEnumSchema>;
+
 // File: InvitationScalarFieldEnum.schema.ts
 
 export const InvitationScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'email', 'role', 'status', 'expiresAt', 'inviterId'])
+
+export type InvitationScalarFieldEnum = z.infer<typeof InvitationScalarFieldEnumSchema>;
 
 // File: PurchaseScalarFieldEnum.schema.ts
 
 export const PurchaseScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'userId', 'type', 'customerId', 'subscriptionId', 'productId', 'status', 'createdAt', 'updatedAt'])
 
+export type PurchaseScalarFieldEnum = z.infer<typeof PurchaseScalarFieldEnumSchema>;
+
 // File: AiChatScalarFieldEnum.schema.ts
 
 export const AiChatScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'userId', 'title', 'messages', 'createdAt', 'updatedAt'])
+
+export type AiChatScalarFieldEnum = z.infer<typeof AiChatScalarFieldEnumSchema>;
 
 // File: SortOrder.schema.ts
 
 export const SortOrderSchema = z.enum(['asc', 'desc'])
 
+export type SortOrder = z.infer<typeof SortOrderSchema>;
+
 // File: JsonNullValueInput.schema.ts
 
 export const JsonNullValueInputSchema = z.enum(['JsonNull'])
+
+export type JsonNullValueInput = z.infer<typeof JsonNullValueInputSchema>;
 
 // File: QueryMode.schema.ts
 
 export const QueryModeSchema = z.enum(['default', 'insensitive'])
 
+export type QueryMode = z.infer<typeof QueryModeSchema>;
+
 // File: NullsOrder.schema.ts
 
 export const NullsOrderSchema = z.enum(['first', 'last'])
+
+export type NullsOrder = z.infer<typeof NullsOrderSchema>;
 
 // File: JsonNullValueFilter.schema.ts
 
 export const JsonNullValueFilterSchema = z.enum(['DbNull', 'JsonNull', 'AnyNull'])
 
+export type JsonNullValueFilter = z.infer<typeof JsonNullValueFilterSchema>;
+
 // File: PurchaseType.schema.ts
 
 export const PurchaseTypeSchema = z.enum(['SUBSCRIPTION', 'ONE_TIME'])
+
+export type PurchaseType = z.infer<typeof PurchaseTypeSchema>;
 
 // File: User.schema.ts
 
@@ -242,7 +278,7 @@ export const PurchaseSchema = z.object({
   updatedAt: z.date(),
 });
 
-export type PurchaseType = z.infer<typeof PurchaseSchema>;
+export type Purchase = z.infer<typeof PurchaseSchema>;
 
 
 // File: AiChat.schema.ts
