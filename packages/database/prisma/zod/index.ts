@@ -3,7 +3,7 @@
  * Auto-generated. Do not edit.
  */
 
-import { z } from 'zod';
+import * as z from 'zod';
 // File: TransactionIsolationLevel.schema.ts
 
 export const TransactionIsolationLevelSchema = z.enum(['ReadUncommitted', 'ReadCommitted', 'RepeatableRead', 'Serializable'])
@@ -12,7 +12,7 @@ export type TransactionIsolationLevel = z.infer<typeof TransactionIsolationLevel
 
 // File: UserScalarFieldEnum.schema.ts
 
-export const UserScalarFieldEnumSchema = z.enum(['id', 'name', 'email', 'emailVerified', 'image', 'createdAt', 'updatedAt', 'username', 'role', 'banned', 'banReason', 'banExpires', 'onboardingComplete', 'paymentsCustomerId', 'locale', 'twoFactorEnabled'])
+export const UserScalarFieldEnumSchema = z.enum(['id', 'name', 'email', 'emailVerified', 'image', 'createdAt', 'updatedAt', 'username', 'role', 'banned', 'banReason', 'banExpires', 'onboardingComplete', 'paymentsCustomerId', 'locale', 'displayUsername', 'twoFactorEnabled'])
 
 export type UserScalarFieldEnum = z.infer<typeof UserScalarFieldEnumSchema>;
 
@@ -36,7 +36,7 @@ export type VerificationScalarFieldEnum = z.infer<typeof VerificationScalarField
 
 // File: PasskeyScalarFieldEnum.schema.ts
 
-export const PasskeyScalarFieldEnumSchema = z.enum(['id', 'name', 'publicKey', 'userId', 'credentialID', 'counter', 'deviceType', 'backedUp', 'transports', 'createdAt'])
+export const PasskeyScalarFieldEnumSchema = z.enum(['id', 'name', 'publicKey', 'userId', 'credentialID', 'counter', 'deviceType', 'backedUp', 'transports', 'aaguid', 'createdAt'])
 
 export type PasskeyScalarFieldEnum = z.infer<typeof PasskeyScalarFieldEnumSchema>;
 
@@ -60,7 +60,7 @@ export type MemberScalarFieldEnum = z.infer<typeof MemberScalarFieldEnumSchema>;
 
 // File: InvitationScalarFieldEnum.schema.ts
 
-export const InvitationScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'email', 'role', 'status', 'expiresAt', 'inviterId'])
+export const InvitationScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'email', 'role', 'status', 'expiresAt', 'inviterId', 'createdAt'])
 
 export type InvitationScalarFieldEnum = z.infer<typeof InvitationScalarFieldEnumSchema>;
 
@@ -130,6 +130,7 @@ export const UserSchema = z.object({
   onboardingComplete: z.boolean(),
   paymentsCustomerId: z.string().nullish(),
   locale: z.string().nullish(),
+  displayUsername: z.string().nullish(),
   twoFactorEnabled: z.boolean().nullish(),
 });
 
@@ -202,6 +203,7 @@ export const PasskeySchema = z.object({
   deviceType: z.string(),
   backedUp: z.boolean(),
   transports: z.string().nullish(),
+  aaguid: z.string().nullish(),
   createdAt: z.date().nullish(),
 });
 
@@ -258,6 +260,7 @@ export const InvitationSchema = z.object({
   status: z.string(),
   expiresAt: z.date(),
   inviterId: z.string(),
+  createdAt: z.date(),
 });
 
 export type InvitationType = z.infer<typeof InvitationSchema>;
@@ -278,8 +281,7 @@ export const PurchaseSchema = z.object({
   updatedAt: z.date(),
 });
 
-export type Purchase = z.infer<typeof PurchaseSchema>;
-
+export type PurchaseModel = z.infer<typeof PurchaseSchema>;
 
 // File: AiChat.schema.ts
 

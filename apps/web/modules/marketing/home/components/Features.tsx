@@ -2,16 +2,10 @@
 
 import { MobileIcon } from "@radix-ui/react-icons";
 import { cn } from "@ui/lib";
-import {
-	CloudIcon,
-	ComputerIcon,
-	PaperclipIcon,
-	StarIcon,
-	WandIcon,
-} from "lucide-react";
+import { CloudIcon, ComputerIcon, StarIcon, WandIcon } from "lucide-react";
 import Image, { type StaticImageData } from "next/image";
-import { type JSXElementConstructor, type ReactNode, useState } from "react";
-import heroImage from "../../../../public/images/hero.svg";
+import type { JSXElementConstructor, ReactNode } from "react";
+import heroImage from "../../../../public/images/feature.svg";
 
 export const featureTabs: Array<{
 	id: string;
@@ -95,108 +89,46 @@ export const featureTabs: Array<{
 			},
 		],
 	},
-	{
-		id: "feature3",
-		title: "Feature 3",
-		icon: PaperclipIcon,
-		subtitle: "We even got a third one.",
-		description:
-			"Of course your SaaS will have more features than this, but this is just a dummy text.",
-		stack: [],
-		image: heroImage,
-		imageBorder: false,
-		highlights: [
-			{
-				title: "Benefit 1",
-				description:
-					"This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text.",
-				icon: WandIcon,
-			},
-			{
-				title: "Benefit 2",
-				description:
-					"This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text.",
-				icon: ComputerIcon,
-			},
-			{
-				title: "Benefit 3",
-				description:
-					"This is an awesome benefit. And below you can see some reasons why. This is basically just a dummy text.",
-				icon: MobileIcon,
-			},
-		],
-	},
 ];
 
 export function Features() {
-	const [selectedTab, setSelectedTab] = useState(featureTabs[0].id);
 	return (
-		<section id="features" className="scroll-my-20 pt-12 lg:pt-16">
-			<div className="container max-w-5xl">
-				<div className="mx-auto mb-6 lg:mb-0 lg:max-w-5xl lg:text-center">
-					<h2 className="font-bold text-4xl lg:text-5xl">
+		<section id="features" className="scroll-my-20 py-12 lg:py-16 xl:py-24">
+			<div className="container">
+				<div className="mb-6 lg:mb-0 max-w-3xl">
+					<small className="font-medium text-xs uppercase tracking-wider text-primary mb-4 block">
+						Incredible features
+					</small>
+					<h2 className="font-serif text-2xl lg:text-3xl xl:text-4xl font-medium">
 						Features your clients will love
 					</h2>
-					<p className="mt-6 text-balance text-lg opacity-50">
+					<p className="mt-2 text-base lg:text-lg text-foreground/60">
 						In this section you can showcase all the features of
 						your SaaS provides and how they can benefit your
 						clients.
 					</p>
 				</div>
-
-				<div className="mt-8 mb-4 hidden justify-center lg:flex">
-					{featureTabs.map((tab) => {
-						return (
-							<button
-								type="button"
-								key={tab.id}
-								onClick={() => setSelectedTab(tab.id)}
-								className={cn(
-									"flex w-24 flex-col items-center gap-2 rounded-lg px-4 py-2 md:w-32",
-									selectedTab === tab.id
-										? "bg-primary/5 font-bold text-primary dark:bg-primary/10"
-										: "font-medium text-foreground/80",
-								)}
-							>
-								<tab.icon
-									className={cn(
-										"size-6 md:size-8",
-										selectedTab === tab.id
-											? "text-primary"
-											: "text-foreground opacity-30",
-									)}
-								/>
-								<span className="text-xs md:text-sm">
-									{tab.title}
-								</span>
-							</button>
-						);
-					})}
-				</div>
 			</div>
 
 			<div>
-				<div className="container max-w-5xl">
+				<div className="container mt-8 lg:mt-12 grid grid-cols-1 gap-4">
 					{featureTabs.map((tab) => {
 						const filteredStack = tab.stack || [];
 						const filteredHighlights = tab.highlights || [];
 						return (
 							<div
 								key={tab.id}
-								className={cn(
-									"border-t py-8 first:border-t-0 md:py-12 lg:border lg:first:border-t lg:rounded-3xl lg:p-6",
-									selectedTab === tab.id
-										? "block"
-										: "block lg:hidden",
-								)}
+								className="bg-card rounded-4xl p-6 lg:p-8"
 							>
 								<div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 lg:gap-12">
 									<div>
-										<h3 className="font-normal text-2xl text-foreground/60 leading-normal md:text-3xl">
-											<strong className="text-secondary">
+										<h3 className="font-normal text-lg text-foreground leading-tight md:text-xl lg:text-2xl font-serif">
+											<span className="font-medium">
 												{tab.title}.{" "}
-											</strong>
-											{tab.subtitle}
+											</span>
+											<span className="font-sans">
+												{tab.subtitle}
+											</span>
 										</h3>
 
 										{tab.description && (
@@ -244,12 +176,12 @@ export function Features() {
 								</div>
 
 								{filteredHighlights.length > 0 && (
-									<div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+									<div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:mt-12">
 										{filteredHighlights.map(
 											(highlight, k) => (
 												<div
 													key={`highlight-${k}`}
-													className="flex flex-col items-stretch justify-between rounded-xl bg-card border p-4"
+													className="flex flex-col items-stretch justify-between rounded-2xl p-4 lg:p-6 bg-background"
 												>
 													<div>
 														<highlight.icon
@@ -257,10 +189,10 @@ export function Features() {
 															width="1em"
 															height="1em"
 														/>
-														<strong className="mt-2 block">
+														<strong className="mt-2 block font-medium text-lg">
 															{highlight.title}
 														</strong>
-														<p className="mt-1 text-sm opacity-50">
+														<p className="mt-1 text-sm">
 															{
 																highlight.description
 															}

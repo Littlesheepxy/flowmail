@@ -121,6 +121,12 @@ export const webhookHandler: WebhookHandler = async (req) => {
 					break;
 				}
 
+				if (!productId) {
+					return new Response("Missing product ID.", {
+						status: 400,
+					});
+				}
+
 				await createPurchase({
 					organizationId:
 						(metadata?.organization_id as string) || null,

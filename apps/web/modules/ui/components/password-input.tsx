@@ -10,7 +10,7 @@ export function PasswordInput({
 	className,
 	autoComplete,
 }: {
-	value: string;
+	value?: string;
 	onChange: (value: string) => void;
 	className?: string;
 	autoComplete?: string;

@@ -23,7 +23,7 @@ export const listUsers = adminProcedure
 			query,
 		});
 
-		const total = await countAllUsers();
+		const total = await countAllUsers({ query });
 
 		return { users, total };
 	});

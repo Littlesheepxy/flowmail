@@ -8,7 +8,7 @@ export function ChangelogSection({ items }: { items: ChangelogItem[] }) {
 				{items?.map((item, i) => (
 					<div key={i} className="rounded-xl border bg-card p-6">
 						<small
-							className="inline-block rounded-full border border-highlight/50 px-2 py-0.5 font-semibold text-highlight text-xs"
+							className="inline-block rounded-full border border-primary/50 px-2 py-0.5 font-semibold text-primary text-xs"
 							title={formatDate(
 								parseISO(item.date),
 								"yyyy-MM-dd",

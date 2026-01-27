@@ -7,7 +7,7 @@ import { withQuery } from "ufo";
 
 const intlMiddleware = createMiddleware(routing);
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
 	const { pathname, origin } = req.nextUrl;
 
 	const sessionCookie = getSessionCookie(req);

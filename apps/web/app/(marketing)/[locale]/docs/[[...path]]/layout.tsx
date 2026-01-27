@@ -13,21 +13,21 @@ export default async function DocumentationLayout({
 	const { locale } = await params;
 
 	return (
-		<div className="pt-[4.5rem]">
-			<DocsLayout
-				tree={docsSource.pageTree[locale]}
-				disableThemeSwitch
-				i18n
-				nav={{
-					title: <strong>{t("documentation.title")}</strong>,
-					url: "/docs",
-				}}
-				sidebar={{
-					defaultOpenLevel: 1,
-				}}
-			>
-				{children}
-			</DocsLayout>
-		</div>
+		<DocsLayout
+			tree={docsSource.pageTree[locale]}
+			themeSwitch={{
+				enabled: false,
+			}}
+			i18n
+			nav={{
+				title: <strong>{t("documentation.title")}</strong>,
+				url: "/docs",
+			}}
+			sidebar={{
+				defaultOpenLevel: 1,
+			}}
+		>
+			{children}
+		</DocsLayout>
 	);
 }

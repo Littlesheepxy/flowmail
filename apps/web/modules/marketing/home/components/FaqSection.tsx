@@ -1,3 +1,11 @@
+"use client";
+
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@ui/components/accordion";
 import { cn } from "@ui/lib";
 import { useTranslations } from "next-intl";
 
@@ -29,29 +37,38 @@ export function FaqSection({ className }: { className?: string }) {
 
 	return (
 		<section
-			className={cn("scroll-mt-20 border-t py-12 lg:py-16", className)}
+			className={cn("scroll-mt-20 py-12 lg:py-16 xl:py-24", className)}
 			id="faq"
 		>
-			<div className="container max-w-5xl">
-				<div className="mb-12 lg:text-center">
-					<h1 className="mb-2 font-bold text-4xl lg:text-5xl">
+			<div className="container max-w-3xl">
+				<div className="mb-6 text-center">
+					<h1 className="mb-2 font-serif font-medium text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-tighter text-foreground">
 						{t("faq.title")}
 					</h1>
-					<p className="text-lg opacity-50">{t("faq.description")}</p>
+					<p className="text-foreground/60 text-sm sm:text-lg">
+						{t("faq.description")}
+					</p>
 				</div>
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+				<Accordion
+					type="single"
+					collapsible
+					className="w-full space-y-2"
+				>
 					{items.map((item, i) => (
-						<div
+						<AccordionItem
 							key={`faq-item-${i}`}
-							className="rounded-lg bg-card border p-4 lg:p-6"
+							value={`item-${i}`}
+							className="rounded-lg bg-card shadow-none border-none px-4 lg:px-6"
 						>
-							<h4 className="mb-2 font-semibold text-lg">
+							<AccordionTrigger className="text-left font-medium text-base hover:no-underline">
 								{item.question}
-							</h4>
-							<p className="text-foreground/60">{item.answer}</p>
-						</div>
+							</AccordionTrigger>
+							<AccordionContent className="text-foreground/60">
+								{item.answer}
+							</AccordionContent>
+						</AccordionItem>
 					))}
-				</div>
+				</Accordion>
 			</div>
 		</section>
 	);

@@ -1,6 +1,6 @@
 "use client";
 import { authClient } from "@repo/auth/client";
-import { useUserPasskeysQuery } from "@saas/auth/lib/api";
+import { userPasskeyQueryKey, useUserPasskeysQuery } from "@saas/auth/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
@@ -20,7 +20,9 @@ export function PasskeysBlock() {
 		await authClient.passkey.addPasskey({
 			fetchOptions: {
 				onSuccess: () => {
-					queryClient.invalidateQueries({ queryKey: ["passkeys"] });
+					queryClient.invalidateQueries({
+						queryKey: userPasskeyQueryKey,
+					});
 					toast.success(
 						t(
 							"settings.account.security.passkeys.notifications.addPasskey.success.title",
@@ -43,6 +45,13 @@ export function PasskeysBlock() {
 			async () => {
 				await authClient.passkey.deletePasskey({
 					id,
+					fetchOptions: {
+						onSuccess: () => {
+							queryClient.invalidateQueries({
+								queryKey: userPasskeyQueryKey,
+							});
+						},
+					},
 				});
 			},
 			{

@@ -1,13 +1,10 @@
 {
 	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
-		"tailwindcss": "^4.1.13"
+		"@biomejs/biome": "2.3.5",
+		"tailwindcss": "^4.1.17"
 	},
 	"main": "theme.css",
 	"name": "@repo/tailwind-config",
 	"private": true,
-	"scripts": {
-		"type-check": "tsc --noEmit"
-	},
 	"version": "0.0.0"
 }

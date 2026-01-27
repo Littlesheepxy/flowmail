@@ -14,9 +14,20 @@ export async function getUsers({
 	return await db.user.findMany({
 		where: query
 			? {
-					name: {
-						contains: query,
-					},
+					OR: [
+						{
+							name: {
+								contains: query,
+								mode: "insensitive",
+							},
+						},
+						{
+							email: {
+								contains: query,
+								mode: "insensitive",
+							},
+						},
+					],
 				}
 			: undefined,
 		take: limit,
@@ -24,8 +35,27 @@ export async function getUsers({
 	});
 }
 
-export async function countAllUsers() {
-	return await db.user.count();
+export async function countAllUsers({ query }: { query?: string }) {
+	return await db.user.count({
+		where: query
+			? {
+					OR: [
+						{
+							name: {
+								contains: query,
+								mode: "insensitive",
+							},
+						},
+						{
+							email: {
+								contains: query,
+								mode: "insensitive",
+							},
+						},
+					],
+				}
+			: undefined,
+	});
 }
 
 export async function getUserById(id: string) {

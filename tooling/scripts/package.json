@@ -1,14 +1,14 @@
 {
 	"dependencies": {
+		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/logs": "workspace:*",
-		"@repo/auth": "workspace:*",
 		"@repo/utils": "workspace:*"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
+		"@biomejs/biome": "2.3.5",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "^24.6.0",
+		"@types/node": "^24.10.1",
 		"nanoid": "^5.1.6",
 		"tsx": "^4.20.6"
 	},

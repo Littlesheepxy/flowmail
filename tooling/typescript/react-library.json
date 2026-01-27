@@ -2,7 +2,7 @@
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"compilerOptions": {
 		"jsx": "preserve",
-		"lib": ["ES2021", "DOM"],
+		"lib": ["ES2021", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
 		"target": "ES6"
 	},

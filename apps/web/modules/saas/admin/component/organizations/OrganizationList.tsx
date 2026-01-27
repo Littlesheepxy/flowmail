@@ -5,7 +5,6 @@ import { getAdminPath } from "@saas/admin/lib/links";
 import { OrganizationLogo } from "@saas/organizations/components/OrganizationLogo";
 import { useConfirmationAlert } from "@saas/shared/components/ConfirmationAlertProvider";
 import { Pagination } from "@saas/shared/components/Pagination";
-import { Spinner } from "@shared/components/Spinner";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -24,12 +23,13 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu";
 import { Input } from "@ui/components/input";
+import { Skeleton } from "@ui/components/skeleton";
 import { Table, TableBody, TableCell, TableRow } from "@ui/components/table";
 import { EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { withQuery } from "ufo";
 import { useDebounceValue } from "usehooks-ts";
@@ -57,6 +57,8 @@ export function OrganizationList() {
 		},
 	);
 
+	const previousSearchTermRef = useRef(debouncedSearchTerm);
+
 	const getPathWithBackToParemeter = (path: string) => {
 		const searchParams = new URLSearchParams(window.location.search);
 		return withQuery(path, {
@@ -75,16 +77,22 @@ export function OrganizationList() {
 	const { data, isLoading } = useQuery(
 		orpc.admin.organizations.list.queryOptions({
 			input: {
-				itemsPerPage: ITEMS_PER_PAGE,
-				currentPage,
-				searchTerm: debouncedSearchTerm,
+				limit: ITEMS_PER_PAGE,
+				offset: (currentPage - 1) * ITEMS_PER_PAGE,
+				query: debouncedSearchTerm,
 			},
 		}),
 	);
 
 	useEffect(() => {
-		setCurrentPage(1);
-	}, [debouncedSearchTerm]);
+		if (
+			previousSearchTermRef.current !== debouncedSearchTerm &&
+			previousSearchTermRef.current !== undefined
+		) {
+			setCurrentPage(1);
+		}
+		previousSearchTermRef.current = debouncedSearchTerm;
+	}, [debouncedSearchTerm, setCurrentPage]);
 
 	const deleteOrganization = async (id: string) => {
 		toast.promise(
@@ -238,7 +246,28 @@ export function OrganizationList() {
 			<div className="rounded-md border">
 				<Table>
 					<TableBody>
-						{table.getRowModel().rows?.length ? (
+						{isLoading ? (
+							Array.from({ length: ITEMS_PER_PAGE }).map(
+								(_, index) => (
+									<TableRow key={`skeleton-${index}`}>
+										<TableCell className="py-2">
+											<div className="flex items-center gap-2">
+												<Skeleton className="size-10 rounded-md" />
+												<div className="flex-1 space-y-2">
+													<Skeleton className="h-4 w-32" />
+													<Skeleton className="h-3 w-24" />
+												</div>
+											</div>
+										</TableCell>
+										<TableCell className="py-2">
+											<div className="flex justify-end">
+												<Skeleton className="size-9 rounded-md" />
+											</div>
+										</TableCell>
+									</TableRow>
+								),
+							)
+						) : table.getRowModel().rows?.length ? (
 							table.getRowModel().rows.map((row) => (
 								<TableRow
 									key={row.id}
@@ -266,14 +295,7 @@ export function OrganizationList() {
 									colSpan={columns.length}
 									className="h-24 text-center"
 								>
-									{isLoading ? (
-										<div className="flex h-full items-center justify-center">
-											<Spinner className="mr-2 size-4 text-primary" />
-											{t("admin.organizations.loading")}
-										</div>
-									) : (
-										<p>No results.</p>
-									)}
+									<p>No results.</p>
 								</TableCell>
 							</TableRow>
 						)}

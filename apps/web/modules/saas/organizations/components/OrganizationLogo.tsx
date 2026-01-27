@@ -26,7 +26,7 @@ export const OrganizationLogo = ({
 		return [
 			styles.getPropertyValue("--color-primary"),
 			styles.getPropertyValue("--color-accent"),
-			styles.getPropertyValue("--color-highlight"),
+			styles.getPropertyValue("--color-foreground"),
 		];
 	}, []);
 

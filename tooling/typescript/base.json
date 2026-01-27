@@ -10,6 +10,7 @@
 		"isolatedModules": true,
 		"module": "Preserve",
 		"target": "ES6",
+		"jsx": "preserve",
 		"moduleResolution": "bundler",
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,

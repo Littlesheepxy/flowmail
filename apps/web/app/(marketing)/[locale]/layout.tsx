@@ -4,7 +4,7 @@ import { config } from "@repo/config";
 import { SessionProvider } from "@saas/auth/components/SessionProvider";
 import { Document } from "@shared/components/Document";
 import { NextProvider as FumadocsNextProvider } from "fumadocs-core/framework/next";
-import { RootProvider as FumadocsRootProvider } from "fumadocs-ui/provider";
+import { RootProvider as FumadocsRootProvider } from "fumadocs-ui/provider/next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";

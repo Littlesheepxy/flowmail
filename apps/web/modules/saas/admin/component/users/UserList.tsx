@@ -3,7 +3,6 @@
 import { authClient } from "@repo/auth/client";
 import { useConfirmationAlert } from "@saas/shared/components/ConfirmationAlertProvider";
 import { Pagination } from "@saas/shared/components/Pagination";
-import { Spinner } from "@shared/components/Spinner";
 import { UserAvatar } from "@shared/components/UserAvatar";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +22,7 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu";
 import { Input } from "@ui/components/input";
+import { Skeleton } from "@ui/components/skeleton";
 import { Table, TableBody, TableCell, TableRow } from "@ui/components/table";
 import {
 	MoreVerticalIcon,
@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useDebounceValue } from "usehooks-ts";
 import { EmailVerified } from "../EmailVerified";
@@ -62,6 +62,8 @@ export function UserList() {
 		},
 	);
 
+	const previousSearchTermRef = useRef(debouncedSearchTerm);
+
 	useEffect(() => {
 		setDebouncedSearchTerm(searchTerm);
 	}, [searchTerm]);
@@ -69,16 +71,22 @@ export function UserList() {
 	const { data, isLoading, refetch } = useQuery(
 		orpc.admin.users.list.queryOptions({
 			input: {
-				itemsPerPage: ITEMS_PER_PAGE,
-				currentPage,
-				searchTerm: debouncedSearchTerm,
+				limit: ITEMS_PER_PAGE,
+				offset: (currentPage - 1) * ITEMS_PER_PAGE,
+				query: debouncedSearchTerm,
 			},
 		}),
 	);
 
 	useEffect(() => {
-		setCurrentPage(1);
-	}, [debouncedSearchTerm]);
+		if (
+			previousSearchTermRef.current !== debouncedSearchTerm &&
+			previousSearchTermRef.current !== undefined
+		) {
+			setCurrentPage(1);
+		}
+		previousSearchTermRef.current = debouncedSearchTerm;
+	}, [debouncedSearchTerm, setCurrentPage]);
 
 	const impersonateUser = async (
 		userId: string,
@@ -320,7 +328,28 @@ export function UserList() {
 			<div className="rounded-md border">
 				<Table>
 					<TableBody>
-						{table.getRowModel().rows?.length ? (
+						{isLoading ? (
+							Array.from({ length: ITEMS_PER_PAGE }).map(
+								(_, index) => (
+									<TableRow key={`skeleton-${index}`}>
+										<TableCell className="py-2">
+											<div className="flex items-center gap-2">
+												<Skeleton className="size-10 rounded-full" />
+												<div className="flex-1 space-y-2">
+													<Skeleton className="h-4 w-32" />
+													<Skeleton className="h-3 w-48" />
+												</div>
+											</div>
+										</TableCell>
+										<TableCell className="py-2">
+											<div className="flex justify-end">
+												<Skeleton className="size-9 rounded-md" />
+											</div>
+										</TableCell>
+									</TableRow>
+								),
+							)
+						) : table.getRowModel().rows?.length ? (
 							table.getRowModel().rows.map((row) => (
 								<TableRow
 									key={row.id}
@@ -348,14 +377,7 @@ export function UserList() {
 									colSpan={columns.length}
 									className="h-24 text-center"
 								>
-									{isLoading ? (
-										<div className="flex h-full items-center justify-center">
-											<Spinner className="mr-2 size-4 text-primary" />
-											{t("admin.users.loading")}
-										</div>
-									) : (
-										<p>No results.</p>
-									)}
+									<p>No results.</p>
 								</TableCell>
 							</TableRow>
 						)}
@@ -363,7 +385,7 @@ export function UserList() {
 				</Table>
 			</div>
 
-			{data?.total && data.total > ITEMS_PER_PAGE && (
+			{!!data?.total && data.total > ITEMS_PER_PAGE && (
 				<Pagination
 					className="mt-4"
 					totalItems={data.total}

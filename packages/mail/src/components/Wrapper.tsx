@@ -11,47 +11,56 @@ import { Logo } from "./Logo";
 
 export default function Wrapper({ children }: PropsWithChildren) {
 	return (
-		<Html lang="en">
-			<Head>
-				<Font
-					fontFamily="Inter"
-					fallbackFontFamily="Arial"
-					fontWeight={400}
-					fontStyle="normal"
-				/>
-			</Head>
-			<Tailwind
-				config={{
-					theme: {
-						extend: {
-							colors: {
-								border: "#e3ebf6",
-								background: "#fafafe",
-								foreground: "#292b35",
-								primary: {
-									DEFAULT: "#4e6df5",
-									foreground: "#f6f7f9",
-								},
-								secondary: {
-									DEFAULT: "#292b35",
-									foreground: "#ffffff",
-								},
-								card: {
-									DEFAULT: "#ffffff",
-									foreground: "#292b35",
-								},
+		<Tailwind
+			config={{
+				theme: {
+					extend: {
+						colors: {
+							border: "#e0e3e0",
+							input: "#d0d4d0",
+							ring: "#3875c8",
+							background: "#f2f1ed",
+							foreground: "#1c1e1e",
+							primary: {
+								DEFAULT: "#3875c8",
+								foreground: "#ffffff",
+							},
+							secondary: {
+								DEFAULT: "#292b35",
+								foreground: "#ffffff",
+							},
+							muted: {
+								DEFAULT: "#e8e7e3",
+								foreground: "#1d1f1f",
+							},
+							card: {
+								DEFAULT: "#f9f8f6",
+								foreground: "#1d1f1f",
 							},
 						},
+						borderRadius: {
+							DEFAULT: "0.75rem",
+						},
 					},
-				}}
-			>
+				},
+			}}
+		>
+			<Html lang="en">
+				<Head>
+					<Font
+						fontFamily="Inter"
+						fallbackFontFamily="Arial"
+						fontWeight={400}
+						fontStyle="normal"
+					/>
+				</Head>
 				<Section className="bg-background p-4">
 					<Container className="rounded-lg bg-card p-6 text-card-foreground">
 						<Logo />
 						{children}
 					</Container>
 				</Section>
-			</Tailwind>
-		</Html>
+			</Html>
+		</Tailwind>
 	);
 }

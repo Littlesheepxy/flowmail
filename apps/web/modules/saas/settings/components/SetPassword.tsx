@@ -19,7 +19,7 @@ export function SetPasswordForm() {
 
 		setSubmitting(true);
 
-		await authClient.forgetPassword(
+		await authClient.requestPasswordReset(
 			{
 				email: user.email,
 				redirectTo: `${window.location.origin}/auth/reset-password`,

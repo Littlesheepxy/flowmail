@@ -25,8 +25,12 @@ export const user = sqliteTable("user", {
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),
 	username: text("username").unique(),
+	displayUsername: text("displayUsername"),
 	role: text("role"),
 	banned: integer("banned", { mode: "boolean" }),
+	twoFactorEnabled: integer("twoFactorEnabled", { mode: "boolean" }).default(
+		false,
+	),
 	banReason: text("banReason"),
 	banExpires: integer("banExpires", { mode: "timestamp" }),
 	onboardingComplete: integer("onboardingComplete", { mode: "boolean" })
@@ -108,6 +112,7 @@ export const passkey = sqliteTable("passkey", {
 	backedUp: integer("backedUp", { mode: "boolean" }).notNull(),
 	transports: text("transports"),
 	createdAt: integer("createdAt", { mode: "timestamp" }),
+	aaguid: text("aaguid"),
 });
 
 export const twoFactor = sqliteTable("twoFactor", {
@@ -128,7 +133,7 @@ export const organization = sqliteTable(
 			.$defaultFn(() => cuid())
 			.primaryKey(),
 		name: text("name").notNull(),
-		slug: text("slug"),
+		slug: text("slug").notNull().unique(),
 		logo: text("logo"),
 		createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
 		metadata: text("metadata"),
@@ -140,14 +145,16 @@ export const organization = sqliteTable(
 export const member = sqliteTable(
 	"member",
 	{
-		id: text("id").primaryKey(),
+		id: text("id")
+			.$defaultFn(() => cuid())
+			.primaryKey(),
 		organizationId: text("organizationId")
 			.notNull()
 			.references(() => organization.id, { onDelete: "cascade" }),
 		userId: text("userId")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		role: text("role").notNull(),
+		role: text("role").default("member").notNull(),
 		createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
 	},
 	(table) => [
@@ -158,21 +165,31 @@ export const member = sqliteTable(
 	],
 );
 
-export const invitation = sqliteTable("invitation", {
-	id: text("id")
-		.$defaultFn(() => cuid())
-		.primaryKey(),
-	organizationId: text("organizationId")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-	email: text("email").notNull(),
-	role: text("role"),
-	status: text("status").notNull(),
-	expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
-	inviterId: text("inviterId")
-		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
-});
+export const invitation = sqliteTable(
+	"invitation",
+	{
+		id: text("id")
+			.$defaultFn(() => cuid())
+			.primaryKey(),
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		email: text("email").notNull(),
+		role: text("role"),
+		status: text("status").default("pending").notNull(),
+		expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
+		createdAt: integer("createdAt", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		inviterId: text("inviterId")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		index("invitation_organizationId_idx").on(table.organizationId),
+		index("invitation_email_idx").on(table.email),
+	],
+);
 
 export const purchase = sqliteTable("purchase", {
 	id: text("id")
@@ -220,11 +237,13 @@ export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
 	passkeys: many(passkey),
+	members: many(member),
 	invitations: many(invitation),
+	twoFactors: many(twoFactor),
+
 	purchases: many(purchase),
 	memberships: many(member),
 	aiChats: many(aiChat),
-	twoFactors: many(twoFactor),
 }));
 
 export const organizationRelations = relations(organization, ({ many }) => ({
@@ -271,7 +290,7 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
 		fields: [invitation.organizationId],
 		references: [organization.id],
 	}),
-	inviter: one(user, {
+	user: one(user, {
 		fields: [invitation.inviterId],
 		references: [user.id],
 	}),

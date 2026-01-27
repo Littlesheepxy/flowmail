@@ -40,6 +40,7 @@ const posts = defineCollection({
 		excerpt: z.string().optional(),
 		tags: z.array(z.string()),
 		published: z.boolean(),
+		content: z.string(),
 	}),
 	transform: async (document, context) => {
 		const body = await compileMDX(context, document, {
@@ -68,6 +69,7 @@ const legalPages = defineCollection({
 	include: "**/*.{mdx,md}",
 	schema: z.object({
 		title: z.string(),
+		content: z.string(),
 	}),
 	transform: async (document, context) => {
 		const body = await compileMDX(context, document);
@@ -85,7 +87,10 @@ const docs = defineCollection({
 	name: "docs",
 	directory: "content/docs",
 	include: "**/*.mdx",
-	schema: z.object(createDocSchema(z)),
+	schema: z.object({
+		...createDocSchema(z),
+		content: z.string(),
+	}),
 	transform: async (document, context) =>
 		transformMDX(document, context, {
 			remarkPlugins: [

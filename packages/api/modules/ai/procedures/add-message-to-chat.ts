@@ -1,5 +1,4 @@
 import { ORPCError, streamToEventIterator } from "@orpc/client";
-import { type } from "@orpc/server";
 import {
 	convertToModelMessages,
 	streamText,
@@ -7,6 +6,7 @@ import {
 	type UIMessage,
 } from "@repo/ai";
 import { getAiChatById, updateAiChat } from "@repo/database";
+import z from "zod";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { verifyOrganizationMembership } from "../../organizations/lib/membership";
 
@@ -19,7 +19,12 @@ export const addMessageToChat = protectedProcedure
 		description:
 			"Send all messages of the chat to the AI model to get a response",
 	})
-	.input(type<{ chatId: string; messages: UIMessage[] }>())
+	.input(
+		z.object({
+			chatId: z.string(),
+			messages: z.array(z.any() as z.ZodType<UIMessage>),
+		}),
+	)
 	.handler(async ({ input, context }) => {
 		const { chatId, messages } = input;
 		const user = context.user;
@@ -45,7 +50,9 @@ export const addMessageToChat = protectedProcedure
 
 		const response = streamText({
 			model: textModel,
-			messages: convertToModelMessages(messages),
+			messages: convertToModelMessages(
+				messages as unknown as UIMessage[],
+			),
 			async onFinish({ text }) {
 				await updateAiChat({
 					id: chatId,

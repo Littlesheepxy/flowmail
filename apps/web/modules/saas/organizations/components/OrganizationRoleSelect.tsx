@@ -13,7 +13,7 @@ export function OrganizationRoleSelect({
 	onSelect,
 	disabled,
 }: {
-	value: OrganizationMemberRole;
+	value?: OrganizationMemberRole;
 	onSelect: (value: OrganizationMemberRole) => void;
 	disabled?: boolean;
 }) {

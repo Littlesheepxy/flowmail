@@ -70,7 +70,7 @@ export const config = {
 		// where users should be redirected after the sign in
 		redirectAfterSignIn: "/app",
 		// where users should be redirected after logout
-		redirectAfterLogout: "/",
+		redirectAfterLogout: "/auth/login",
 		// how long a session should be valid
 		sessionCookieMaxAge: 60 * 60 * 24 * 30,
 	},

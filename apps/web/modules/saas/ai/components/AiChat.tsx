@@ -262,7 +262,7 @@ export function AiChat({ organizationId }: { organizationId?: string }) {
 
 				<form
 					onSubmit={handleSubmit}
-					className="relative shrink-0 rounded-lg border bg-card text-lg shadow-sm focus-within:outline-none focus-within:ring focus-within:ring-primary"
+					className="relative shrink-0 rounded-2xl bg-background text-lg focus-within:outline-none focus-within:ring focus-within:ring-primary"
 				>
 					<Textarea
 						value={input}

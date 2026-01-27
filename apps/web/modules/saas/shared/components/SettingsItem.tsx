@@ -14,7 +14,7 @@ export function SettingsItem({
 }>) {
 	return (
 		<Card className="@container p-4 rounded-2xl border md:p-6">
-			<div className="grid @-xl:grid-cols-[min(100%/3,280px)_auto] grid-cols-1 @xl:gap-8 gap-4">
+			<div className="grid @xl:grid-cols-[min(100%/3,280px)_auto] grid-cols-1 @xl:gap-8 gap-4">
 				<div className="flex shrink-0 flex-col gap-1.5">
 					<h3
 						className={cn(

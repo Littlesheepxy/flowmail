@@ -22,7 +22,7 @@ export function NavBar() {
 	const t = useTranslations();
 	const pathname = usePathname();
 	const { user } = useSession();
-	const { activeOrganization } = useActiveOrganization();
+	const { activeOrganization, isOrganizationAdmin } = useActiveOrganization();
 
 	const { useSidebarLayout } = config.ui.saas;
 
@@ -45,7 +45,7 @@ export function NavBar() {
 			icon: BotMessageSquareIcon,
 			isActive: pathname.includes("/chatbot"),
 		},
-		...(activeOrganization && !config.organizations.hideOrganization
+		...(activeOrganization && isOrganizationAdmin
 			? [
 					{
 						label: t("app.menu.organizationSettings"),

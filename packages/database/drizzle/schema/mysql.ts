@@ -30,8 +30,10 @@ export const user = mysqlTable("user", {
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 	username: text("username").unique(),
+	displayUsername: text("displayUsername"),
 	role: text("role"),
-	banned: boolean("banned"),
+	banned: boolean("banned").default(false),
+	twoFactorEnabled: boolean("twoFactorEnabled").default(false),
 	banReason: text("banReason"),
 	banExpires: timestamp("banExpires"),
 	onboardingComplete: boolean("onboardingComplete").default(false).notNull(),
@@ -107,6 +109,7 @@ export const passkey = mysqlTable("passkey", {
 	backedUp: boolean("backedUp").notNull(),
 	transports: text("transports"),
 	createdAt: timestamp("createdAt"),
+	aaguid: text("aaguid"),
 });
 
 export const twoFactor = mysqlTable("twoFactor", {
@@ -125,7 +128,7 @@ export const organization = mysqlTable(
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
-		slug: text("slug"),
+		slug: text("slug").notNull().unique(),
 		logo: text("logo"),
 		createdAt: timestamp("createdAt").notNull(),
 		metadata: text("metadata"),
@@ -146,7 +149,7 @@ export const member = mysqlTable(
 		userId: text("userId")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		role: text("role").notNull(),
+		role: text("role").default("member").notNull(),
 		createdAt: timestamp("createdAt").notNull(),
 	},
 	(table) => [
@@ -157,21 +160,29 @@ export const member = mysqlTable(
 	],
 );
 
-export const invitation = mysqlTable("invitation", {
-	id: varchar("id", { length: 255 })
-		.$defaultFn(() => cuid())
-		.primaryKey(),
-	organizationId: text("organizationId")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-	email: text("email").notNull(),
-	role: text("role"),
-	status: text("status").notNull(),
-	expiresAt: timestamp("expiresAt").notNull(),
-	inviterId: text("inviterId")
-		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
-});
+export const invitation = mysqlTable(
+	"invitation",
+	{
+		id: varchar("id", { length: 255 })
+			.$defaultFn(() => cuid())
+			.primaryKey(),
+		organizationId: text("organizationId")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		email: text("email").notNull(),
+		role: text("role"),
+		status: text("status").default("pending").notNull(),
+		expiresAt: timestamp("expiresAt").notNull(),
+		createdAt: timestamp("createdAt").defaultNow().notNull(),
+		inviterId: text("inviterId")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		index("invitation_organizationId_idx").on(table.organizationId),
+		index("invitation_email_idx").on(table.email),
+	],
+);
 
 export const purchase = mysqlTable("purchase", {
 	id: varchar("id", { length: 255 })
@@ -211,11 +222,13 @@ export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
 	passkeys: many(passkey),
+	members: many(member),
 	invitations: many(invitation),
+	twoFactors: many(twoFactor),
+
 	purchases: many(purchase),
 	memberships: many(member),
 	aiChats: many(aiChat),
-	twoFactors: many(twoFactor),
 }));
 
 export const organizationRelations = relations(organization, ({ many }) => ({
@@ -262,7 +275,7 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
 		fields: [invitation.organizationId],
 		references: [organization.id],
 	}),
-	inviter: one(user, {
+	user: one(user, {
 		fields: [invitation.inviterId],
 		references: [user.id],
 	}),

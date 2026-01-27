@@ -38,54 +38,55 @@ export function Newsletter() {
 	});
 
 	return (
-		<section className="py-16">
-			<div className="container">
-				<div className="mb-8 text-center">
-					<KeyIcon className="mx-auto mb-3 size-8 text-primary" />
-					<h1 className="font-bold text-3xl lg:text-4xl">
-						{t("newsletter.title")}
-					</h1>
-					<p className="mt-3 text-lg opacity-70">
-						{t("newsletter.subtitle")}
-					</p>
-				</div>
+		<section className="pb-12 lg:pb-16 xl:pb-24">
+			<div className="container max-w-3xl">
+				<div className="p-6 bg-primary/5 rounded-4xl lg:p-8">
+					<div className="mb-8 text-center">
+						<KeyIcon className="mx-auto mb-3 size-10 text-primary" />
+						<h1 className="font-serif font-medium text-lg md:text-xl lg:text-2xl xl:text-3xl leading-tighter text-foreground">
+							{t("newsletter.title")}
+						</h1>
+						<p className="mt-2 text-foreground/60 text-sm sm:text-base">
+							{t("newsletter.subtitle")}
+						</p>
+					</div>
 
-				<div className="mx-auto max-w-lg">
-					{form.formState.isSubmitSuccessful ? (
-						<Alert variant="success">
-							<CheckCircleIcon />
-							<AlertTitle>
-								{t("newsletter.hints.success.title")}
-							</AlertTitle>
-							<AlertDescription>
-								{t("newsletter.hints.success.message")}
-							</AlertDescription>
-						</Alert>
-					) : (
-						<form onSubmit={onSubmit}>
-							<div className="flex items-start">
-								<Input
-									type="email"
-									required
-									placeholder={t("newsletter.email")}
-									{...form.register("email")}
-								/>
+					<div className="mx-auto max-w-lg">
+						{form.formState.isSubmitSuccessful ? (
+							<Alert variant="success">
+								<CheckCircleIcon />
+								<AlertTitle>
+									{t("newsletter.hints.success.title")}
+								</AlertTitle>
+								<AlertDescription>
+									{t("newsletter.hints.success.message")}
+								</AlertDescription>
+							</Alert>
+						) : (
+							<form onSubmit={onSubmit}>
+								<div className="flex items-center gap-2">
+									<Input
+										type="email"
+										required
+										placeholder={t("newsletter.email")}
+										{...form.register("email")}
+									/>
 
-								<Button
-									type="submit"
-									className="ml-4"
-									loading={form.formState.isSubmitting}
-								>
-									{t("newsletter.submit")}
-								</Button>
-							</div>
-							{form.formState.errors.email && (
-								<p className="mt-1 text-destructive text-xs">
-									{form.formState.errors.email.message}
-								</p>
-							)}
-						</form>
-					)}
+									<Button
+										type="submit"
+										loading={form.formState.isSubmitting}
+									>
+										{t("newsletter.submit")}
+									</Button>
+								</div>
+								{form.formState.errors.email && (
+									<p className="mt-1 text-destructive text-xs">
+										{form.formState.errors.email.message}
+									</p>
+								)}
+							</form>
+						)}
+					</div>
 				</div>
 			</div>
 		</section>

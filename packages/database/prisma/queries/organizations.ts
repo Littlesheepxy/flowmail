@@ -13,9 +13,18 @@ export async function getOrganizations({
 }) {
 	return db.organization
 		.findMany({
-			where: {
-				name: { contains: query, mode: "insensitive" },
-			},
+			where: query
+				? {
+						OR: [
+							{
+								name: {
+									contains: query,
+									mode: "insensitive",
+								},
+							},
+						],
+					}
+				: undefined,
 			include: {
 				_count: {
 					select: {
@@ -34,8 +43,21 @@ export async function getOrganizations({
 		);
 }
 
-export async function countAllOrganizations() {
-	return db.organization.count();
+export async function countAllOrganizations({ query }: { query?: string }) {
+	return db.organization.count({
+		where: query
+			? {
+					OR: [
+						{
+							name: {
+								contains: query,
+								mode: "insensitive",
+							},
+						},
+					],
+				}
+			: undefined,
+	});
 }
 
 export async function getOrganizationById(id: string) {

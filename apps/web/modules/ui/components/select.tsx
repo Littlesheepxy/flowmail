@@ -19,7 +19,7 @@ const SelectTrigger = ({
 }: React.ComponentProps<typeof SelectPrimitive.Trigger>) => (
 	<SelectPrimitive.Trigger
 		className={cn(
-			"flex h-9 w-full items-center justify-between rounded-md bg-card shadow-xs border border-input px-3 py-2 text-base ring-offset-background placeholder:text-foreground/60 focus:outline-hidden focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+			"flex h-8 w-full items-center justify-between rounded-md bg-card shadow-xs border border-input px-3 py-2 text-base ring-offset-background placeholder:text-foreground/60 focus:outline-hidden focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
 			className,
 		)}
 		{...props}

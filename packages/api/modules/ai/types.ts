@@ -4,6 +4,7 @@ import { z } from "zod";
 export const MessageSchema = z.object({
 	role: z.enum(["user", "assistant"]),
 	content: z.string(),
+	parts: z.array(z.object({ type: z.string(), text: z.string() })),
 });
 
 export const ChatSchema = AiChatSchema.extend({

@@ -1,29 +1,30 @@
 {
 	"dependencies": {
-		"@paralleldrive/cuid2": "^2.2.2",
-		"@prisma/client": "6.16.2",
+		"@paralleldrive/cuid2": "^3.1.0",
+		"@prisma/adapter-pg": "^6.19.0",
+		"@prisma/client": "7.1.0",
 		"@repo/config": "workspace:*",
-		"drizzle-orm": "^0.44.5",
+		"drizzle-orm": "^0.44.7",
 		"drizzle-zod": "0.8.3",
 		"pg": "^8.16.0",
-		"zod": "^4.1.11"
+		"zod": "^4.1.12"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
+		"@biomejs/biome": "2.3.5",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "24.6.0",
-		"dotenv-cli": "^10.0.0",
-		"drizzle-kit": "^0.31.5",
-		"prisma": "6.16.2",
-		"prisma-zod-generator": "^1.25.0"
+		"@types/node": "24.10.1",
+		"dotenv-cli": "^11.0.0",
+		"drizzle-kit": "^0.31.7",
+		"prisma": "7.1.0",
+		"prisma-zod-generator": "2.1.2"
 	},
 	"main": "./index.ts",
 	"name": "@repo/database",
 	"scripts": {
-		"generate": "prisma generate --no-hints --schema=./prisma/schema.prisma",
-		"push": "dotenv -c -e ../../.env -- prisma db push --skip-generate --schema=./prisma/schema.prisma",
-		"migrate": "dotenv -c -e ../../.env -- prisma migrate dev --schema=./prisma/schema.prisma",
-		"studio": "dotenv -c -e ../../.env -- prisma studio --schema=./prisma/schema.prisma",
+		"generate": "dotenv -c -e ../../.env -- prisma generate --no-hints",
+		"push": "dotenv -c -e ../../.env -- prisma db push",
+		"migrate": "dotenv -c -e ../../.env -- prisma migrate dev",
+		"studio": "dotenv -c -e ../../.env -- prisma studio",
 		"type-check": "tsc --noEmit"
 	},
 	"types": "./**/.tsx",

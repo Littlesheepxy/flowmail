@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
 				protocol: "https",
 				hostname: "avatars.githubusercontent.com",
 			},
+			{
+				// placeholder images
+				protocol: "https",
+				hostname: "picsum.photos",
+			},
 		],
 	},
 	async redirects() {
@@ -40,9 +45,6 @@ const nextConfig: NextConfig = {
 				permanent: true,
 			},
 		];
-	},
-	eslint: {
-		ignoreDuringBuilds: true,
 	},
 	webpack: (config, { webpack, isServer }) => {
 		config.plugins.push(

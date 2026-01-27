@@ -53,69 +53,71 @@ export default async function BlogPostPage(props: { params: Promise<Params> }) {
 	const { title, date, authorName, authorImage, tags, image, body } = post;
 
 	return (
-		<div className="container max-w-6xl pt-32 pb-24">
-			<div className="mx-auto max-w-2xl">
+		<div className="container pt-32 pb-24">
+			<div className="">
 				<div className="mb-12">
 					<LocaleLink href="/blog">
 						&larr; {t("blog.back")}
 					</LocaleLink>
 				</div>
 
-				<h1 className="font-bold text-4xl">{title}</h1>
+				<div className="max-w-2xl mx-auto text-center">
+					<h1 className="font-bold text-4xl">{title}</h1>
 
-				<div className="mt-4 flex items-center justify-start gap-6">
-					{authorName && (
-						<div className="flex items-center">
-							{authorImage && (
-								<div className="relative mr-2 size-8 overflow-hidden rounded-full">
-									<Image
-										src={authorImage}
-										alt={authorName}
-										fill
-										sizes="96px"
-										className="object-cover object-center"
-									/>
+					<div className="mt-4 flex items-center justify-center gap-6">
+						{authorName && (
+							<div className="flex items-center">
+								{authorImage && (
+									<div className="relative mr-2 size-8 overflow-hidden rounded-full">
+										<Image
+											src={authorImage}
+											alt={authorName}
+											fill
+											sizes="96px"
+											className="object-cover object-center"
+										/>
+									</div>
+								)}
+								<div>
+									<p className="font-semibold text-sm opacity-50">
+										{authorName}
+									</p>
 								</div>
-							)}
-							<div>
-								<p className="font-semibold text-sm opacity-50">
-									{authorName}
-								</p>
 							</div>
-						</div>
-					)}
+						)}
 
-					<div className="mr-0 ml-auto">
-						<p className="text-sm opacity-30">
-							{Intl.DateTimeFormat("en-US").format(
-								new Date(date),
-							)}
-						</p>
+						<div className="mr-0">
+							<p className="text-sm opacity-30">
+								{Intl.DateTimeFormat("en-US").format(
+									new Date(date),
+								)}
+							</p>
+						</div>
+
+						{tags && (
+							<div className="flex flex-wrap gap-2">
+								{tags.map((tag) => (
+									<span
+										key={tag}
+										className="font-semibold text-primary text-xs uppercase tracking-wider"
+									>
+										#{tag}
+									</span>
+								))}
+							</div>
+						)}
 					</div>
-
-					{tags && (
-						<div className="flex flex-1 flex-wrap gap-2">
-							{tags.map((tag) => (
-								<span
-									key={tag}
-									className="font-semibold text-primary text-xs uppercase tracking-wider"
-								>
-									#{tag}
-								</span>
-							))}
-						</div>
-					)}
 				</div>
 			</div>
 
 			{image && (
-				<div className="relative mt-6 aspect-16/9 overflow-hidden rounded-xl">
+				<div className="relative mt-6 aspect-video overflow-hidden rounded-4xl bg-primary/10 p-4 lg:p-6">
 					<Image
 						src={image}
 						alt={title}
 						fill
 						sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-						className="object-cover object-center"
+						className="object-cover object-center rounded-xl"
 					/>
 				</div>
 			)}

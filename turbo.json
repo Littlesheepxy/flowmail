@@ -22,7 +22,6 @@
 		"export": {
 			"outputs": ["out/**"]
 		},
-		"lint": {},
 		"start": {
 			"cache": false,
 			"dependsOn": ["^generate", "^build"],

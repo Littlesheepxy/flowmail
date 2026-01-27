@@ -18,18 +18,3 @@ export function createQueryClient() {
 		},
 	});
 }
-
-export function createQueryKeyWithParams(
-	key: string | string[],
-	params: Record<string, string | number>,
-) {
-	return [
-		...(Array.isArray(key) ? key : [key]),
-		Object.entries(params)
-			.reduce((acc, [key, value]) => {
-				acc.push(`${key}:${value}`);
-				return acc;
-			}, [] as string[])
-			.join("_"),
-	] as const;
-}

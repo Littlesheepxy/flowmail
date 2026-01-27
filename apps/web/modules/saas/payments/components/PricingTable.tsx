@@ -93,7 +93,7 @@ export function PricingTable({
 	return (
 		<div className={cn("@container", className)}>
 			{hasSubscriptions && (
-				<div className="mb-6 flex @xl:justify-center">
+				<div className="mb-6 flex justify-start">
 					<Tabs
 						value={interval}
 						onValueChange={(value) =>
@@ -152,9 +152,12 @@ export function PricingTable({
 						return (
 							<div
 								key={planId}
-								className={cn("rounded-3xl border p-6", {
-									"border-2 border-primary": recommended,
-								})}
+								className={cn(
+									"rounded-3xl bg-card border-2 border-transparent p-6",
+									{
+										"border-primary": recommended,
+									},
+								)}
 								data-test="price-table-plan"
 							>
 								<div className="flex h-full flex-col justify-between gap-4">

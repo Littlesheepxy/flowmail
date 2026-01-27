@@ -8,17 +8,14 @@ import { paymentsRouter } from "../modules/payments/router";
 import { usersRouter } from "../modules/users/router";
 import { publicProcedure } from "./procedures";
 
-export const router = publicProcedure
-	// Prefix for openapi
-	.prefix("/api")
-	.router({
-		admin: adminRouter,
-		newsletter: newsletterRouter,
-		contact: contactRouter,
-		organizations: organizationsRouter,
-		users: usersRouter,
-		payments: paymentsRouter,
-		ai: aiRouter,
-	});
+export const router = publicProcedure.router({
+	admin: adminRouter,
+	newsletter: newsletterRouter,
+	contact: contactRouter,
+	organizations: organizationsRouter,
+	users: usersRouter,
+	payments: paymentsRouter,
+	ai: aiRouter,
+});
 
 export type ApiRouterClient = RouterClient<typeof router>;

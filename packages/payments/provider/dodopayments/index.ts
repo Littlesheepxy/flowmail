@@ -23,6 +23,8 @@ export function getDodoPaymentsClient() {
 	}
 
 	const dodoPaymentsApiKey = process.env.DODO_PAYMENTS_API_KEY as string;
+	const dodoPaymentsWebhookSecret = process.env
+		.DODO_PAYMENTS_WEBHOOK_SECRET as string;
 
 	if (!dodoPaymentsApiKey) {
 		throw new Error("Missing env variable DODO_PAYMENTS_API_KEY");
@@ -30,6 +32,7 @@ export function getDodoPaymentsClient() {
 
 	dodoPaymentsClient = new DodoPayments({
 		bearerToken: dodoPaymentsApiKey,
+		webhookKey: dodoPaymentsWebhookSecret,
 		environment:
 			process.env.NODE_ENV === "production" ? "live_mode" : "test_mode",
 	});
@@ -126,16 +129,7 @@ export const cancelSubscription: CancelSubscription = async (id) => {
 };
 
 export const webhookHandler: WebhookHandler = async (req) => {
-	const webhookSecret = process.env.DODO_PAYMENTS_WEBHOOK_SECRET as string;
-
-	if (!webhookSecret) {
-		logger.error(
-			"Missing DODO_PAYMENTS_WEBHOOK_SECRET environment variable",
-		);
-		return new Response("Missing webhook secret.", {
-			status: 400,
-		});
-	}
+	const dodoPaymentsClient = getDodoPaymentsClient();
 
 	if (!req.body) {
 		return new Response("Invalid request.", {
@@ -158,28 +152,31 @@ export const webhookHandler: WebhookHandler = async (req) => {
 			});
 		}
 
-		const payload = `${webhookId}.${webhookTimestamp}.${body}`;
-		const crypto = await import("node:crypto");
-		const expectedSignature = crypto
-			.createHmac("sha256", webhookSecret)
-			.update(payload)
-			.digest("hex");
-
-		if (webhookSignature !== expectedSignature) {
-			logger.error("Invalid webhook signature");
-			return new Response("Invalid webhook signature.", {
-				status: 401,
-			});
-		}
-
-		const event = JSON.parse(body);
-		const { type, data } = event;
+		const event = dodoPaymentsClient.webhooks.unwrap(body, {
+			headers: {
+				"webhook-id": webhookId,
+				"webhook-signature": webhookSignature,
+				"webhook-timestamp": webhookTimestamp,
+			},
+		});
 
 		try {
-			switch (type) {
-				case "checkout.session.completed": {
-					const { metadata, customer, subscription_id, product_id } =
-						data;
+			switch (event.type) {
+				case "payment.succeeded": {
+					const {
+						metadata,
+						customer,
+						subscription_id,
+						product_cart,
+					} = event.data;
+
+					const productId = product_cart?.[0].product_id;
+
+					if (!productId) {
+						return new Response("Missing product ID.", {
+							status: 400,
+						});
+					}
 
 					if (subscription_id) {
 						await createPurchase({
@@ -189,7 +186,7 @@ export const webhookHandler: WebhookHandler = async (req) => {
 							customerId:
 								customer?.customer_id || customer?.email,
 							type: "SUBSCRIPTION",
-							productId: product_id,
+							productId,
 							status: "active",
 						});
 
@@ -207,7 +204,7 @@ export const webhookHandler: WebhookHandler = async (req) => {
 							customerId:
 								customer?.customer_id || customer?.email,
 							type: "ONE_TIME",
-							productId: product_id,
+							productId: productId,
 						});
 
 						await setCustomerIdToEntity(
@@ -221,14 +218,14 @@ export const webhookHandler: WebhookHandler = async (req) => {
 					break;
 				}
 
-				case "subscription.created": {
+				case "subscription.active": {
 					const {
 						metadata,
 						customer,
 						subscription_id,
 						product_id,
 						status,
-					} = data;
+					} = event.data;
 
 					await createPurchase({
 						subscriptionId: subscription_id,
@@ -250,8 +247,9 @@ export const webhookHandler: WebhookHandler = async (req) => {
 					break;
 				}
 
-				case "subscription.updated": {
-					const { subscription_id, status, product_id } = data;
+				case "subscription.updated":
+				case "subscription.plan_changed": {
+					const { subscription_id, status, product_id } = event.data;
 
 					const existingPurchase =
 						await getPurchaseBySubscriptionId(subscription_id);
@@ -266,13 +264,15 @@ export const webhookHandler: WebhookHandler = async (req) => {
 					break;
 				}
 
-				case "subscription.cancelled": {
-					await deletePurchaseBySubscriptionId(data.subscription_id);
+				case "subscription.expired": {
+					await deletePurchaseBySubscriptionId(
+						event.data.subscription_id,
+					);
 					break;
 				}
 
 				default:
-					logger.info(`Unhandled webhook event type: ${type}`);
+					logger.info(`Unhandled webhook event type: ${event.type}`);
 					return new Response("Unhandled event type.", {
 						status: 200,
 					});
@@ -282,7 +282,7 @@ export const webhookHandler: WebhookHandler = async (req) => {
 		} catch (error) {
 			logger.error("Error processing webhook event", {
 				error: error instanceof Error ? error.message : error,
-				eventType: type,
+				eventType: event.type,
 				webhookId,
 			});
 

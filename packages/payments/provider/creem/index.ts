@@ -63,7 +63,9 @@ export const createCheckoutLink: CreateCheckoutLink = async (options) => {
 		throw new Error("Failed to create checkout link");
 	}
 
-	const { checkout_url } = await response.json();
+	const { checkout_url } = (await response.json()) as {
+		checkout_url: string;
+	};
 
 	return checkout_url;
 };
@@ -78,7 +80,9 @@ export const createCustomerPortalLink: CreateCustomerPortalLink = async ({
 		}),
 	});
 
-	const { customer_portal_link } = await response.json();
+	const { customer_portal_link } = (await response.json()) as {
+		customer_portal_link: string;
+	};
 
 	return customer_portal_link;
 };
@@ -91,7 +95,7 @@ export const setSubscriptionSeats: SetSubscriptionSeats = async ({
 		method: "GET",
 	});
 
-	const { items } = await response.json();
+	const { items } = (await response.json()) as { items: { id: string }[] };
 
 	await creemFetch(`/subscriptions/${id}`, {
 		method: "POST",

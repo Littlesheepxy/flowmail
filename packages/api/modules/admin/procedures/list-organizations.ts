@@ -28,7 +28,7 @@ export const listOrganizations = adminProcedure
 			query,
 		});
 
-		const total = await countAllOrganizations();
+		const total = await countAllOrganizations({ query });
 
 		return { organizations, total };
 	});

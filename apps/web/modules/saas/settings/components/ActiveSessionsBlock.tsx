@@ -1,8 +1,9 @@
 "use client";
 import { authClient } from "@repo/auth/client";
+import { config } from "@repo/config";
 import { useSession } from "@saas/auth/hooks/use-session";
+import { sessionQueryKey } from "@saas/auth/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { useRouter } from "@shared/hooks/router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import { Skeleton } from "@ui/components/skeleton";
@@ -12,7 +13,6 @@ import { toast } from "sonner";
 
 export function ActiveSessionsBlock() {
 	const t = useTranslations();
-	const router = useRouter();
 	const queryClient = useQueryClient();
 	const { session: currentSession } = useSession();
 
@@ -35,18 +35,27 @@ export function ActiveSessionsBlock() {
 				token,
 			},
 			{
-				onSuccess: () => {
+				onSuccess: async () => {
 					toast.success(
 						t(
 							"settings.account.security.activeSessions.notifications.revokeSession.success",
 						),
 					);
 
-					queryClient.invalidateQueries({
-						queryKey: ["active-sessions"],
-					});
+					if (currentSession?.token === token) {
+						await queryClient.refetchQueries({
+							queryKey: sessionQueryKey,
+						});
 
-					router.refresh();
+						window.location.href = new URL(
+							config.auth.redirectAfterLogout,
+							window.location.origin,
+						).toString();
+					} else {
+						queryClient.invalidateQueries({
+							queryKey: ["active-sessions"],
+						});
+					}
 				},
 			},
 		);

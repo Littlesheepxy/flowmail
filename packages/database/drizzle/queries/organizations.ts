@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ilike, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { db } from "../client";
 import { member, organization } from "../schema/postgres";
@@ -15,7 +15,7 @@ export async function getOrganizations({
 }) {
 	return db.query.organization.findMany({
 		where: query
-			? (org, { like }) => like(org.name, `%${query}%`)
+			? (org, { ilike, or }) => or(ilike(org.name, `%${query}%`))
 			: undefined,
 		limit,
 		offset,
@@ -28,8 +28,12 @@ export async function getOrganizations({
 	});
 }
 
-export async function countAllOrganizations() {
-	return db.$count(organization);
+export async function countAllOrganizations({ query }: { query?: string }) {
+	const result = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(organization)
+		.where(query ? or(ilike(organization.name, `%${query}%`)) : undefined);
+	return Number(result[0]?.count ?? 0);
 }
 
 export async function getOrganizationById(id: string) {

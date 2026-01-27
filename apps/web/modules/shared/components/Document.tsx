@@ -1,15 +1,21 @@
 import { ClientProviders } from "@shared/components/ClientProviders";
 import { ConsentProvider } from "@shared/components/ConsentProvider";
 import { cn } from "@ui/lib";
-import { Geist } from "next/font/google";
+import { Inter, Libre_Baskerville } from "next/font/google";
 import { cookies } from "next/headers";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { PropsWithChildren } from "react";
 
-const sansFont = Geist({
+const sansFont = Inter({
 	weight: ["400", "500", "600", "700"],
 	subsets: ["latin"],
 	variable: "--font-sans",
+});
+
+const serifFont = Libre_Baskerville({
+	weight: ["400", "700"],
+	subsets: ["latin"],
+	variable: "--font-serif",
 });
 
 export async function Document({
@@ -23,7 +29,7 @@ export async function Document({
 		<html
 			lang={locale}
 			suppressHydrationWarning
-			className={sansFont.className}
+			className={cn(sansFont.variable, serifFont.variable)}
 		>
 			<body
 				className={cn(
