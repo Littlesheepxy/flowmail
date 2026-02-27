@@ -1,5 +1,454 @@
 # Changelog
 
+## 2026-02-05 v2.0.3
+
+### Radix UI dependency consolidation
+
+#### Unified Radix UI package migration
+- **Major dependency update**: Migrated from individual `@radix-ui/react-*` packages to unified `radix-ui` package (v1.4.3)
+- **Consolidated dependencies**: Replaced 13 separate Radix UI packages with a single `radix-ui` package
+- **Updated all UI components** to use new unified package imports:
+  - `accordion.tsx`: Updated to use `Accordion` from `radix-ui`
+  - `alert-dialog.tsx`: Updated to use `AlertDialog` from `radix-ui`
+  - `avatar.tsx`: Updated to use `Avatar` from `radix-ui`
+  - `button.tsx`: Updated to use `Slot` and `Slottable` from `radix-ui`
+  - `dialog.tsx`: Updated to use `Dialog` from `radix-ui`
+  - `dropdown-menu.tsx`: Updated to use `DropdownMenu` from `radix-ui`
+  - `form.tsx`: Updated to use `Label` and `Slot` from `radix-ui`
+  - `label.tsx`: Updated to use `Label` from `radix-ui`
+  - `progress.tsx`: Updated to use `Progress` from `radix-ui`
+  - `select.tsx`: Updated to use `Select` from `radix-ui` and migrated icons to Lucide
+  - `sheet.tsx`: Updated to use `Sheet` from `radix-ui`
+  - `tabs.tsx`: Updated to use `Tabs` from `radix-ui`
+  - `tooltip.tsx`: Updated to use `Tooltip` from `radix-ui`
+
+#### Icon migration
+- **Replaced Radix icons**: Migrated from `@radix-ui/react-icons` to Lucide icons
+- **Features component**: Replaced `MobileIcon` from Radix with `SmartphoneIcon` from Lucide
+- **Select component**: Replaced `CheckIcon` from Radix with Lucide's `CheckIcon`
+- Removed `@radix-ui/react-icons` dependency
+
+#### Package updates
+- **UI package**: Updated `packages/ui/package.json` to use unified `radix-ui` package
+- **Web app**: Updated `apps/web/package.json` to use unified `radix-ui` package
+- **Dependencies**: Reduced from 13 separate Radix packages to 1 unified package
+
+**Benefits:**
+- Simplified dependency management with single package
+- Reduced bundle size and faster install times
+- Consistent versioning across all Radix UI components
+- Easier maintenance and updates
+
+---
+
+## 2026-02-05 v2.0.2
+
+### AI Chat refactoring and UI improvements
+
+#### AI Chat simplification
+- **Major refactoring**: Simplified AI chat feature to streaming-only interface, removing chat persistence
+- **Removed**: Chat storage and CRUD operations (create, list, find, update, delete, add-message procedures)
+- **Removed**: `AiChat` database model from all schemas (Prisma, Drizzle MySQL/PostgreSQL/SQLite)
+- **Removed**: Database queries for AI chats (`ai-chats.ts` files)
+- **Simplified**: AI router now only exposes a single `stream` endpoint for real-time AI responses
+- **Refactored**: `AiChat` component to use streaming without persistence, using `@ai-sdk/react`'s `useChat` hook
+- **Simplified**: Chatbot pages removed prefetching logic for chat lists and individual chats
+- **New**: `stream-message` procedure that streams AI responses without storing conversations
+
+**Breaking changes:**
+- Any code using `orpcClient.ai.chats.*` endpoints will need to be updated
+- Database migrations will need to drop the `ai_chat` table if it exists
+- Chat history persistence is no longer available - conversations are session-only
+
+#### UI component improvements
+- **NavBar**: Added conditional bottom border when scrolled (`border-b` when `!isTop`)
+- **Button component**: Removed icon opacity styling (`[&>svg]:opacity-60`) for better icon visibility
+- **Global styles**: Added consistent Lucide icon stroke-width (`1.75`) for improved icon rendering
+
+---
+
+## 2026-02-05 v2.0.1
+
+### UI component enhancements and design improvements
+
+#### Toast component redesign
+- **Major enhancement**: Complete redesign of the toast component with custom styling and improved UX
+- Added custom `Toast` component with support for different types (success, error, info, warning, loading, default)
+- Added automatic icons for each toast type using Lucide icons
+- Added helper functions: `toastSuccess`, `toastError`, `toastInfo`, `toastWarning`, `toastLoading`
+- Added `toastPromise` function for handling async operations with loading/success/error states
+- Improved visual design with type-specific border colors and icons
+- Added support for action and cancel buttons in toasts
+- All form components updated to use the new toast API
+
+#### Color mode toggle redesign
+- **Redesigned**: Changed from dropdown menu to a modern segmented control/toggle button style
+- Added smooth sliding indicator animation for active state
+- Replaced dropdown menu with inline toggle buttons for better UX
+- Added tooltips for each color mode option (System, Light, Dark)
+- Improved accessibility with proper ARIA labels and pressed states
+- Added translations for color mode labels (`common.colorMode.system`, `common.colorMode.light`, `common.colorMode.dark`)
+- Updated icon from `HardDriveIcon` to `MonitorCogIcon` for system mode
+
+#### User menu improvements
+- **Simplified**: Removed inline color mode selection submenu from user menu
+- Color mode toggle now uses the standalone `ColorModeToggle` component
+- Cleaner menu structure with better separation of concerns
+
+#### Component styling updates
+- **Select component**: Updated border radius from `rounded-md` to `rounded-lg` for consistency with design system
+- **SettingsItem component**: Increased left column width from `280px` to `320px` for better content spacing
+- **Theme colors**: Updated muted background color from `#1d1e1e` to `#191b1b` for improved contrast
+
+#### Form components
+- Updated all SaaS form components to use the new toast API:
+  - Organization forms (Create, Change Name, Delete, Logo, Invite Member)
+  - Settings forms (Change Email, Change Name, Change Password, Set Password, Delete Account, User Avatar, User Language)
+  - Admin components (Organization Form, Organization List, User List)
+  - Organization management components (Members List, Invitations List, Organization Select)
+  - Security components (Passkeys Block, Two Factor Block, Active Sessions Block)
+  - Customer Portal Button
+
+---
+
+## 2026-02-02 v2.0.0
+
+### Major architectural changes and breaking updates
+
+This release introduces significant architectural changes that require migration steps. The major version bump reflects multiple breaking changes across the codebase. All existing code has been updated to use the new structure, but custom code will need manual migration.
+
+#### Summary of breaking changes
+
+- **Docs application**: Moved from web app to standalone Next.js app (`apps/docs`)
+- **UI components**: Moved from `apps/web/modules/ui/` to `packages/ui/`
+- **Configuration**: Removed centralized `config/` package, now scoped to individual packages
+- **Shared components**: Moved `Logo` and `Spinner` components to `@repo/ui`
+- **Mail package**: Restructured directory layout (removed `src/`), removed Logo component and custom provider
+- **Payments package**: Moved helper utilities from `src/lib/` to `lib/`
+- **Mail preview app**: New `apps/mail-preview` application added for email previewing
+- **Not-found pages**: New dedicated not-found pages for marketing and SaaS routes
+- **Import paths**: All imports updated throughout codebase (275+ files changed)
+
+#### Dedicated docs application
+
+Documentation has been moved from the web app to a standalone Next.js application using fumadocs.
+
+**Breaking changes:**
+- Removed docs routes from `apps/web/app/(marketing)/[locale]/docs/[[...path]]/`
+- Removed docs API route `apps/web/app/api/docs-search/route.ts`
+- Removed `apps/web/app/docs-source.ts`
+- Removed all docs content from `apps/web/content/docs/` (including `getting-started/` and `index.mdx`)
+- Removed `TableOfContents` component from marketing shared components
+- Removed docs image from `apps/web/public/images/docs/login.png`
+- Updated `apps/web/content-collections.ts` to exclude docs content
+- Updated `apps/web/app/sitemap.ts` to exclude docs routes
+
+**New structure:**
+- Created new `apps/docs` application using fumadocs
+- Docs now run as a separate Next.js app (default port 3001)
+- Docs content moved to `apps/docs/content/docs/`
+- Uses fumadocs-ui for improved documentation experience
+- Includes AI-powered page actions component
+- New docs app has its own `package.json`, `tsconfig.json`, and `next.config.ts`
+
+**Migration steps:**
+1. If you have custom docs content, migrate it to `apps/docs/content/docs/`
+2. Update any links pointing to `/docs/*` routes - docs are now served from the separate app
+3. Remove any imports of `TableOfContents` component
+4. Run `pnpm dev` in the `apps/docs` directory to start the docs server (or use `pnpm --filter @repo/docs dev`)
+5. Update any CI/CD pipelines that build or deploy docs
+
+#### UI components moved to packages
+
+All UI components have been moved from the web app to a shared package for better reusability across the monorepo.
+
+**Breaking changes:**
+- Removed all UI components from `apps/web/modules/ui/components/` (25+ components including accordion, alert, button, card, dialog, form, input, select, etc.)
+- Removed `apps/web/modules/ui/lib/index.ts`
+- Removed `apps/web/components.json` (shadcn config file)
+- All component imports throughout the codebase have been updated
+
+**New structure:**
+- Created `packages/ui` package containing all UI components
+- Components now imported from `@repo/ui/components/[component-name]`
+- Shared utilities (like `cn`) available from `@repo/ui`
+- `components.json` moved to `packages/ui/components.json`
+- Package includes all Radix UI dependencies and styling utilities
+
+**Migration steps:**
+1. Update all imports from `apps/web/modules/ui/components/*` to `@repo/ui/components/*`
+2. Update imports of `cn` utility from `apps/web/modules/ui` to `@repo/ui`
+3. Remove any references to `components.json` in the web app
+4. Install `@repo/ui` as a dependency if using UI components in other packages
+5. Update TypeScript path aliases if you had custom ones pointing to the old location
+
+#### Configuration restructuring
+
+The centralized config package has been removed in favor of scoped configuration files for better package isolation.
+
+**Breaking changes:**
+- Removed `config/` package entirely:
+  - `config/index.ts`
+  - `config/package.json`
+  - `config/tsconfig.json`
+  - `config/types.ts`
+- All imports from `@repo/config` or `config` will fail
+- Config is now scoped to individual packages
+
+**New structure:**
+- Each package now has its own `config.ts` file:
+  - `apps/web/config.ts` - Web app configuration
+  - `packages/api/config.ts` - API configuration
+  - `packages/auth/config.ts` - Auth configuration
+  - `packages/i18n/config.ts` - i18n configuration
+  - `packages/mail/config.ts` - Mail configuration
+  - `packages/payments/config.ts` - Payments configuration
+  - `packages/storage/config.ts` - Storage configuration
+- Root `config.ts` file for shared configuration
+
+**Migration steps:**
+1. Update imports from `@repo/config` or `config` to package-specific configs:
+   - `import { config } from "@/config"` for web app
+   - `import { config as i18nConfig } from "@repo/i18n/config"` for package configs
+2. Update any code referencing the old config package structure
+3. Review each package's config file to understand what configuration is available
+4. Update environment variable usage if config structure changed
+
+#### Shared components cleanup
+
+Removed unused shared components that are now available in the UI package.
+
+**Breaking changes:**
+- Removed `apps/web/modules/shared/components/Logo.tsx`
+- Removed `apps/web/modules/shared/components/Spinner.tsx`
+- All imports of these components throughout the codebase have been updated
+
+**Migration steps:**
+1. Replace any imports of `Logo` from `@shared/components/Logo` - Logo is now available from `@repo/ui`
+2. Replace any imports of `Spinner` - use skeleton components from `@repo/ui` instead
+3. Update any custom code that imports these components
+
+#### Mail package restructuring
+
+Mail package has been restructured with a flatter directory structure and improved organization.
+
+**Breaking changes:**
+- Removed `packages/mail/src/components/Logo.tsx` (use `@repo/ui` instead)
+- Removed `packages/mail/src/provider/custom.ts` provider
+- Restructured mail package directory layout:
+  - `src/components/` → `components/` (PrimaryButton, Wrapper moved)
+  - `src/provider/` → `provider/` (all providers moved)
+  - `src/util/` → `util/` (send, templates, translations moved)
+- Updated all mail provider implementations to use new config structure
+- Updated all mail email templates to use new import paths
+
+**New structure:**
+- Flatter directory structure without `src/` directory
+- Components, providers, and utilities at package root level
+- New `packages/mail/config.ts` for mail configuration
+- New `apps/mail-preview` application for email previewing (runs on port 3005)
+
+**Migration steps:**
+1. If using the Logo component in mail templates, import from `@repo/ui` instead:
+   ```typescript
+   import { Logo } from "@repo/ui";
+   ```
+2. If using custom mail provider, migrate to one of the supported providers:
+   - Resend
+   - Nodemailer
+   - Mailgun
+   - Postmark
+   - Plunk
+   - Console (for development)
+3. Update mail provider configuration to use `packages/mail/config.ts`
+4. Update any imports from `packages/mail/src/*` to `packages/mail/*`
+5. Use `apps/mail-preview` app for previewing emails during development
+
+#### Payments package restructuring
+
+Payments package has been restructured with helper utilities moved to a new location.
+
+**Breaking changes:**
+- Moved `packages/payments/src/lib/customer.ts` → `packages/payments/lib/customer.ts`
+- Moved `packages/payments/src/lib/helper.ts` → `packages/payments/lib/helper.ts` (new location)
+- Removed old `packages/payments/src/lib/helper.ts` (duplicate removed)
+- Updated payment provider implementations (Stripe, LemonSqueezy, DodoPayments, Polar)
+- Updated payment procedures to use new config structure
+
+**New structure:**
+- Helper utilities now in `packages/payments/lib/` (without `src/` prefix)
+- New `packages/payments/config.ts` for payment configuration
+
+**Migration steps:**
+1. Update imports from `packages/payments/src/lib/*` to `packages/payments/lib/*`
+2. Update payment configuration to use `packages/payments/config.ts`
+3. Review `packages/payments/lib/` directory for helper functions
+
+#### Import path updates
+
+All components and modules have been updated to use the new import paths throughout the entire codebase.
+
+**Affected areas:**
+- UI component imports across all modules (200+ files updated)
+- Config imports throughout the codebase
+- Shared component imports
+- Mail template imports
+- Payment provider imports
+
+**Migration steps:**
+1. Run `pnpm install` to ensure all workspace dependencies are linked correctly
+2. Update any custom code using old import paths:
+   - `apps/web/modules/ui/*` → `@repo/ui/*`
+   - `@repo/config` → package-specific configs
+   - `@shared/components/Logo` → `@repo/ui`
+3. Run type checking: `pnpm type-check` to identify any remaining import issues
+4. Update any custom scripts or build tools that reference old paths
+
+#### Workspace configuration updates
+
+The workspace structure has been updated to reflect the new package organization.
+
+**Breaking changes:**
+- `pnpm-workspace.yaml` still references `config` package (which was removed) - this should be updated manually
+- Workspace now includes new `apps/docs` application
+- Workspace includes new `packages/ui` package
+
+**Migration steps:**
+1. Update `pnpm-workspace.yaml` to remove the `config` entry:
+   ```yaml
+   packages:
+     - apps/*
+     - packages/*
+     - tooling/*
+   ```
+2. Run `pnpm install` to refresh workspace links
+3. Verify all packages are properly linked with `pnpm list --depth=0`
+
+#### Biome configuration standardization
+
+All Biome configurations have been standardized across the monorepo for consistency.
+
+**Changes:**
+- Updated all Biome configurations across packages to use consistent settings
+- Standardized Biome config format: all package-level configs now extend root config with `"extends": "//"`
+- Root `biome.json` contains shared configuration
+- Package-specific `biome.json` files only override when needed
+- Database package excludes Prisma-generated zod files from linting
+
+**Migration steps:**
+1. If you have custom Biome rules, ensure they follow the new pattern:
+   ```json
+   {
+     "root": false,
+     "extends": "//"
+   }
+   ```
+2. Run `pnpm format` to apply new formatting rules
+3. Run `pnpm lint` to check for any linting issues with new config
+
+#### Package dependencies and workspace structure
+
+Package dependencies have been updated to reflect the new architecture.
+
+**Changes:**
+- Added `@repo/ui` as a workspace dependency where needed
+- Updated `pnpm-lock.yaml` with new workspace structure (2760+ lines changed)
+- Removed dependencies on deleted `config` package
+- Updated all package `package.json` files to reflect new structure
+- Added `@repo/docs` workspace package
+- Updated tooling packages (scripts, tailwind, typescript) with new dependencies
+- Updated i18n translations (en.json, de.json) with new messages
+
+**Migration steps:**
+1. Run `pnpm install` to ensure all workspace dependencies are linked correctly
+2. Verify workspace structure with `pnpm list --depth=0`
+3. Check for any remaining references to `@repo/config` in `package.json` files
+
+#### Monorepo organization improvements
+
+The monorepo structure has been improved for better organization and maintainability.
+
+**Changes:**
+- Improved package boundaries and separation of concerns
+- Better isolation between apps and packages
+- Clearer dependency relationships
+- New `apps/docs` application added to workspace
+- New `apps/mail-preview` application added to workspace
+- New `packages/ui` package for shared UI components
+- Removed `config/` package in favor of scoped configs
+- Flattened directory structures in mail and payments packages (removed `src/` directories)
+
+**Benefits:**
+- Better code organization and discoverability
+- Clearer separation between application code and shared packages
+- Easier to understand dependencies between packages
+- Better support for independent package versioning
+
+#### Other updates
+
+**Documentation:**
+- Updated `agents.md` to reflect new architecture and import paths
+- Updated coding guidelines to reference new package structure
+- Updated import examples to use new `@repo/ui` package
+
+**Configuration:**
+- Updated `.env.local.example` with new configuration structure
+- Updated environment variable documentation
+
+**Build and deployment:**
+- Updated sitemap generation to exclude docs routes
+- Updated content collections configuration to exclude docs
+- Updated image proxy route configuration
+- Updated `turbo.json` to use TUI interface (`"ui": "tui"`)
+
+**New applications:**
+- Added `apps/docs` - Standalone documentation application using fumadocs
+- Added `apps/mail-preview` - Email preview application for development (port 3005)
+
+**Not-found pages:**
+- Added dedicated `not-found.tsx` pages for marketing routes (`apps/web/app/(marketing)/[locale]/not-found.tsx`)
+- Added dedicated `not-found.tsx` pages for SaaS routes (`apps/web/app/(saas)/app/not-found.tsx`)
+- Removed `NotFound` component from marketing shared components (now using Next.js not-found pages)
+
+**TypeScript:**
+- Updated TypeScript configurations across packages
+- Updated path aliases in `tsconfig.json` files
+- Added new type definitions for UI package exports
+- Added TypeScript configs for new apps (docs, mail-preview)
+
+---
+
+## 2026-01-30 v1.3.5
+
+### Design system updates and UI improvements
+
+#### Visual design updates
+- Updated color scheme: replaced `bg-card` with `bg-background` in navigation and app wrapper for better contrast
+- Changed newsletter section background from `bg-primary/5` to `bg-muted` for consistency
+- Removed borders from card components and dropdown menus for a cleaner look
+- Updated button styles: changed from `rounded-md` to `rounded-full` for a more modern appearance
+- Increased container max-width from `--container-6xl` to `--container-7xl` for better use of screen space
+
+#### Typography improvements
+- Increased heading sizes across marketing pages (Hero, Features sections)
+- Adjusted letter spacing from `-0.02em` to `-0.01em` for improved readability
+- Added max-width constraint to hero paragraph for better text flow
+
+#### Component enhancements
+- Enhanced changelog component: added title field to changelog items with improved layout
+- Updated changelog section styling: switched to `rounded-3xl` with `bg-muted` background
+- Improved dropdown menu styling: updated border radius and shadow for better visual hierarchy
+- Updated settings item component: removed explicit border and rounded corners for cleaner appearance
+
+---
+## 2026-01-26 v1.3.4
+
+### Enhanced organization dashboard with visual trend charts
+
+The organization dashboard now includes interactive trend charts to make the UI more visual.
+
+---
+
 ## 2026-01-12 v1.3.3
 
 ### Consolidated agent rules into single agents.md file

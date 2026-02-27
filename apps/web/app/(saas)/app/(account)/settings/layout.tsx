@@ -1,8 +1,7 @@
-import { config } from "@repo/config";
+import { config as paymentsConfig } from "@repo/payments/config";
 import { getSession } from "@saas/auth/lib/server";
 import { SettingsMenu } from "@saas/settings/components/SettingsMenu";
 import { PageHeader } from "@saas/shared/components/PageHeader";
-import { SidebarContentLayout } from "@saas/shared/components/SidebarContentLayout";
 import { UserAvatar } from "@shared/components/UserAvatar";
 import {
 	CreditCardIcon,
@@ -41,7 +40,7 @@ export default async function SettingsLayout({ children }: PropsWithChildren) {
 					href: "/app/settings/security",
 					icon: <LockKeyholeIcon className="size-4 opacity-50" />,
 				},
-				...(config.users.enableBilling
+				...(paymentsConfig.billingAttachedTo === "user"
 					? [
 							{
 								title: t("settings.menu.account.billing"),
@@ -67,11 +66,10 @@ export default async function SettingsLayout({ children }: PropsWithChildren) {
 				title={t("settings.account.title")}
 				subtitle={t("settings.account.subtitle")}
 			/>
-			<SidebarContentLayout
-				sidebar={<SettingsMenu menuItems={menuItems} />}
-			>
-				{children}
-			</SidebarContentLayout>
+
+			<SettingsMenu menuItems={menuItems} className="mb-6" />
+
+			{children}
 		</>
 	);
 }

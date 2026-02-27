@@ -1,11 +1,11 @@
 "use client";
 
+import { Button } from "@repo/ui/components/button";
+import { toastError } from "@repo/ui/components/toast";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
 import { CreditCardIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 
 export function CustomerPortalButton({ purchaseId }: { purchaseId: string }) {
 	const t = useTranslations();
@@ -23,7 +23,7 @@ export function CustomerPortalButton({ purchaseId }: { purchaseId: string }) {
 
 			window.location.href = customerPortalLink;
 		} catch {
-			toast.error(
+			toastError(
 				t(
 					"settings.billing.createCustomerPortal.notifications.error.title",
 				),
@@ -33,7 +33,7 @@ export function CustomerPortalButton({ purchaseId }: { purchaseId: string }) {
 
 	return (
 		<Button
-			variant="light"
+			variant="secondary"
 			size="sm"
 			onClick={() => createCustomerPortal()}
 			loading={createCustomerPortalMutation.isPending}

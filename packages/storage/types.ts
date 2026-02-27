@@ -1,3 +1,5 @@
+import type { config } from "./config";
+
 export type CreateBucketHandler = (
 	name: string,
 	options?: {
@@ -8,14 +10,14 @@ export type CreateBucketHandler = (
 export type GetSignedUploadUrlHandler = (
 	path: string,
 	options: {
-		bucket: string;
+		bucket: keyof typeof config.bucketNames;
 	},
 ) => Promise<string>;
 
 export type GetSignedUrlHander = (
 	path: string,
 	options: {
-		bucket: string;
+		bucket: keyof typeof config.bucketNames;
 		expiresIn?: number;
 	},
 ) => Promise<string>;

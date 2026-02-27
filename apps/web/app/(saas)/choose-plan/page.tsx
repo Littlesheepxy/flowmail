@@ -1,4 +1,5 @@
-import { config } from "@repo/config";
+import { config as authConfig } from "@repo/auth/config";
+import { config as paymentsConfig } from "@repo/payments/config";
 import { createPurchasesHelper } from "@repo/payments/lib/helper";
 import { getOrganizationList, getSession } from "@saas/auth/lib/server";
 import { PricingTable } from "@saas/payments/components/PricingTable";
@@ -28,7 +29,10 @@ export default async function ChoosePlanPage() {
 	}
 
 	let organizationId: string | undefined;
-	if (config.organizations.enable && config.organizations.enableBilling) {
+	if (
+		authConfig.organizations.enable &&
+		paymentsConfig.billingAttachedTo === "organization"
+	) {
 		const organization = (await getOrganizationList()).at(0);
 
 		if (!organization) {

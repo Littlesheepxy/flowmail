@@ -1,5 +1,9 @@
-import { config } from "@repo/config";
-import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar";
+import { config as storageConfig } from "@repo/storage/config";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@repo/ui/components/avatar";
 import { useMemo } from "react";
 
 export const UserAvatar = ({
@@ -27,7 +31,7 @@ export const UserAvatar = ({
 			avatarUrl
 				? avatarUrl.startsWith("http")
 					? avatarUrl
-					: `/image-proxy/${config.storage.bucketNames.avatars}/${avatarUrl}`
+					: `/image-proxy/${storageConfig.bucketNames.avatars}/${avatarUrl}`
 				: undefined,
 		[avatarUrl],
 	);
@@ -35,7 +39,7 @@ export const UserAvatar = ({
 	return (
 		<Avatar ref={ref} className={className}>
 			<AvatarImage src={avatarSrc} />
-			<AvatarFallback className="bg-secondary/10 text-secondary">
+			<AvatarFallback className="bg-primary/10 text-primary">
 				{initials}
 			</AvatarFallback>
 		</Avatar>

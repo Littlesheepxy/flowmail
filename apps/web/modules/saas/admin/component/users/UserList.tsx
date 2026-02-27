@@ -1,6 +1,23 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
+import { Spinner } from "@repo/ui";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import { Input } from "@repo/ui/components/input";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableRow,
+} from "@repo/ui/components/table";
+import { dismiss, toastLoading, toastPromise } from "@repo/ui/components/toast";
 import { useConfirmationAlert } from "@saas/shared/components/ConfirmationAlertProvider";
 import { Pagination } from "@saas/shared/components/Pagination";
 import { UserAvatar } from "@shared/components/UserAvatar";
@@ -13,17 +30,6 @@ import {
 	getPaginationRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@ui/components/button";
-import { Card } from "@ui/components/card";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@ui/components/dropdown-menu";
-import { Input } from "@ui/components/input";
-import { Skeleton } from "@ui/components/skeleton";
-import { Table, TableBody, TableCell, TableRow } from "@ui/components/table";
 import {
 	MoreVerticalIcon,
 	Repeat1Icon,
@@ -34,8 +40,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo, useRef } from "react";
-import { toast } from "sonner";
+import { useEffect, useMemo } from "react";
 import { useDebounceValue } from "usehooks-ts";
 import { EmailVerified } from "../EmailVerified";
 
@@ -62,8 +67,6 @@ export function UserList() {
 		},
 	);
 
-	const previousSearchTermRef = useRef(debouncedSearchTerm);
-
 	useEffect(() => {
 		setDebouncedSearchTerm(searchTerm);
 	}, [searchTerm]);
@@ -79,20 +82,16 @@ export function UserList() {
 	);
 
 	useEffect(() => {
-		if (
-			previousSearchTermRef.current !== debouncedSearchTerm &&
-			previousSearchTermRef.current !== undefined
-		) {
+		if (currentPage > 1) {
 			setCurrentPage(1);
 		}
-		previousSearchTermRef.current = debouncedSearchTerm;
-	}, [debouncedSearchTerm, setCurrentPage]);
+	}, [debouncedSearchTerm]);
 
 	const impersonateUser = async (
 		userId: string,
 		{ name }: { name: string },
 	) => {
-		const toastId = toast.loading(
+		const toastId = toastLoading(
 			t("admin.users.impersonation.impersonating", {
 				name,
 			}),
@@ -102,7 +101,7 @@ export function UserList() {
 			userId,
 		});
 		await refetch();
-		toast.dismiss(toastId);
+		dismiss(toastId);
 		window.location.href = new URL(
 			"/app",
 			window.location.origin,
@@ -110,7 +109,7 @@ export function UserList() {
 	};
 
 	const deleteUser = async (id: string) => {
-		toast.promise(
+		toastPromise(
 			async () => {
 				const { error } = await authClient.admin.removeUser({
 					userId: id,
@@ -131,7 +130,7 @@ export function UserList() {
 	};
 
 	const resendVerificationMail = async (email: string) => {
-		toast.promise(
+		toastPromise(
 			async () => {
 				const { error } = await authClient.sendVerificationEmail({
 					email,
@@ -328,28 +327,7 @@ export function UserList() {
 			<div className="rounded-md border">
 				<Table>
 					<TableBody>
-						{isLoading ? (
-							Array.from({ length: ITEMS_PER_PAGE }).map(
-								(_, index) => (
-									<TableRow key={`skeleton-${index}`}>
-										<TableCell className="py-2">
-											<div className="flex items-center gap-2">
-												<Skeleton className="size-10 rounded-full" />
-												<div className="flex-1 space-y-2">
-													<Skeleton className="h-4 w-32" />
-													<Skeleton className="h-3 w-48" />
-												</div>
-											</div>
-										</TableCell>
-										<TableCell className="py-2">
-											<div className="flex justify-end">
-												<Skeleton className="size-9 rounded-md" />
-											</div>
-										</TableCell>
-									</TableRow>
-								),
-							)
-						) : table.getRowModel().rows?.length ? (
+						{table.getRowModel().rows?.length ? (
 							table.getRowModel().rows.map((row) => (
 								<TableRow
 									key={row.id}
@@ -377,7 +355,14 @@ export function UserList() {
 									colSpan={columns.length}
 									className="h-24 text-center"
 								>
-									<p>No results.</p>
+									{isLoading ? (
+										<div className="flex h-full items-center justify-center">
+											<Spinner className="mr-2 size-4 text-primary" />
+											{t("admin.users.loading")}
+										</div>
+									) : (
+										<p>No results.</p>
+									)}
 								</TableCell>
 							</TableRow>
 						)}
@@ -385,7 +370,7 @@ export function UserList() {
 				</Table>
 			</div>
 
-			{!!data?.total && data.total > ITEMS_PER_PAGE && (
+			{data?.total && data.total > ITEMS_PER_PAGE && (
 				<Pagination
 					className="mt-4"
 					totalItems={data.total}

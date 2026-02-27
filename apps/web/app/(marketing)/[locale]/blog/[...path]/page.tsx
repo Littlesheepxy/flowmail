@@ -53,7 +53,7 @@ export default async function BlogPostPage(props: { params: Promise<Params> }) {
 	const { title, date, authorName, authorImage, tags, image, body } = post;
 
 	return (
-		<div className="container pt-32 pb-24">
+		<div className="container pt-24 pb-16">
 			<div className="">
 				<div className="mb-12">
 					<LocaleLink href="/blog">

@@ -8,8 +8,8 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "@ui/components/alert-dialog";
-import { Button } from "@ui/components/button";
+} from "@repo/ui/components/alert-dialog";
+import { Button } from "@repo/ui/components/button";
 import { useTranslations } from "next-intl";
 import {
 	createContext,
@@ -70,7 +70,7 @@ export function ConfirmationAlertProvider({ children }: PropsWithChildren) {
 						<Button
 							variant={
 								confirmOptions?.destructive
-									? "error"
+									? "destructive"
 									: "primary"
 							}
 							onClick={async () => {

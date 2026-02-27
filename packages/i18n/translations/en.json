@@ -108,6 +108,7 @@
 			"socialAccountAlreadyLinked": "This account is already linked to a user.",
 			"userEmailNotFound": "Email not found.",
 			"userAlreadyExists": "This user already exists.",
+			"userAlreadyExistsUseAnotherEmail": "User already exists. Use another email.",
 			"invalidInvitation": "The invitation is invalid or expired.",
 			"sessionExpired": "The session has expired.",
 			"failedToUnlinkLastAccount": "Failed to unlink account",
@@ -215,6 +216,11 @@
 		"actions": {
 			"continue": "Continue",
 			"verify": "Verify"
+		},
+		"colorMode": {
+			"system": "System",
+			"light": "Light",
+			"dark": "Dark"
 		}
 	},
 	"contact": {
@@ -822,5 +828,11 @@
 	"choosePlan": {
 		"title": "Choose your plan",
 		"description": "To continue, please select a plan."
+	},
+	"notFound": {
+		"code": "404",
+		"title": "Page not found",
+		"goToDashboard": "Go to dashboard",
+		"goToHomepage": "Go to homepage"
 	}
 }

@@ -1,12 +1,12 @@
 import type { OrganizationMemberRole } from "@repo/auth";
-import { useOrganizationMemberRoles } from "@saas/organizations/hooks/member-roles";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@ui/components/select";
+} from "@repo/ui/components/select";
+import { useOrganizationMemberRoles } from "@saas/organizations/hooks/member-roles";
 
 export function OrganizationRoleSelect({
 	value,

@@ -6,7 +6,6 @@ import {
 import { z } from "zod";
 import {
 	account,
-	aiChat,
 	invitation,
 	member,
 	organization,
@@ -17,7 +16,6 @@ import {
 	verification,
 } from "./schema";
 
-export const AiChatSchema = createSelectSchema(aiChat);
 export const UserSchema = createSelectSchema(user);
 export const UserUpdateSchema = createUpdateSchema(user, {
 	id: z.string(),

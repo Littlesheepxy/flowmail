@@ -2,9 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { UserAvatarUpload } from "@saas/settings/components/UserAvatarUpload";
-import { Button } from "@ui/components/button";
+import { Button } from "@repo/ui/components/button";
 import {
 	Form,
 	FormControl,
@@ -12,12 +10,13 @@ import {
 	FormField,
 	FormItem,
 	FormLabel,
-} from "@ui/components/form";
-import { Input } from "@ui/components/input";
+} from "@repo/ui/components/form";
+import { Input } from "@repo/ui/components/input";
+import { useSession } from "@saas/auth/hooks/use-session";
+import { UserAvatarUpload } from "@saas/settings/components/UserAvatarUpload";
 import { ArrowRightIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -25,12 +24,10 @@ const formSchema = z.object({
 	name: z.string(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
-
 export function OnboardingStep1({ onCompleted }: { onCompleted: () => void }) {
 	const t = useTranslations();
 	const { user } = useSession();
-	const form = useForm<FormValues>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: user?.name ?? "",
@@ -43,7 +40,7 @@ export function OnboardingStep1({ onCompleted }: { onCompleted: () => void }) {
 		}
 	}, [user]);
 
-	const onSubmit: SubmitHandler<FormValues> = async ({ name }) => {
+	const onSubmit = form.handleSubmit(async ({ name }) => {
 		form.clearErrors("root");
 
 		try {
@@ -58,14 +55,14 @@ export function OnboardingStep1({ onCompleted }: { onCompleted: () => void }) {
 				message: t("onboarding.notifications.accountSetupFailed"),
 			});
 		}
-	};
+	});
 
 	return (
 		<div>
 			<Form {...form}>
 				<form
 					className="flex flex-col items-stretch gap-8"
-					onSubmit={form.handleSubmit(onSubmit)}
+					onSubmit={onSubmit}
 				>
 					<FormField
 						control={form.control}

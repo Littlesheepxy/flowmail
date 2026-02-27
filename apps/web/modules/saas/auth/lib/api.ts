@@ -1,6 +1,6 @@
 import { authClient } from "@repo/auth/client";
-import { config } from "@repo/config";
 import { useQuery } from "@tanstack/react-query";
+import { config } from "@/config";
 
 export const sessionQueryKey = ["user", "session"] as const;
 
@@ -23,7 +23,7 @@ export const useSessionQuery = () => {
 		staleTime: Number.POSITIVE_INFINITY,
 		refetchOnWindowFocus: false,
 		retry: false,
-		enabled: config.ui.saas.enabled,
+		enabled: config.saas.enabled,
 	});
 };
 

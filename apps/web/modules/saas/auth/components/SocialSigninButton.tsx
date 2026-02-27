@@ -1,9 +1,9 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
-import { config } from "@repo/config";
-import { Button } from "@ui/components/button";
+import { Button } from "@repo/ui/components/button";
 import { parseAsString, useQueryState } from "nuqs";
+import { config } from "@/config";
 import { oAuthProviders } from "../constants/oauth-providers";
 
 export function SocialSigninButton({
@@ -18,7 +18,7 @@ export function SocialSigninButton({
 
 	const redirectPath = invitationId
 		? `/organization-invitation/${invitationId}`
-		: config.auth.redirectAfterSignIn;
+		: config.saas.redirectAfterSignIn;
 
 	const onSignin = () => {
 		const callbackURL = new URL(redirectPath, window.location.origin);
@@ -31,7 +31,7 @@ export function SocialSigninButton({
 	return (
 		<Button
 			onClick={() => onSignin()}
-			variant="light"
+			variant="secondary"
 			type="button"
 			className={className}
 		>

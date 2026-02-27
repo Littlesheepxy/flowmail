@@ -1,15 +1,15 @@
 {
 	"dependencies": {
-		"@repo/config": "workspace:*",
 		"deepmerge": "^4.3.1"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.3.5",
+		"@biomejs/biome": "2.3.13",
 		"@repo/tsconfig": "workspace:*",
 		"@types/node": "^24.10.1"
 	},
 	"name": "@repo/i18n",
 	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"type-check": "tsc --noEmit"
 	},
 	"version": "0.0.0"

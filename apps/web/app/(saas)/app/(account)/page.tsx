@@ -1,4 +1,4 @@
-import { config } from "@repo/config";
+import { config } from "@repo/auth/config";
 import { getOrganizationList, getSession } from "@saas/auth/lib/server";
 import { PageHeader } from "@saas/shared/components/PageHeader";
 import UserStart from "@saas/start/UserStart";

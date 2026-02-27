@@ -21,8 +21,7 @@
 					"level": "error",
 					"fix": "safe"
 				},
-				"noUnusedFunctionParameters": "warn",
-				"useUniqueElementIds": "off"
+				"noUnusedFunctionParameters": "warn"
 			},
 			"style": {
 				"noUnusedTemplateLiteral": {
@@ -49,7 +48,9 @@
 			"**",
 			"!zod/index.ts",
 			"!tailwind-animate.css",
-			"!!**/globals.css"
+			"!**/globals.css",
+			"!**/global.css",
+			"!**/theme.css"
 		]
 	},
 	"javascript": {
@@ -61,9 +62,6 @@
 		},
 		"linter": {
 			"enabled": false
-		},
-		"parser": {
-			"tailwindDirectives": true
 		}
 	},
 	"vcs": {

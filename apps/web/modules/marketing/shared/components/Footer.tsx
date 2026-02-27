@@ -1,6 +1,6 @@
 import { LocaleLink } from "@i18n/routing";
-import { config } from "@repo/config";
-import { Logo } from "@shared/components/Logo";
+import { Logo } from "@repo/ui";
+import { config } from "@/config";
 
 export function Footer() {
 	return (

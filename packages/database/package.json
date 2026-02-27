@@ -3,14 +3,13 @@
 		"@paralleldrive/cuid2": "^3.1.0",
 		"@prisma/adapter-pg": "^6.19.0",
 		"@prisma/client": "7.1.0",
-		"@repo/config": "workspace:*",
 		"drizzle-orm": "^0.44.7",
 		"drizzle-zod": "0.8.3",
 		"pg": "^8.16.0",
-		"zod": "^4.1.12"
+		"zod": "^4.3.6"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.3.5",
+		"@biomejs/biome": "2.3.13",
 		"@repo/tsconfig": "workspace:*",
 		"@types/node": "24.10.1",
 		"dotenv-cli": "^11.0.0",
@@ -21,6 +20,7 @@
 	"main": "./index.ts",
 	"name": "@repo/database",
 	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"generate": "dotenv -c -e ../../.env -- prisma generate --no-hints",
 		"push": "dotenv -c -e ../../.env -- prisma db push",
 		"migrate": "dotenv -c -e ../../.env -- prisma migrate dev",

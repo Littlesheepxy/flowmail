@@ -1,6 +1,23 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import { Input } from "@repo/ui/components/input";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableRow,
+} from "@repo/ui/components/table";
+import { toastPromise } from "@repo/ui/components/toast";
 import { getAdminPath } from "@saas/admin/lib/links";
 import { OrganizationLogo } from "@saas/organizations/components/OrganizationLogo";
 import { useConfirmationAlert } from "@saas/shared/components/ConfirmationAlertProvider";
@@ -14,23 +31,11 @@ import {
 	getPaginationRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@ui/components/button";
-import { Card } from "@ui/components/card";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@ui/components/dropdown-menu";
-import { Input } from "@ui/components/input";
-import { Skeleton } from "@ui/components/skeleton";
-import { Table, TableBody, TableCell, TableRow } from "@ui/components/table";
 import { EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef } from "react";
-import { toast } from "sonner";
 import { withQuery } from "ufo";
 import { useDebounceValue } from "usehooks-ts";
 
@@ -95,7 +100,7 @@ export function OrganizationList() {
 	}, [debouncedSearchTerm, setCurrentPage]);
 
 	const deleteOrganization = async (id: string) => {
-		toast.promise(
+		toastPromise(
 			async () => {
 				const { error } = await authClient.organization.delete({
 					organizationId: id,

@@ -1,4 +1,4 @@
-import { config } from "@repo/config";
+import { config } from "@repo/auth/config";
 import { SignupForm } from "@saas/auth/components/SignupForm";
 import { getInvitation } from "@saas/auth/lib/server";
 import { redirect } from "next/navigation";
@@ -26,7 +26,7 @@ export default async function SignupPage({
 	const params = await searchParams;
 	const { invitationId } = params;
 
-	if (!(config.auth.enableSignup || invitationId)) {
+	if (!(config.enableSignup || invitationId)) {
 		redirect(withQuery("/auth/login", params));
 	}
 

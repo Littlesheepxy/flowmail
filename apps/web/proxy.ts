@@ -1,9 +1,9 @@
 import { routing } from "@i18n/routing";
-import { config as appConfig } from "@repo/config";
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { withQuery } from "ufo";
+import { config as appConfig } from "@/config";
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -15,7 +15,7 @@ export default async function proxy(req: NextRequest) {
 	if (pathname.startsWith("/app")) {
 		const response = NextResponse.next();
 
-		if (!appConfig.ui.saas.enabled) {
+		if (!appConfig.saas.enabled) {
 			return NextResponse.redirect(new URL("/", origin));
 		}
 
@@ -34,7 +34,7 @@ export default async function proxy(req: NextRequest) {
 	}
 
 	if (pathname.startsWith("/auth")) {
-		if (!appConfig.ui.saas.enabled) {
+		if (!appConfig.saas.enabled) {
 			return NextResponse.redirect(new URL("/", origin));
 		}
 
@@ -52,7 +52,7 @@ export default async function proxy(req: NextRequest) {
 		return NextResponse.next();
 	}
 
-	if (!appConfig.ui.marketing.enabled) {
+	if (!appConfig.marketing.enabled) {
 		return NextResponse.redirect(new URL("/app", origin));
 	}
 

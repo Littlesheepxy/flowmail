@@ -75,10 +75,10 @@ export function ActivePlan({
 									{" / "}
 									{price.interval === "month"
 										? t("pricing.month", {
-												count: price.intervalCount ?? 1,
+												count: 1,
 											})
 										: t("pricing.year", {
-												count: price.intervalCount ?? 1,
+												count: 1,
 											})}
 								</span>
 							)}

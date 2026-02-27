@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { config } from "@repo/config";
+import { config } from "@/config";
 
 test.describe("home page", () => {
-	if (config.ui.marketing.enabled) {
+	if (config.marketing.enabled) {
 		test("should load", async ({ page }) => {
 			await page.goto("/");
 

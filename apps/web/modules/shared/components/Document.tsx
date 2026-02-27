@@ -1,6 +1,6 @@
+import { cn } from "@repo/ui";
 import { ClientProviders } from "@shared/components/ClientProviders";
 import { ConsentProvider } from "@shared/components/ConsentProvider";
-import { cn } from "@ui/lib";
 import { Inter, Libre_Baskerville } from "next/font/google";
 import { cookies } from "next/headers";
 import { NuqsAdapter } from "nuqs/adapters/next/app";

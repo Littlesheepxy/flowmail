@@ -1,14 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
-import {
-	organizationListQueryKey,
-	useCreateOrganizationMutation,
-} from "@saas/organizations/lib/api";
-import { useRouter } from "@shared/hooks/router";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
+import { Button } from "@repo/ui/components/button";
 import {
 	Form,
 	FormControl,
@@ -16,18 +9,23 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@ui/components/form";
-import { Input } from "@ui/components/input";
+} from "@repo/ui/components/form";
+import { Input } from "@repo/ui/components/input";
+import { toastError } from "@repo/ui/components/toast";
+import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
+import {
+	organizationListQueryKey,
+	useCreateOrganizationMutation,
+} from "@saas/organizations/lib/api";
+import { useRouter } from "@shared/hooks/router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 const formSchema = z.object({
 	name: z.string().min(3).max(32),
 });
-
-type FormValues = z.infer<typeof formSchema>;
 
 export function CreateOrganizationForm({
 	defaultName,
@@ -39,7 +37,7 @@ export function CreateOrganizationForm({
 	const queryClient = useQueryClient();
 	const { setActiveOrganization } = useActiveOrganization();
 	const createOrganizationMutation = useCreateOrganizationMutation();
-	const form = useForm<FormValues>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: defaultName ?? "",
@@ -65,7 +63,7 @@ export function CreateOrganizationForm({
 
 			router.replace(`/app/${newOrganization.slug}`);
 		} catch {
-			toast.error(t("organizations.createForm.notifications.error"));
+			toastError(t("organizations.createForm.notifications.error"));
 		}
 	});
 
@@ -99,6 +97,7 @@ export function CreateOrganizationForm({
 					<Button
 						className="mt-6 w-full"
 						type="submit"
+						variant="primary"
 						loading={form.formState.isSubmitting}
 					>
 						{t("organizations.createForm.submit")}

@@ -2,26 +2,24 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
+import { toastError, toastSuccess } from "@repo/ui/components/toast";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { Button } from "@ui/components/button";
-import { Input } from "@ui/components/input";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 const formSchema = z.object({
 	name: z.string().min(3),
 });
 
-type FormSchema = z.infer<typeof formSchema>;
-
 export function ChangeNameForm() {
 	const { user, reloadSession } = useSession();
 	const t = useTranslations();
 
-	const form = useForm<FormSchema>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: user?.name ?? "",
@@ -34,11 +32,11 @@ export function ChangeNameForm() {
 		});
 
 		if (error) {
-			toast.error(t("settings.account.changeName.notifications.error"));
+			toastError(t("settings.account.changeName.notifications.error"));
 			return;
 		}
 
-		toast.success(t("settings.account.changeName.notifications.success"));
+		toastSuccess(t("settings.account.changeName.notifications.success"));
 
 		reloadSession();
 

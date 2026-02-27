@@ -1,9 +1,7 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { useRouter } from "@shared/hooks/router";
-import { Button } from "@ui/components/button";
+import { Button } from "@repo/ui/components/button";
 import {
 	Form,
 	FormControl,
@@ -11,11 +9,13 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@ui/components/form";
-import { PasswordInput } from "@ui/components/password-input";
+} from "@repo/ui/components/form";
+import { PasswordInput } from "@repo/ui/components/password-input";
+import { toastError, toastSuccess } from "@repo/ui/components/toast";
+import { SettingsItem } from "@saas/shared/components/SettingsItem";
+import { useRouter } from "@shared/hooks/router";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -27,7 +27,7 @@ export function ChangePasswordForm() {
 	const t = useTranslations();
 	const router = useRouter();
 
-	const form = useForm<z.infer<typeof formSchema>>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			currentPassword: "",
@@ -42,7 +42,7 @@ export function ChangePasswordForm() {
 		});
 
 		if (error) {
-			toast.error(
+			toastError(
 				t(
 					"settings.account.security.changePassword.notifications.error",
 				),
@@ -51,7 +51,7 @@ export function ChangePasswordForm() {
 			return;
 		}
 
-		toast.success(
+		toastSuccess(
 			t("settings.account.security.changePassword.notifications.success"),
 		);
 		form.reset({});

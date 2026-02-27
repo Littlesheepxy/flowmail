@@ -5,7 +5,6 @@ import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { auth } from "@repo/auth";
-import { config } from "@repo/config";
 import { logger } from "@repo/logs";
 import { router } from "./router";
 
@@ -37,7 +36,7 @@ export const openApiHandler = new OpenAPIHandler(router, {
 				return {
 					...(authSchema as any),
 					info: {
-						title: `${config.appName} API`,
+						title: "supastarter API",
 						version: "1.0.0",
 					},
 					servers: [

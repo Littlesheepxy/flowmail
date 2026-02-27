@@ -1,68 +1,38 @@
 "use client";
 
-import { DropdownMenuSub } from "@radix-ui/react-dropdown-menu";
 import { authClient } from "@repo/auth/client";
-import { config } from "@repo/config";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { UserAvatar } from "@shared/components/UserAvatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuPortal,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
-} from "@ui/components/dropdown-menu";
+} from "@repo/ui";
+import { useSession } from "@saas/auth/hooks/use-session";
+import { ColorModeToggle } from "@shared/components/ColorModeToggle";
+import { UserAvatar } from "@shared/components/UserAvatar";
 import {
 	BookIcon,
-	HardDriveIcon,
 	HomeIcon,
 	LogOutIcon,
-	MoonIcon,
 	MoreVerticalIcon,
 	SettingsIcon,
-	SunIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useTheme } from "next-themes";
-import { useState } from "react";
+import { config } from "@/config";
 
 export function UserMenu({ showUserName }: { showUserName?: boolean }) {
 	const t = useTranslations();
 	const { user } = useSession();
-	const { setTheme: setCurrentTheme, theme: currentTheme } = useTheme();
-	const [theme, setTheme] = useState<string>(currentTheme ?? "system");
-
-	const colorModeOptions = [
-		{
-			value: "system",
-			label: "System",
-			icon: HardDriveIcon,
-		},
-		{
-			value: "light",
-			label: "Light",
-			icon: SunIcon,
-		},
-		{
-			value: "dark",
-			label: "Dark",
-			icon: MoonIcon,
-		},
-	];
 
 	const onLogout = () => {
 		authClient.signOut({
 			fetchOptions: {
 				onSuccess: async () => {
 					window.location.href = new URL(
-						config.auth.redirectAfterLogout,
+						config.saas.redirectAfterLogout,
 						window.location.origin,
 					).toString();
 				},
@@ -113,33 +83,13 @@ export function UserMenu({ showUserName }: { showUserName?: boolean }) {
 				<DropdownMenuSeparator />
 
 				{/* Color mode selection */}
-				<DropdownMenuSub>
-					<DropdownMenuSubTrigger>
-						<SunIcon className="mr-2 size-4" />
-						{t("app.userMenu.colorMode")}
-					</DropdownMenuSubTrigger>
-					<DropdownMenuPortal>
-						<DropdownMenuSubContent>
-							<DropdownMenuRadioGroup
-								value={theme}
-								onValueChange={(value) => {
-									setTheme(value);
-									setCurrentTheme(value);
-								}}
-							>
-								{colorModeOptions.map((option) => (
-									<DropdownMenuRadioItem
-										key={option.value}
-										value={option.value}
-									>
-										<option.icon className="mr-2 size-4 opacity-50" />
-										{option.label}
-									</DropdownMenuRadioItem>
-								))}
-							</DropdownMenuRadioGroup>
-						</DropdownMenuSubContent>
-					</DropdownMenuPortal>
-				</DropdownMenuSub>
+				<DropdownMenuItem
+					className="flex items-center justify-between gap-4 hover:bg-transparent focus:bg-transparent"
+					onSelect={(e) => e.preventDefault()}
+				>
+					<span>{t("app.userMenu.colorMode")}</span>
+					<ColorModeToggle />
+				</DropdownMenuItem>
 
 				<DropdownMenuSeparator />
 
@@ -150,12 +100,14 @@ export function UserMenu({ showUserName }: { showUserName?: boolean }) {
 					</Link>
 				</DropdownMenuItem>
 
-				<DropdownMenuItem asChild>
-					<a href="https://supastarter.dev/docs/nextjs">
-						<BookIcon className="mr-2 size-4" />
-						{t("app.userMenu.documentation")}
-					</a>
-				</DropdownMenuItem>
+				{config.docsLink && (
+					<DropdownMenuItem asChild>
+						<a href={config.docsLink}>
+							<BookIcon className="mr-2 size-4" />
+							{t("app.userMenu.documentation")}
+						</a>
+					</DropdownMenuItem>
+				)}
 
 				<DropdownMenuItem asChild>
 					<Link href="/">

@@ -4,7 +4,6 @@ import {
 	boolean,
 	index,
 	integer,
-	json,
 	pgEnum,
 	pgTable,
 	text,
@@ -232,32 +231,6 @@ export const purchase = pgTable("purchase", {
 	updatedAt: timestamp("updatedAt"),
 });
 
-export const aiChat = pgTable("aiChat", {
-	id: text("id")
-		.$defaultFn(() => cuid())
-		.primaryKey(),
-	organizationId: text("organizationId").references(() => organization.id, {
-		onDelete: "cascade",
-	}),
-	userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
-	title: text("title"),
-	messages: json("messages").$type<Array<object>>(),
-	createdAt: timestamp("createdAt").defaultNow().notNull(),
-	updatedAt: timestamp("updatedAt"),
-});
-export const userRelations = relations(user, ({ many }) => ({
-	sessions: many(session),
-	accounts: many(account),
-	passkeys: many(passkey),
-	members: many(member),
-	invitations: many(invitation),
-	twoFactors: many(twoFactor),
-
-	purchases: many(purchase),
-	memberships: many(member),
-	aiChats: many(aiChat),
-}));
-
 export const sessionRelations = relations(session, ({ one }) => ({
 	user: one(user, {
 		fields: [session.userId],
@@ -284,7 +257,6 @@ export const organizationRelations = relations(organization, ({ many }) => ({
 	invitations: many(invitation),
 
 	purchases: many(purchase),
-	aiChats: many(aiChat),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -323,17 +295,6 @@ export const purchaseRelations = relations(purchase, ({ one }) => ({
 	}),
 	user: one(user, {
 		fields: [purchase.userId],
-		references: [user.id],
-	}),
-}));
-
-export const aiChatRelations = relations(aiChat, ({ one }) => ({
-	organization: one(organization, {
-		fields: [aiChat.organizationId],
-		references: [organization.id],
-	}),
-	user: one(user, {
-		fields: [aiChat.userId],
 		references: [user.id],
 	}),
 }));

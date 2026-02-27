@@ -1,4 +1,4 @@
-import { config } from "@repo/config";
+import { config } from "@repo/auth/config";
 import { getSession } from "@saas/auth/lib/server";
 import { OnboardingForm } from "@saas/onboarding/components/OnboardingForm";
 import { AuthWrapper } from "@saas/shared/components/AuthWrapper";

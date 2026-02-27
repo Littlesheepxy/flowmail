@@ -1,10 +1,10 @@
 import { Link, Text } from "@react-email/components";
 import React from "react";
 import { createTranslator } from "use-intl/core";
-import PrimaryButton from "../src/components/PrimaryButton";
-import Wrapper from "../src/components/Wrapper";
-import { defaultLocale, defaultTranslations } from "../src/util/translations";
+import PrimaryButton from "../components/PrimaryButton";
+import Wrapper from "../components/Wrapper";
 import type { BaseMailProps } from "../types";
+import { defaultLocale, defaultTranslations } from "../util/translations";
 
 export function ForgotPassword({
 	url,

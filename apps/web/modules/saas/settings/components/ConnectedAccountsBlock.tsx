@@ -1,13 +1,13 @@
 "use client";
 import { authClient } from "@repo/auth/client";
+import { Button } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import {
 	type OAuthProvider,
 	oAuthProviders,
 } from "@saas/auth/constants/oauth-providers";
 import { useUserAccountsQuery } from "@saas/auth/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { Button } from "@ui/components/button";
-import { Skeleton } from "@ui/components/skeleton";
 import { CheckCircle2Icon, LinkIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -57,7 +57,9 @@ export function ConnectedAccountsBlock() {
 									<CheckCircle2Icon className="size-6 text-success" />
 								) : (
 									<Button
-										variant={isLinked ? "outline" : "light"}
+										variant={
+											isLinked ? "outline" : "secondary"
+										}
 										onClick={() =>
 											linkProvider(
 												provider as OAuthProvider,

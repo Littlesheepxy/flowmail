@@ -1,4 +1,4 @@
-import { config } from "@repo/config";
+import { config } from "@repo/auth/config";
 import { userAccountQueryKey, userPasskeyQueryKey } from "@saas/auth/lib/api";
 import {
 	getSession,
@@ -44,7 +44,7 @@ export default async function AccountSettingsPage() {
 		queryFn: () => getUserAccounts(),
 	});
 
-	if (config.auth.enablePasskeys) {
+	if (config.enablePasskeys) {
 		await queryClient.prefetchQuery({
 			queryKey: userPasskeyQueryKey,
 			queryFn: () => getUserPasskeys(),
@@ -53,15 +53,15 @@ export default async function AccountSettingsPage() {
 
 	return (
 		<SettingsList>
-			{config.auth.enablePasswordLogin &&
+			{config.enablePasswordLogin &&
 				(userHasPassword ? (
 					<ChangePasswordForm />
 				) : (
 					<SetPasswordForm />
 				))}
-			{config.auth.enableSocialLogin && <ConnectedAccountsBlock />}
-			{config.auth.enablePasskeys && <PasskeysBlock />}
-			{config.auth.enableTwoFactor && <TwoFactorBlock />}
+			{config.enableSocialLogin && <ConnectedAccountsBlock />}
+			{config.enablePasskeys && <PasskeysBlock />}
+			{config.enableTwoFactor && <TwoFactorBlock />}
 			<ActiveSessionsBlock />
 		</SettingsList>
 	);

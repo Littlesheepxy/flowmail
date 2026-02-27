@@ -1,15 +1,15 @@
 "use client";
 import { LocaleLink } from "@i18n/routing";
-import { type Config, config } from "@repo/config";
+import { config as paymentsConfig } from "@repo/payments/config";
+import { cn } from "@repo/ui";
+import { Button } from "@repo/ui/components/button";
+import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { usePlanData } from "@saas/payments/hooks/plan-data";
 import type { PlanId } from "@saas/payments/types";
 import { useLocaleCurrency } from "@shared/hooks/locale-currency";
 import { useRouter } from "@shared/hooks/router";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
-import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs";
-import { cn } from "@ui/lib";
 import {
 	ArrowRightIcon,
 	BadgePercentIcon,
@@ -20,7 +20,7 @@ import {
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 
-const plans = config.payments.plans as Config["payments"]["plans"];
+const plans = paymentsConfig.plans;
 
 export function PricingTable({
 	className,
@@ -52,10 +52,11 @@ export function PricingTable({
 			return;
 		}
 
-		const plan = plans[planId];
-		const price = plan.prices?.find(
-			(price) => price.productId === productId,
-		);
+		const plan = plans[planId as keyof typeof plans];
+		const price =
+			"prices" in plan
+				? plan.prices?.find((price) => price.productId === productId)
+				: undefined;
 
 		if (!price) {
 			return;
@@ -87,7 +88,9 @@ export function PricingTable({
 	);
 
 	const hasSubscriptions = filteredPlans.some(([_, plan]) =>
-		plan.prices?.some((price) => price.type === "recurring"),
+		"prices" in plan
+			? plan.prices?.some((price) => price.type === "recurring")
+			: false,
 	);
 
 	return (
@@ -122,30 +125,35 @@ export function PricingTable({
 				{filteredPlans
 					.filter(([planId]) => planId !== activePlanId)
 					.map(([planId, plan]) => {
-						const { isFree, isEnterprise, prices, recommended } =
-							plan;
+						const isFree = "isFree" in plan ? plan.isFree : false;
+						const isEnterprise =
+							"isEnterprise" in plan ? plan.isEnterprise : false;
+						const prices =
+							"prices" in plan ? plan.prices : undefined;
+						const recommended =
+							"recommended" in plan ? plan.recommended : false;
+						const hidden = "hidden" in plan ? plan.hidden : false;
+
 						const { title, description, features } =
 							planData[planId as keyof typeof planData];
 
-						let price = prices?.find(
-							(price) =>
-								!price.hidden &&
-								(price.type === "one-time" ||
-									price.interval === interval) &&
-								price.currency === localeCurrency,
-						);
+						const price = isFree
+							? {
+									amount: 0,
+									currency: localeCurrency,
+									interval,
+									productId: "",
+									type: "recurring",
+								}
+							: prices?.find(
+									(price) =>
+										!hidden &&
+										(price.type === "one-time" ||
+											price.interval === interval) &&
+										price.currency === localeCurrency,
+								);
 
-						if (isFree) {
-							price = {
-								amount: 0,
-								currency: localeCurrency,
-								interval,
-								productId: "",
-								type: "recurring",
-							};
-						}
-
-						if (!(price || isEnterprise)) {
+						if (!price && !isEnterprise) {
 							return null;
 						}
 
@@ -153,7 +161,7 @@ export function PricingTable({
 							<div
 								key={planId}
 								className={cn(
-									"rounded-3xl bg-card border-2 border-transparent p-6",
+									"rounded-3xl bg-card border p-6",
 									{
 										"border-primary": recommended,
 									},
@@ -234,17 +242,13 @@ export function PricingTable({
 															? t(
 																	"pricing.month",
 																	{
-																		count:
-																			price.intervalCount ??
-																			1,
+																		count: 1,
 																	},
 																)
 															: t(
 																	"pricing.year",
 																	{
-																		count:
-																			price.intervalCount ??
-																			1,
+																		count: 1,
 																	},
 																)}
 													</span>
@@ -265,7 +269,7 @@ export function PricingTable({
 										{isEnterprise ? (
 											<Button
 												className="mt-4 w-full"
-												variant="light"
+												variant="secondary"
 												asChild
 											>
 												<LocaleLink href="/contact">

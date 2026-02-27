@@ -1,14 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	type ContactFormValues,
-	contactFormSchema,
-} from "@repo/api/modules/contact/types";
-import { orpc } from "@shared/lib/orpc-query-utils";
-import { useMutation } from "@tanstack/react-query";
-import { Alert, AlertTitle } from "@ui/components/alert";
-import { Button } from "@ui/components/button";
+import { contactFormSchema } from "@repo/api/modules/contact/types";
+import { Alert, AlertTitle } from "@repo/ui/components/alert";
+import { Button } from "@repo/ui/components/button";
 import {
 	Form,
 	FormControl,
@@ -16,9 +11,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@ui/components/form";
-import { Input } from "@ui/components/input";
-import { Textarea } from "@ui/components/textarea";
+} from "@repo/ui/components/form";
+import { Input } from "@repo/ui/components/input";
+import { Textarea } from "@repo/ui/components/textarea";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useMutation } from "@tanstack/react-query";
 import { MailCheckIcon, MailIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
@@ -29,7 +26,7 @@ export function ContactForm() {
 		orpc.contact.submit.mutationOptions(),
 	);
 
-	const form = useForm<ContactFormValues>({
+	const form = useForm({
 		resolver: zodResolver(contactFormSchema),
 		defaultValues: {
 			name: "",
@@ -61,7 +58,7 @@ export function ContactForm() {
 				<Form {...form}>
 					<form
 						onSubmit={onSubmit}
-						className="flex flex-col items-stretch gap-4"
+						className="flex flex-col items-stretch gap-6"
 					>
 						{form.formState.errors.root?.message && (
 							<Alert variant="error">
@@ -123,6 +120,7 @@ export function ContactForm() {
 						<Button
 							type="submit"
 							className="w-full"
+							variant="primary"
 							loading={form.formState.isSubmitting}
 						>
 							{t("contact.form.submit")}

@@ -1,11 +1,14 @@
 {
 	"devDependencies": {
-		"@biomejs/biome": "2.3.5"
+		"@biomejs/biome": "2.3.13"
 	},
 	"name": "@repo/tsconfig",
 	"private": true,
 	"publishConfig": {
 		"access": "public"
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules"
 	},
 	"version": "0.0.0"
 }

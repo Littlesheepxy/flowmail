@@ -5,6 +5,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "@repo/logs";
+import { config } from "../../config";
 import type {
 	GetSignedUploadUrlHandler,
 	GetSignedUrlHander,
@@ -51,12 +52,15 @@ export const getSignedUploadUrl: GetSignedUploadUrlHandler = async (
 	path,
 	{ bucket },
 ) => {
+	const bucketName =
+		config.bucketNames[bucket as keyof typeof config.bucketNames];
+
 	const s3Client = getS3Client();
 	try {
 		return await getS3SignedUrl(
 			s3Client,
 			new PutObjectCommand({
-				Bucket: bucket,
+				Bucket: bucketName,
 				Key: path,
 				ContentType: "image/jpeg",
 			}),
@@ -75,11 +79,18 @@ export const getSignedUrl: GetSignedUrlHander = async (
 	path,
 	{ bucket, expiresIn },
 ) => {
+	const bucketName =
+		config.bucketNames[bucket as keyof typeof config.bucketNames];
+
+	if (!bucketName) {
+		throw new Error("Invalid bucket");
+	}
+
 	const s3Client = getS3Client();
 	try {
 		return getS3SignedUrl(
 			s3Client,
-			new GetObjectCommand({ Bucket: bucket, Key: path }),
+			new GetObjectCommand({ Bucket: bucketName, Key: path }),
 			{ expiresIn },
 		);
 	} catch (e) {

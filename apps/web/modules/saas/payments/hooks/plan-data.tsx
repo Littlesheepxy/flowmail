@@ -1,8 +1,8 @@
-import type { config } from "@repo/config";
+import type { config } from "@repo/payments/config";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-type ProductReferenceId = keyof (typeof config)["payments"]["plans"];
+type ProductReferenceId = keyof typeof config.plans;
 
 export function usePlanData() {
 	const t = useTranslations();

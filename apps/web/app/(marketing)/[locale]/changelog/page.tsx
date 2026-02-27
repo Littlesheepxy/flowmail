@@ -5,7 +5,7 @@ export default async function PricingPage() {
 	const t = await getTranslations();
 
 	return (
-		<div className="container max-w-3xl pt-32 pb-16">
+		<div className="container max-w-3xl pt-24 pb-16">
 			<div className="mb-12 text-balance pt-8 text-center">
 				<h1 className="mb-2 font-bold text-5xl">
 					{t("changelog.title")}
@@ -17,15 +17,18 @@ export default async function PricingPage() {
 			<ChangelogSection
 				items={[
 					{
-						date: "2024-03-01",
+						date: "2026-01-30",
+						title: "Performance Improvements",
 						changes: ["🚀 Improved performance"],
 					},
 					{
-						date: "2024-02-01",
+						date: "2026-01-26",
+						title: "Design Updates",
 						changes: ["🎨 Updated design", "🐞 Fixed a bug"],
 					},
 					{
-						date: "2024-01-01",
+						date: "2026-01-12",
+						title: "New Features",
 						changes: ["🎉 Added new feature", "🐞 Fixed a bug"],
 					},
 				]}

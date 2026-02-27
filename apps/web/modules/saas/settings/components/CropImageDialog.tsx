@@ -1,13 +1,13 @@
 "use client";
 
-import { Button } from "@ui/components/button";
+import { Button } from "@repo/ui/components/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@ui/components/dialog";
+} from "@repo/ui/components/dialog";
 import { useMemo, useRef } from "react";
 import type { ReactCropperElement } from "react-cropper";
 import Cropper from "react-cropper";

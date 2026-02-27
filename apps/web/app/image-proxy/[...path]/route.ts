@@ -1,4 +1,3 @@
-import { config } from "@repo/config";
 import { getSignedUrl } from "@repo/storage";
 import { NextResponse } from "next/server";
 
@@ -14,7 +13,7 @@ export const GET = async (
 		return new Response("Invalid path", { status: 400 });
 	}
 
-	if (bucket === config.storage.bucketNames.avatars) {
+	if (bucket === "avatars") {
 		const signedUrl = await getSignedUrl(filePath, {
 			bucket,
 			expiresIn: 60 * 60,

@@ -2,8 +2,8 @@ import { createId as cuid } from "@paralleldrive/cuid2";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
+	index,
 	int,
-	json,
 	mysqlEnum,
 	mysqlTable,
 	text,
@@ -203,20 +203,6 @@ export const purchase = mysqlTable("purchase", {
 	updatedAt: timestamp("updatedAt"),
 });
 
-export const aiChat = mysqlTable("aiChat", {
-	id: varchar("id", { length: 255 })
-		.$defaultFn(() => cuid())
-		.primaryKey(),
-	organizationId: text("organizationId").references(() => organization.id, {
-		onDelete: "cascade",
-	}),
-	userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
-	title: text("title"),
-	messages: json("messages"),
-	createdAt: timestamp("createdAt").defaultNow().notNull(),
-	updatedAt: timestamp("updatedAt"),
-});
-
 // Relations
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
@@ -228,14 +214,12 @@ export const userRelations = relations(user, ({ many }) => ({
 
 	purchases: many(purchase),
 	memberships: many(member),
-	aiChats: many(aiChat),
 }));
 
 export const organizationRelations = relations(organization, ({ many }) => ({
 	members: many(member),
 	invitations: many(invitation),
 	purchases: many(purchase),
-	aiChats: many(aiChat),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -288,17 +272,6 @@ export const purchaseRelations = relations(purchase, ({ one }) => ({
 	}),
 	user: one(user, {
 		fields: [purchase.userId],
-		references: [user.id],
-	}),
-}));
-
-export const aiChatRelations = relations(aiChat, ({ one }) => ({
-	organization: one(organization, {
-		fields: [aiChat.organizationId],
-		references: [organization.id],
-	}),
-	user: one(user, {
-		fields: [aiChat.userId],
 		references: [user.id],
 	}),
 }));

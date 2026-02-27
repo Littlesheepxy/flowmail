@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation } from "@tanstack/react-query";
-import { Alert, AlertDescription, AlertTitle } from "@ui/components/alert";
-import { Button } from "@ui/components/button";
-import { Input } from "@ui/components/input";
 import { CheckCircleIcon, KeyIcon } from "lucide-react";
 
 import { useTranslations } from "next-intl";
@@ -15,7 +15,6 @@ import * as z from "zod";
 const formSchema = z.object({
 	email: z.string().email(),
 });
-type FormValues = z.infer<typeof formSchema>;
 
 export function Newsletter() {
 	const t = useTranslations();
@@ -23,7 +22,7 @@ export function Newsletter() {
 		orpc.newsletter.subscribe.mutationOptions(),
 	);
 
-	const form = useForm<FormValues>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 	});
 
@@ -38,12 +37,12 @@ export function Newsletter() {
 	});
 
 	return (
-		<section className="pb-12 lg:pb-16 xl:pb-24">
+		<section className="py-12 lg:py-16 xl:py-24">
 			<div className="container max-w-3xl">
-				<div className="p-6 bg-primary/5 rounded-4xl lg:p-8">
+				<div className="p-6 bg-muted rounded-4xl lg:p-8">
 					<div className="mb-8 text-center">
 						<KeyIcon className="mx-auto mb-3 size-10 text-primary" />
-						<h1 className="font-serif font-medium text-lg md:text-xl lg:text-2xl xl:text-3xl leading-tighter text-foreground">
+						<h1 className="font-medium text-lg md:text-xl lg:text-2xl xl:text-3xl leading-tighter text-foreground">
 							{t("newsletter.title")}
 						</h1>
 						<p className="mt-2 text-foreground/60 text-sm sm:text-base">

@@ -6,7 +6,7 @@ import Image from "next/image";
 
 export const mdxComponents = {
 	a: (props) => {
-		const { href, children, ...rest } = props;
+		const { href, children, ref: _ref, ...rest } = props;
 		const isInternalLink =
 			href && (href.startsWith("/") || href.startsWith("#"));
 

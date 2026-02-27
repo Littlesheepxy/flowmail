@@ -1,7 +1,7 @@
 "use client";
 
+import { Button } from "@repo/ui/components/button";
 import { useCookieConsent } from "@shared/hooks/cookie-consent";
-import { Button } from "@ui/components/button";
 import { CookieIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -32,7 +32,7 @@ export function ConsentBanner() {
 					</p>
 					<div className="mt-4 flex gap-2">
 						<Button
-							variant="light"
+							variant="secondary"
 							className="flex-1"
 							onClick={() => declineCookies()}
 						>

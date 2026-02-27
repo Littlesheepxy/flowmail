@@ -3,6 +3,21 @@
 import type { ActiveOrganization } from "@repo/auth";
 import { authClient } from "@repo/auth/client";
 import { isOrganizationAdmin } from "@repo/auth/lib/helper";
+import { cn } from "@repo/ui";
+import { Button } from "@repo/ui/components/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableRow,
+} from "@repo/ui/components/table";
+import { toastPromise } from "@repo/ui/components/toast";
 import { useSession } from "@saas/auth/hooks/use-session";
 import {
 	fullOrganizationQueryKey,
@@ -18,15 +33,6 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@ui/components/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@ui/components/dropdown-menu";
-import { Table, TableBody, TableCell, TableRow } from "@ui/components/table";
-import { cn } from "@ui/lib";
 import {
 	CheckIcon,
 	ClockIcon,
@@ -36,7 +42,6 @@ import {
 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useMemo } from "react";
-import { toast } from "sonner";
 import { OrganizationRoleSelect } from "./OrganizationRoleSelect";
 export function OrganizationInvitationsList({
 	organizationId,
@@ -64,7 +69,7 @@ export function OrganizationInvitationsList({
 	);
 
 	const revokeInvitation = (invitationId: string) => {
-		toast.promise(
+		toastPromise(
 			async () => {
 				const { error } =
 					await authClient.organization.cancelInvitation({

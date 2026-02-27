@@ -1,5 +1,5 @@
-import { config } from "@repo/config";
 import deepmerge from "deepmerge";
+import { config } from "../config";
 import type { Messages } from "../types";
 
 export const importLocale = async (locale: string): Promise<Messages> => {
@@ -10,9 +10,9 @@ export const getMessagesForLocale = async (
 	locale: string,
 ): Promise<Messages> => {
 	const localeMessages = await importLocale(locale);
-	if (locale === config.i18n.defaultLocale) {
+	if (locale === config.defaultLocale) {
 		return localeMessages;
 	}
-	const defaultLocaleMessages = await importLocale(config.i18n.defaultLocale);
+	const defaultLocaleMessages = await importLocale(config.defaultLocale);
 	return deepmerge(defaultLocaleMessages, localeMessages);
 };

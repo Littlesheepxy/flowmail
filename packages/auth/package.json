@@ -1,7 +1,6 @@
 {
 	"dependencies": {
 		"@better-auth/passkey": "^1.4.7",
-		"@repo/config": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/i18n": "workspace:*",
 		"@repo/logs": "workspace:*",
@@ -12,13 +11,14 @@
 		"cookie": "^1.0.2"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.3.5",
+		"@biomejs/biome": "2.3.13",
 		"@repo/tsconfig": "workspace:*",
 		"@types/node": "^24.10.1"
 	},
 	"main": "./index.ts",
 	"name": "@repo/auth",
 	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"migrate": "dotenv -e ../../.env.local -- pnpm dlx @better-auth/cli@latest generate --config ./auth.ts --output ../database/prisma/schema.prisma",
 		"type-check": "tsc --noEmit"
 	},

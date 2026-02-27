@@ -1,4 +1,5 @@
-import { config } from "@repo/config";
+import { config as authConfig } from "@repo/auth/config";
+import { config as paymentsConfig } from "@repo/payments/config";
 import { createPurchasesHelper } from "@repo/payments/lib/helper";
 import { getOrganizationList, getSession } from "@saas/auth/lib/server";
 import { orpcClient } from "@shared/lib/orpc-client";
@@ -16,15 +17,15 @@ export default async function Layout({ children }: PropsWithChildren) {
 		redirect("/auth/login");
 	}
 
-	if (config.users.enableOnboarding && !session.user.onboardingComplete) {
+	if (authConfig.users.enableOnboarding && !session.user.onboardingComplete) {
 		redirect("/onboarding");
 	}
 
 	const organizations = await getOrganizationList();
 
 	if (
-		config.organizations.enable &&
-		config.organizations.requireOrganization
+		authConfig.organizations.enable &&
+		authConfig.organizations.requireOrganization
 	) {
 		const organization =
 			organizations.find(
@@ -36,16 +37,17 @@ export default async function Layout({ children }: PropsWithChildren) {
 		}
 	}
 
-	const hasFreePlan = Object.values(config.payments.plans).some(
+	const hasFreePlan = Object.values(paymentsConfig.plans).some(
 		(plan) => "isFree" in plan,
 	);
 
 	if (
-		((config.organizations.enable && config.organizations.enableBilling) ||
-			config.users.enableBilling) &&
+		((authConfig.organizations.enable &&
+			paymentsConfig.billingAttachedTo === "organization") ||
+			paymentsConfig.billingAttachedTo === "user") &&
 		!hasFreePlan
 	) {
-		const organizationId = config.organizations.enable
+		const organizationId = authConfig.organizations.enable
 			? session?.session.activeOrganizationId || organizations?.at(0)?.id
 			: undefined;
 

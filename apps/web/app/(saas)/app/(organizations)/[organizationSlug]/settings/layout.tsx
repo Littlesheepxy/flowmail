@@ -1,10 +1,10 @@
+import { config as authConfig } from "@repo/auth/config";
 import { isOrganizationAdmin } from "@repo/auth/lib/helper";
-import { config } from "@repo/config";
+import { config as paymentsConfig } from "@repo/payments/config";
 import { getActiveOrganization, getSession } from "@saas/auth/lib/server";
 import { OrganizationLogo } from "@saas/organizations/components/OrganizationLogo";
 import { SettingsMenu } from "@saas/settings/components/SettingsMenu";
 import { PageHeader } from "@saas/shared/components/PageHeader";
-import { SidebarContentLayout } from "@saas/shared/components/SidebarContentLayout";
 import {
 	CreditCardIcon,
 	Settings2Icon,
@@ -57,8 +57,8 @@ export default async function SettingsLayout({
 					href: `${organizationSettingsBasePath}/members`,
 					icon: <Users2Icon className="size-4 opacity-50" />,
 				},
-				...(config.organizations.enable &&
-				config.organizations.enableBilling &&
+				...(authConfig.organizations.enable &&
+				paymentsConfig.billingAttachedTo === "organization" &&
 				userIsOrganizationAdmin
 					? [
 							{
@@ -93,11 +93,10 @@ export default async function SettingsLayout({
 				title={t("organizations.settings.title")}
 				subtitle={t("organizations.settings.subtitle")}
 			/>
-			<SidebarContentLayout
-				sidebar={<SettingsMenu menuItems={menuItems} />}
-			>
-				{children}
-			</SidebarContentLayout>
+
+			<SettingsMenu menuItems={menuItems} className="mb-6" />
+
+			{children}
 		</>
 	);
 }

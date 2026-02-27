@@ -1,21 +1,22 @@
 "use client";
 import { authClient } from "@repo/auth/client";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { useUserAccountsQuery } from "@saas/auth/lib/api";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
-import { Card } from "@ui/components/card";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
-} from "@ui/components/dialog";
-import { FormItem } from "@ui/components/form";
-import { Input } from "@ui/components/input";
-import { Label } from "@ui/components/label";
-import { PasswordInput } from "@ui/components/password-input";
+} from "@repo/ui/components/dialog";
+import { FormItem } from "@repo/ui/components/form";
+import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
+import { PasswordInput } from "@repo/ui/components/password-input";
+import { toastError, toastSuccess } from "@repo/ui/components/toast";
+import { useSession } from "@saas/auth/hooks/use-session";
+import { useUserAccountsQuery } from "@saas/auth/lib/api";
+import { SettingsItem } from "@saas/shared/components/SettingsItem";
+import { useMutation } from "@tanstack/react-query";
 import {
 	ArrowRightIcon,
 	CheckIcon,
@@ -26,7 +27,6 @@ import {
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "react-qr-code";
-import { toast } from "sonner";
 
 export function TwoFactorBlock() {
 	const t = useTranslations();
@@ -76,7 +76,7 @@ export function TwoFactorBlock() {
 		},
 
 		onError: () => {
-			toast.error(
+			toastError(
 				t(
 					"settings.account.security.twoFactor.notifications.enable.error.title",
 				),
@@ -97,7 +97,7 @@ export function TwoFactorBlock() {
 
 			setDialogOpen(false);
 
-			toast.success(
+			toastSuccess(
 				t(
 					"settings.account.security.twoFactor.notifications.disable.success.title",
 				),
@@ -107,7 +107,7 @@ export function TwoFactorBlock() {
 		},
 
 		onError: () => {
-			toast.error(
+			toastError(
 				t(
 					"settings.account.security.twoFactor.notifications.enable.error.title",
 				),
@@ -126,7 +126,7 @@ export function TwoFactorBlock() {
 				throw error;
 			}
 
-			toast.success(
+			toastSuccess(
 				t(
 					"settings.account.security.twoFactor.notifications.verify.success.title",
 				),
@@ -170,14 +170,14 @@ export function TwoFactorBlock() {
 							{t("settings.account.security.twoFactor.enabled")}
 						</p>
 					</div>
-					<Button variant="light" onClick={verifyPassword}>
+					<Button variant="secondary" onClick={verifyPassword}>
 						<XIcon className="mr-1.5 size-4" />
 						{t("settings.account.security.twoFactor.disable")}
 					</Button>
 				</div>
 			) : (
 				<div className="flex justify-start">
-					<Button variant="light" onClick={verifyPassword}>
+					<Button variant="secondary" onClick={verifyPassword}>
 						<TabletSmartphoneIcon className="mr-1.5 size-4" />
 						{t("settings.account.security.twoFactor.enable")}
 					</Button>

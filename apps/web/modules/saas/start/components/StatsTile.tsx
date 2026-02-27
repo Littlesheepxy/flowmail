@@ -1,19 +1,15 @@
 "use client";
 
+import { Badge } from "@repo/ui/components/badge";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@repo/ui/components/card";
 import { useLocaleCurrency } from "@shared/hooks/locale-currency";
-import { Badge } from "@ui/components/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/card";
 import { useFormatter } from "next-intl";
-import { useMemo } from "react";
-
-type Props = {
-	title: string;
-	value: number;
-	valueFormat: "currency" | "number" | "percentage";
-	context?: string;
-	icon?: React.ReactNode;
-	trend?: number;
-};
+import { type PropsWithChildren, useMemo } from "react";
 
 export function StatsTile({
 	title,
@@ -21,7 +17,15 @@ export function StatsTile({
 	context,
 	trend,
 	valueFormat,
-}: Props) {
+	children,
+}: PropsWithChildren<{
+	title: string;
+	value: number;
+	valueFormat: "currency" | "number" | "percentage";
+	context?: string;
+	icon?: React.ReactNode;
+	trend?: number;
+}>) {
 	const format = useFormatter();
 	const localeCurrency = useLocaleCurrency();
 
@@ -71,6 +75,9 @@ export function StatsTile({
 						</Badge>
 					)}
 				</div>
+				{children ? (
+					<div className="mt-4 w-full">{children}</div>
+				) : null}
 			</CardContent>
 		</Card>
 	);

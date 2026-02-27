@@ -42,7 +42,6 @@ You are an expert in:
 │   │   ├── marketing/           # Marketing feature components
 │   │   ├── saas/                # SaaS feature components
 │   │   ├── shared/              # Cross-cutting components
-│   │   └── ui/                  # Shadcn UI components
 │   ├── content/                 # MDX content (docs, legal, blog)
 │   └── tests/                   # Playwright E2E tests
 ├── packages/                    # Shared backend packages
@@ -55,6 +54,7 @@ You are an expert in:
 │   ├── mail/                    # Email providers and templates
 │   ├── payments/                # Payment processing (Stripe, etc.)
 │   ├── storage/                 # File storage (S3, etc.)
+│   ├── ui/                      # Shadcn UI components
 │   └── utils/                   # Shared utility functions
 ├── config/                      # Application configuration
 └── tooling/                     # Build tooling and shared configs
@@ -68,8 +68,10 @@ Use package exports instead of deep relative imports:
 // ✅ Good
 import { auth } from "@repo/auth";
 import { db } from "@repo/database";
-import { config } from "@repo/config";
+import { Button } from "@repo/ui/components/button";
+import { cn } from "@repo/ui";
 import { orpcClient } from "@shared/lib/orpc-client";
+import { config } from "@/config";
 
 // ❌ Bad
 import { auth } from "../../../packages/auth/auth";
@@ -85,7 +87,7 @@ The following path aliases are configured:
 | `@shared/*` | `apps/web/modules/shared/*` |
 | `@saas/*` | `apps/web/modules/saas/*` |
 | `@marketing/*` | `apps/web/modules/marketing/*` |
-| `@ui/*` | `apps/web/modules/ui/*` |
+| `@repo/ui/*` | `packages/ui/*` |
 
 ---
 
@@ -366,13 +368,13 @@ When updating auth flows, ensure:
 
 ### Component Library
 
-- Use Shadcn UI components from `@ui/components`
+- Use Shadcn UI components from `@repo/ui/components`
 - Compose with Radix primitives when customization is needed
 - Import the `cn` helper for conditional class names
 
 ```typescript
-import { Button } from "@ui/components/button";
-import { cn } from "@ui/lib";
+import { Button } from "@repo/ui/components/button";
+import { cn } from "@repo/ui";
 
 export function CustomButton({ variant, className }: Props) {
   return (
@@ -438,7 +440,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@ui/components/form";
+} from "@repo/ui/components/form";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -448,7 +450,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function ContactForm() {
-  const form = useForm<FormValues>({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", email: "" },
   });
@@ -544,19 +546,19 @@ export default async function Page({
 
 ## Configuration
 
-### Application Config
+### Config files
 
-Central configuration lives in `config/index.ts`:
+Each package and application has its own config file to keep the config scoped.
+
+If you need to access the config from a package, you can import it directly from the packages config file.
 
 ```typescript
-import { config } from "@repo/config";
+import { config } from "@/config";
+import { config as i18nConfig } from "@repo/i18n/config";
 
 // Access configuration
 config.appName;           // Application name
-config.i18n.defaultLocale; // Default locale
-config.auth.enableSignup;  // Auth settings
-config.payments.plans;     // Payment plans
-config.organizations.enable; // Organization features
+i18nConfig.defaultLocale; // Default locale
 ```
 
 ### Environment Variables

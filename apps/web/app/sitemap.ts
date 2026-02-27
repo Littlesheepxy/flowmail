@@ -1,14 +1,11 @@
 import { getAllPosts } from "@marketing/blog/utils/lib/posts";
-import { config } from "@repo/config";
+import { config as i18nConfig } from "@repo/i18n/config";
 import { getBaseUrl } from "@repo/utils";
 import { allLegalPages } from "content-collections";
 import type { MetadataRoute } from "next";
-import { docsSource } from "./docs-source";
 
 const baseUrl = getBaseUrl();
-const locales = config.i18n.enabled
-	? Object.keys(config.i18n.locales)
-	: [config.i18n.defaultLocale];
+const locales = Object.keys(i18nConfig.locales);
 
 const staticMarketingPages = ["", "/changelog"];
 
@@ -30,14 +27,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			url: new URL(`/${page.locale}/legal/${page.path}`, baseUrl).href,
 			lastModified: new Date(),
 		})),
-		...docsSource.getLanguages().flatMap((locale) =>
-			docsSource.getPages(locale.language).map((page) => ({
-				url: new URL(
-					`/${locale.language}/docs/${page.slugs.join("/")}`,
-					baseUrl,
-				).href,
-				lastModified: new Date(),
-			})),
-		),
 	];
 }

@@ -2,22 +2,22 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
-import { config } from "@repo/config";
-import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
-import { sessionQueryKey } from "@saas/auth/lib/api";
-import { OrganizationInvitationAlert } from "@saas/organizations/components/OrganizationInvitationAlert";
-import { useRouter } from "@shared/hooks/router";
-import { useQueryClient } from "@tanstack/react-query";
-import { Alert, AlertDescription, AlertTitle } from "@ui/components/alert";
-import { Button } from "@ui/components/button";
+import { config as authConfig } from "@repo/auth/config";
+import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import { Button } from "@repo/ui/components/button";
 import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
 	FormLabel,
-} from "@ui/components/form";
-import { Input } from "@ui/components/input";
+} from "@repo/ui/components/form";
+import { Input } from "@repo/ui/components/input";
+import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
+import { sessionQueryKey } from "@saas/auth/lib/api";
+import { OrganizationInvitationAlert } from "@saas/organizations/components/OrganizationInvitationAlert";
+import { useRouter } from "@shared/hooks/router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
 	AlertTriangleIcon,
 	ArrowRightIcon,
@@ -30,10 +30,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { withQuery } from "ufo";
 import { z } from "zod";
+import { config } from "@/config";
 import {
 	type OAuthProvider,
 	oAuthProviders,
@@ -45,16 +45,14 @@ import { SocialSigninButton } from "./SocialSigninButton";
 const formSchema = z.union([
 	z.object({
 		mode: z.literal("magic-link"),
-		email: z.string().email(),
+		email: z.email(),
 	}),
 	z.object({
 		mode: z.literal("password"),
-		email: z.string().email(),
+		email: z.email(),
 		password: z.string().min(1),
 	}),
 ]);
-
-type FormValues = z.infer<typeof formSchema>;
 
 export function LoginForm() {
 	const t = useTranslations();
@@ -69,18 +67,18 @@ export function LoginForm() {
 	const email = searchParams.get("email");
 	const redirectTo = searchParams.get("redirectTo");
 
-	const form = useForm<FormValues>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			email: email ?? "",
 			password: "",
-			mode: config.auth.enablePasswordLogin ? "password" : "magic-link",
+			mode: authConfig.enablePasswordLogin ? "password" : "magic-link",
 		},
 	});
 
 	const redirectPath = invitationId
 		? `/organization-invitation/${invitationId}`
-		: (redirectTo ?? config.auth.redirectAfterSignIn);
+		: (redirectTo ?? config.saas.redirectAfterSignIn);
 
 	useEffect(() => {
 		if (sessionLoaded && user) {
@@ -88,7 +86,7 @@ export function LoginForm() {
 		}
 	}, [user, sessionLoaded]);
 
-	const onSubmit: SubmitHandler<FormValues> = async (values) => {
+	const onSubmit = form.handleSubmit(async (values) => {
 		try {
 			if (values.mode === "password") {
 				const { data, error } = await authClient.signIn.email({
@@ -133,7 +131,7 @@ export function LoginForm() {
 				),
 			});
 		}
-	};
+	});
 
 	const signInWithPasskey = async () => {
 		try {
@@ -180,12 +178,9 @@ export function LoginForm() {
 					)}
 
 					<Form {...form}>
-						<form
-							className="space-y-4"
-							onSubmit={form.handleSubmit(onSubmit)}
-						>
-							{config.auth.enableMagicLink &&
-								config.auth.enablePasswordLogin && (
+						<form className="space-y-4" onSubmit={onSubmit}>
+							{authConfig.enableMagicLink &&
+								authConfig.enablePasswordLogin && (
 									<LoginModeSwitch
 										activeMode={signinMode}
 										onChange={(mode) =>
@@ -225,7 +220,7 @@ export function LoginForm() {
 								)}
 							/>
 
-							{config.auth.enablePasswordLogin &&
+							{authConfig.enablePasswordLogin &&
 								signinMode === "password" && (
 									<FormField
 										control={form.control}
@@ -285,7 +280,7 @@ export function LoginForm() {
 							<Button
 								className="w-full"
 								type="submit"
-								variant="secondary"
+								variant="primary"
 								loading={form.formState.isSubmitting}
 							>
 								{signinMode === "magic-link"
@@ -295,9 +290,9 @@ export function LoginForm() {
 						</form>
 					</Form>
 
-					{(config.auth.enablePasskeys ||
-						(config.auth.enableSignup &&
-							config.auth.enableSocialLogin)) && (
+					{(authConfig.enablePasskeys ||
+						(authConfig.enableSignup &&
+							authConfig.enableSocialLogin)) && (
 						<>
 							<div className="relative my-6 h-4">
 								<hr className="relative top-2" />
@@ -307,8 +302,8 @@ export function LoginForm() {
 							</div>
 
 							<div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
-								{config.auth.enableSignup &&
-									config.auth.enableSocialLogin &&
+								{authConfig.enableSignup &&
+									authConfig.enableSocialLogin &&
 									Object.keys(oAuthProviders).map(
 										(providerId) => (
 											<SocialSigninButton
@@ -320,9 +315,9 @@ export function LoginForm() {
 										),
 									)}
 
-								{config.auth.enablePasskeys && (
+								{authConfig.enablePasskeys && (
 									<Button
-										variant="light"
+										variant="secondary"
 										className="w-full sm:col-span-2"
 										onClick={() => signInWithPasskey()}
 									>
@@ -334,7 +329,7 @@ export function LoginForm() {
 						</>
 					)}
 
-					{config.auth.enableSignup && (
+					{authConfig.enableSignup && (
 						<div className="mt-6 text-center text-sm">
 							<span className="text-foreground/60">
 								{t("auth.login.dontHaveAnAccount")}{" "}

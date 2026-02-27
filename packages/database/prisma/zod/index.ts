@@ -70,23 +70,11 @@ export const PurchaseScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'us
 
 export type PurchaseScalarFieldEnum = z.infer<typeof PurchaseScalarFieldEnumSchema>;
 
-// File: AiChatScalarFieldEnum.schema.ts
-
-export const AiChatScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'userId', 'title', 'messages', 'createdAt', 'updatedAt'])
-
-export type AiChatScalarFieldEnum = z.infer<typeof AiChatScalarFieldEnumSchema>;
-
 // File: SortOrder.schema.ts
 
 export const SortOrderSchema = z.enum(['asc', 'desc'])
 
 export type SortOrder = z.infer<typeof SortOrderSchema>;
-
-// File: JsonNullValueInput.schema.ts
-
-export const JsonNullValueInputSchema = z.enum(['JsonNull'])
-
-export type JsonNullValueInput = z.infer<typeof JsonNullValueInputSchema>;
 
 // File: QueryMode.schema.ts
 
@@ -99,12 +87,6 @@ export type QueryMode = z.infer<typeof QueryModeSchema>;
 export const NullsOrderSchema = z.enum(['first', 'last'])
 
 export type NullsOrder = z.infer<typeof NullsOrderSchema>;
-
-// File: JsonNullValueFilter.schema.ts
-
-export const JsonNullValueFilterSchema = z.enum(['DbNull', 'JsonNull', 'AnyNull'])
-
-export type JsonNullValueFilter = z.infer<typeof JsonNullValueFilterSchema>;
 
 // File: PurchaseType.schema.ts
 
@@ -282,18 +264,3 @@ export const PurchaseSchema = z.object({
 });
 
 export type PurchaseModel = z.infer<typeof PurchaseSchema>;
-
-// File: AiChat.schema.ts
-
-export const AiChatSchema = z.object({
-  id: z.string(),
-  organizationId: z.string().nullish(),
-  userId: z.string().nullish(),
-  title: z.string().nullish(),
-  messages: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("[]"),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type AiChatType = z.infer<typeof AiChatSchema>;
-

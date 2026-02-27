@@ -1,11 +1,11 @@
 import { ORPCError } from "@orpc/client";
-import { type Config, config } from "@repo/config";
 import { getOrganizationById } from "@repo/database";
 import { logger } from "@repo/logs";
 import {
 	createCheckoutLink as createCheckoutLinkFn,
 	getCustomerIdFromEntity,
 } from "@repo/payments";
+import { config } from "@repo/payments/config";
 import { z } from "zod";
 import { localeMiddleware } from "../../../orpc/middleware/locale-middleware";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -43,14 +43,25 @@ export const createCheckoutLink = protectedProcedure
 						},
 			);
 
-			const plans = config.payments.plans as Config["payments"]["plans"];
+			const plans = config.plans;
 
-			const plan = Object.entries(plans).find(([_planId, plan]) =>
-				plan.prices?.find((price) => price.productId === productId),
+			const plan = Object.entries(plans).find(
+				([_planId, plan]) =>
+					"prices" in plan &&
+					plan.prices?.find((price) => price.productId === productId),
 			);
-			const price = plan?.[1].prices?.find(
-				(price) => price.productId === productId,
-			);
+
+			if (!plan) {
+				throw new ORPCError("NOT_FOUND");
+			}
+
+			const [_, planDetails] = plan;
+
+			const price =
+				"prices" in planDetails &&
+				planDetails.prices?.find(
+					(price) => price.productId === productId,
+				);
 			const trialPeriodDays =
 				price && "trialPeriodDays" in price
 					? price.trialPeriodDays

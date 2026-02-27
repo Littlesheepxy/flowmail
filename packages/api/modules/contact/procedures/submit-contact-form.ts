@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
-import { config } from "@repo/config";
 import { logger } from "@repo/logs";
 import { sendEmail } from "@repo/mail";
+import { config } from "../../../config";
 import { localeMiddleware } from "../../../orpc/middleware/locale-middleware";
 import { publicProcedure } from "../../../orpc/procedures";
 import { contactFormSchema } from "../types";
@@ -19,9 +19,9 @@ export const submitContactForm = publicProcedure
 		async ({ input: { email, name, message }, context: { locale } }) => {
 			try {
 				await sendEmail({
-					to: config.contactForm.to,
+					to: config.contactFormTo,
 					locale,
-					subject: config.contactForm.subject,
+					subject: "Contact Form Submission",
 					text: `Name: ${name}\n\nEmail: ${email}\n\nMessage: ${message}`,
 				});
 			} catch (error) {

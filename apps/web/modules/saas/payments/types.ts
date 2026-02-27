@@ -1,3 +1,3 @@
-import type { config } from "@repo/config";
+import type { config } from "@repo/payments/config";
 
-export type PlanId = keyof typeof config.payments.plans;
+export type PlanId = keyof typeof config.plans;

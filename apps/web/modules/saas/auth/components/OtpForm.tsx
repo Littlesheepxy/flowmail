@@ -2,11 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
-import { config } from "@repo/config";
-import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
-import { useRouter } from "@shared/hooks/router";
-import { Alert, AlertTitle } from "@ui/components/alert";
-import { Button } from "@ui/components/button";
+import { Alert, AlertTitle } from "@repo/ui/components/alert";
+import { Button } from "@repo/ui/components/button";
 import {
 	Form,
 	FormControl,
@@ -14,25 +11,26 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@ui/components/form";
+} from "@repo/ui/components/form";
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSeparator,
 	InputOTPSlot,
-} from "@ui/components/input-otp";
+} from "@repo/ui/components/input-otp";
+import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
+import { useRouter } from "@shared/hooks/router";
 import { AlertTriangleIcon, ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { config } from "@/config";
 
 const formSchema = z.object({
 	code: z.string().min(6).max(6),
 });
-
-type FormValues = z.infer<typeof formSchema>;
 
 export function OtpForm() {
 	const t = useTranslations();
@@ -45,9 +43,9 @@ export function OtpForm() {
 
 	const redirectPath = invitationId
 		? `/organization-invitation/${invitationId}`
-		: (redirectTo ?? config.auth.redirectAfterSignIn);
+		: (redirectTo ?? config.saas.redirectAfterSignIn);
 
-	const form = useForm<FormValues>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			code: "",

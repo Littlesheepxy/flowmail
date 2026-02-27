@@ -47,77 +47,51 @@
 
 @layer base {
 	:root {
-		--border: #e0e3e0;
-		--input: #d0d4d0;
+		--border: #eaeaea;
+		--input: #dfdfdf;
 		--ring: #3875c8;
-		--background: #f2f1ed;
-		--foreground: #1c1e1e;
+		--background: #f8f8f8;
+		--foreground: #313539;
 		--primary: #3875c8;
 		--primary-foreground: #ffffff;
-		--secondary: #292b35;
-		--secondary-foreground: #ffffff;
+		--secondary: #e8e7e5;
+		--secondary-foreground: #1c1e1e;
 		--destructive: #ef4444;
 		--destructive-foreground: #ffffff;
 		--success: #39a561;
 		--success-foreground: #ffffff;
-		--muted: #e8e7e3;
-		--muted-foreground: #1d1f1f;
-		--accent: #e8e7f0;
-		--accent-foreground: #1d1f1f;
+		--muted: #f0f0f0;
+		--muted-foreground: #4d5155;
+		--accent: #e2e6ec;
+		--accent-foreground: #313539;
 		--popover: #ffffff;
-		--popover-foreground: #1d1f1f;
-		--card: #f9f8f6;
-		--card-foreground: #1d1f1f;
+		--popover-foreground: #313539;
+		--card: #ffffff;
+		--card-foreground: #313539;
 		--radius: 0.75rem;
-
-		/* fumadocs */
-		--fd-banner-height: 4.5rem;
 	}
 
 	.dark {
 		--border: #262929;
 		--input: #333737;
-		--ring: #3875c8;
+		--ring: #528ad7;
 		--background: #161818;
 		--foreground: #eae9e5;
-		--primary: #3875c8;
+		--primary: #528ad7;
 		--primary-foreground: #ffffff;
-		--secondary: #eae9e5;
-		--secondary-foreground: #191b1b;
+		--secondary: #1f2121;
+		--secondary-foreground: #ffffff;
 		--destructive: #ef4444;
 		--destructive-foreground: #ffffff;
 		--success: #39a561;
 		--success-foreground: #ffffff;
-		--muted: #191a1a;
-		--muted-foreground: #94a3b8;
+		--muted: #191b1b;
+		--muted-foreground: #a8b4c6;
 		--accent: #1e293b;
-		--accent-foreground: #f8fafc;
-		--popover: #161818;
+		--accent-foreground: #eae9e5;
+		--popover: #1c1e1e;
 		--popover-foreground: #eae9e5;
 		--card: #1c1e1e;
 		--card-foreground: #eae9e5;
 	}
-
-	*,
-	::after,
-	::before,
-	::backdrop,
-	::file-selector-button {
-		@apply border-border;
-	}
-}
-
-@utility container {
-	margin-inline: auto;
-	padding-inline: 1.5rem;
-	width: 100%;
-	max-width: var(--container-6xl);
-}
-
-@utility no-scrollbar {
-	&::-webkit-scrollbar {
-		display: none;
-	}
-	-ms-overflow-style: none;
-	scrollbar-width: none;
 }

@@ -1,67 +1,56 @@
 "use client";
 
-import { type UIMessage, useChat } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { eventIteratorToStream } from "@orpc/client";
-import { SidebarContentLayout } from "@saas/shared/components/SidebarContentLayout";
+import { cn } from "@repo/ui";
+import { Button } from "@repo/ui/components/button";
+import { Textarea } from "@repo/ui/components/textarea";
+import { toastError } from "@repo/ui/components/toast";
 import { orpcClient } from "@shared/lib/orpc-client";
-import { orpc } from "@shared/lib/orpc-query-utils";
 import {
-	skipToken,
-	useMutation,
-	useQuery,
-	useQueryClient,
-} from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
-import { Textarea } from "@ui/components/textarea";
-import { cn } from "@ui/lib";
-import { EllipsisIcon, PlusIcon, SendIcon } from "lucide-react";
-import { useFormatter } from "next-intl";
-import { useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+	ArrowUpIcon,
+	CodeIcon,
+	EllipsisIcon,
+	LightbulbIcon,
+	MailIcon,
+	TrendingUpIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-export function AiChat({ organizationId }: { organizationId?: string }) {
-	const formatter = useFormatter();
-	const queryClient = useQueryClient();
+const PROMPT_SUGGESTIONS = [
+	{
+		icon: CodeIcon,
+		text: "Help me debug a React component",
+		prompt: "Help me debug a React component",
+	},
+	{
+		icon: MailIcon,
+		text: "Write a professional email",
+		prompt: "Write a professional email",
+	},
+	{
+		icon: LightbulbIcon,
+		text: "Explain how to optimize database queries",
+		prompt: "Explain how to optimize database queries",
+	},
+	{
+		icon: TrendingUpIcon,
+		text: "Summarize the latest AI trends",
+		prompt: "Summarize the latest AI trends",
+	},
+] as const;
+
+export function AiChat() {
 	const [input, setInput] = useState("");
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
-	const { data, status: chatsStatus } = useQuery(
-		orpc.ai.chats.list.queryOptions({
-			input: {
-				organizationId,
-			},
-		}),
-	);
-	const [chatId, setChatId] = useQueryState("chatId");
-	const currentChatQuery = useQuery(
-		orpc.ai.chats.find.queryOptions({
-			input: chatId
-				? {
-						id: chatId,
-					}
-				: skipToken,
-		}),
-	);
 
-	const createChatMutation = useMutation(
-		orpc.ai.chats.create.mutationOptions(),
-	);
-
-	const chats = data?.chats ?? [];
-	const currentChat = currentChatQuery.data?.chat ?? null;
-
-	const { messages, setMessages, status, sendMessage } = useChat({
-		id: chatId ?? "new",
+	const { messages, status, sendMessage } = useChat({
+		id: "local-chat",
 		transport: {
 			async sendMessages(options) {
-				if (!chatId) {
-					throw new Error("Chat ID is required");
-				}
-
 				return eventIteratorToStream(
-					await orpcClient.ai.chats.messages.add(
+					await orpcClient.ai.stream(
 						{
-							chatId,
 							messages: options.messages,
 						},
 						{ signal: options.abortSignal },
@@ -74,91 +63,25 @@ export function AiChat({ organizationId }: { organizationId?: string }) {
 		},
 	});
 
-	useEffect(() => {
-		if (messages.length && currentChat?.messages) {
-			queryClient.setQueryData(
-				orpc.ai.chats.find.queryKey({
-					input: { id: chatId ?? "new" },
-				}),
-				(oldData) => {
-					if (!oldData) {
-						return undefined;
-					}
-					return {
-						chat: {
-							...oldData.chat,
-							messages: messages,
-						},
-					};
-				},
-			);
-		}
-	}, [messages]);
-
-	useEffect(() => {
-		if (currentChat?.messages) {
-			setMessages(currentChat.messages as unknown as UIMessage[]);
-		}
-	}, [currentChat?.messages]);
-
-	const createNewChat = useCallback(async () => {
-		const newChat = await createChatMutation.mutateAsync({
-			organizationId,
-		});
-		await queryClient.invalidateQueries({
-			queryKey: orpc.ai.chats.list.queryKey({
-				input: {
-					organizationId,
-				},
-			}),
-		});
-
-		setChatId(newChat.chat.id);
-	}, [createChatMutation]);
-
-	useEffect(() => {
-		(async () => {
-			if (chatId || chatsStatus !== "success") {
-				return;
-			}
-
-			if (chats?.length) {
-				setChatId(chats[0].id);
-			} else {
-				await createNewChat();
-				setMessages([]);
-			}
-		})();
-	}, [chatsStatus]);
-
-	const hasChat =
-		chatsStatus === "success" && !!chats?.length && !!currentChat?.id;
-
-	const sortedChats = useMemo(() => {
-		return (
-			chats?.sort(
-				(a, b) =>
-					new Date(b.createdAt).getTime() -
-					new Date(a.createdAt).getTime(),
-			) ?? []
-		);
-	}, [chats]);
-
 	const handleSubmit = async (
 		e:
 			| React.FormEvent<HTMLFormElement>
 			| React.KeyboardEvent<HTMLTextAreaElement>,
 	) => {
-		const text = input.trim();
-		setInput("");
 		e.preventDefault();
+
+		const text = input.trim();
+		if (!text) {
+			return;
+		}
+		setInput("");
 
 		try {
 			await sendMessage({
 				text,
 			});
 		} catch {
-			toast.error("Failed to send message");
+			toastError("Failed to send message");
 			setInput(text);
 		}
 	};
@@ -171,124 +94,109 @@ export function AiChat({ organizationId }: { organizationId?: string }) {
 	}, [messages.length, status]);
 
 	return (
-		<SidebarContentLayout
-			sidebar={
-				<div>
-					<Button
-						variant="light"
-						size="sm"
-						className="mb-4 flex w-full items-center gap-2"
-						loading={createChatMutation.isPending}
-						onClick={createNewChat}
-					>
-						<PlusIcon className="size-4" />
-						New chat
-					</Button>
-
-					{sortedChats.map((chat) => (
-						<div className="relative" key={chat.id}>
-							<Button
-								variant="link"
-								onClick={() => setChatId(chat.id)}
-								className={cn(
-									"block h-auto w-full py-2 text-left text-foreground hover:no-underline",
-									chat.id === chatId &&
-										"bg-primary/10 font-bold text-primary",
-								)}
-							>
-								<span className="w-full overflow-hidden">
-									<span className="block truncate">
-										{chat.title ??
-											(chat.messages?.at(0) as any)
-												?.content ??
-											"Untitled chat"}
-									</span>
-									<small className="block font-normal">
-										{formatter.dateTime(
-											new Date(chat.createdAt),
-											{
-												dateStyle: "short",
-												timeStyle: "short",
-											},
-										)}
-									</small>
-								</span>
-							</Button>
+		<div className="flex h-[calc(100vh-10rem)] flex-col max-w-3xl mx-auto">
+			<div
+				ref={messagesContainerRef}
+				className="flex flex-1 flex-col gap-4 overflow-y-auto py-8"
+			>
+				{messages.length === 0 && (
+					<div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 w-full">
+							{PROMPT_SUGGESTIONS.map((suggestion, index) => {
+								const Icon = suggestion.icon;
+								return (
+									<Button
+										key={index}
+										type="button"
+										variant="secondary"
+										onClick={async () => {
+											try {
+												await sendMessage({
+													text: suggestion.prompt,
+												});
+											} catch {
+												toastError(
+													"Failed to send message",
+												);
+											}
+										}}
+										disabled={status === "streaming"}
+										className="group h-auto gap-2 rounded-xl p-4 text-center"
+									>
+										<Icon className="size-6 text-primary" />
+										<span className="text-sm text-foreground">
+											{suggestion.text}
+										</span>
+									</Button>
+								);
+							})}
 						</div>
-					))}
-				</div>
-			}
-		>
-			<div className="-mt-8 flex h-[calc(100vh-10rem)] flex-col">
-				<div
-					ref={messagesContainerRef}
-					className="flex flex-1 flex-col gap-2 overflow-y-auto py-8"
-				>
-					{messages.map((message, index) => (
+					</div>
+				)}
+
+				{messages.map((message, index) => (
+					<div
+						key={index}
+						className={cn(
+							"flex flex-col gap-2",
+							message.role === "user"
+								? "items-end"
+								: "items-start",
+						)}
+					>
 						<div
-							key={index}
 							className={cn(
-								"flex flex-col gap-2",
+								"flex max-w-2xl items-center gap-2 whitespace-pre-wrap rounded-lg px-4 py-2 text-foreground",
 								message.role === "user"
-									? "items-end"
-									: "items-start",
+									? "bg-primary/10"
+									: "bg-muted",
 							)}
 						>
-							<div
-								className={cn(
-									"flex max-w-2xl items-center gap-2 whitespace-pre-wrap rounded-lg px-4 py-2 text-foreground",
-									message.role === "user"
-										? "bg-primary/10"
-										: "bg-secondary/10",
-								)}
-							>
-								{message.parts?.map((part, index) =>
-									part.type === "text" ? (
-										<span key={index}>{part.text}</span>
-									) : null,
-								)}
-							</div>
+							{message.parts?.map((part, index) =>
+								part.type === "text" ? (
+									<span key={index}>{part.text}</span>
+								) : null,
+							)}
 						</div>
-					))}
+					</div>
+				))}
 
-					{(status === "streaming" || status === "submitted") && (
-						<div className="flex justify-start">
-							<div className="flex max-w-2xl items-center gap-2 rounded-lg bg-secondary/10 px-4 py-2 text-foreground">
-								<EllipsisIcon className="size-6 animate-pulse" />
-							</div>
+				{(status === "streaming" || status === "submitted") && (
+					<div className="flex justify-start">
+						<div className="flex max-w-2xl items-center gap-2 rounded-lg bg-secondary/10 px-4 py-2 text-foreground">
+							<EllipsisIcon className="size-6 animate-pulse" />
 						</div>
-					)}
-				</div>
-
-				<form
-					onSubmit={handleSubmit}
-					className="relative shrink-0 rounded-2xl bg-background text-lg focus-within:outline-none focus-within:ring focus-within:ring-primary"
-				>
-					<Textarea
-						value={input}
-						onChange={(e) => setInput(e.target.value)}
-						disabled={!hasChat}
-						placeholder="Chat with your AI..."
-						className="min-h-8 rounded-none border-none bg-transparent focus:outline-hidden focus-visible:ring-0 shadow-none p-6 pr-14"
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && !e.shiftKey) {
-								e.preventDefault();
-								handleSubmit(e);
-							}
-						}}
-					/>
-
-					<Button
-						type="submit"
-						size="icon"
-						variant="secondary"
-						className="absolute right-3 bottom-3"
-						disabled={!hasChat}
-					>
-						<SendIcon className="size-4" />
-					</Button>
-				</form>
+					</div>
+				)}
 			</div>
-		</SidebarContentLayout>
+
+			<form
+				onSubmit={handleSubmit}
+				className="relative shrink-0 rounded-2xl bg-card text-lg focus-within:outline-none focus-within:ring focus-within:ring-primary"
+			>
+				<Textarea
+					value={input}
+					onChange={(e) => setInput(e.target.value)}
+					placeholder="Chat with your AI..."
+					className="min-h-8 border bg-card rounded-2xl focus:outline-hidden focus-visible:ring-0 shadow-none p-6 pr-14"
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && !e.shiftKey) {
+							e.preventDefault();
+							handleSubmit(e);
+						}
+					}}
+				/>
+
+				<Button
+					type="submit"
+					size="icon"
+					variant="primary"
+					className="absolute right-3 bottom-3"
+					disabled={!input.trim() || status === "streaming"}
+				>
+					<ArrowUpIcon className="size-4" />
+				</Button>
+			</form>
+		</div>
 	);
 }

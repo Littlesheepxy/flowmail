@@ -1,15 +1,15 @@
 "use client";
 import { authClient } from "@repo/auth/client";
-import { config } from "@repo/config";
+import { Button } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { toastSuccess } from "@repo/ui/components/toast";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { sessionQueryKey } from "@saas/auth/lib/api";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
-import { Skeleton } from "@ui/components/skeleton";
 import { ComputerIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
+import { config } from "@/config";
 
 export function ActiveSessionsBlock() {
 	const t = useTranslations();
@@ -36,7 +36,7 @@ export function ActiveSessionsBlock() {
 			},
 			{
 				onSuccess: async () => {
-					toast.success(
+					toastSuccess(
 						t(
 							"settings.account.security.activeSessions.notifications.revokeSession.success",
 						),
@@ -48,7 +48,7 @@ export function ActiveSessionsBlock() {
 						});
 
 						window.location.href = new URL(
-							config.auth.redirectAfterLogout,
+							config.saas.redirectAfterLogout,
 							window.location.origin,
 						).toString();
 					} else {
@@ -100,7 +100,7 @@ export function ActiveSessionsBlock() {
 								</div>
 							</div>
 							<Button
-								variant="light"
+								variant="secondary"
 								size="icon"
 								className="shrink-0"
 								onClick={() => revokeSession(session.token)}

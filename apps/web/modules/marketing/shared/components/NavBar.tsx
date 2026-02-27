@@ -1,24 +1,23 @@
 "use client";
 
 import { LocaleLink, useLocalePathname } from "@i18n/routing";
-import { config } from "@repo/config";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { ColorModeToggle } from "@shared/components/ColorModeToggle";
-import { LocaleSwitch } from "@shared/components/LocaleSwitch";
-import { Logo } from "@shared/components/Logo";
-import { Button } from "@ui/components/button";
+import { cn, Logo } from "@repo/ui";
+import { Button } from "@repo/ui/components/button";
 import {
 	Sheet,
 	SheetContent,
 	SheetTitle,
 	SheetTrigger,
-} from "@ui/components/sheet";
-import { cn } from "@ui/lib";
+} from "@repo/ui/components/sheet";
+import { useSession } from "@saas/auth/hooks/use-session";
+import { ColorModeToggle } from "@shared/components/ColorModeToggle";
+import { LocaleSwitch } from "@shared/components/LocaleSwitch";
 import { MenuIcon } from "lucide-react";
 import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
+import { config } from "@/config";
 
 export function NavBar() {
 	const t = useTranslations();
@@ -53,8 +52,6 @@ export function NavBar() {
 		handleMobileMenuClose();
 	}, [localePathname]);
 
-	const isDocsPage = localePathname.startsWith("/docs");
-
 	const menuItems: {
 		label: string;
 		href: string;
@@ -75,18 +72,18 @@ export function NavBar() {
 			label: t("common.menu.changelog"),
 			href: "/changelog",
 		},
-		...(config.contactForm.enabled
+		{
+			label: t("common.menu.contact"),
+			href: "/contact",
+		},
+		...(config.docsLink
 			? [
 					{
-						label: t("common.menu.contact"),
-						href: "/contact",
+						label: t("common.menu.docs"),
+						href: config.docsLink,
 					},
 				]
 			: []),
-		{
-			label: t("common.menu.docs"),
-			href: "/docs",
-		},
 	];
 
 	const isMenuItemActive = (href: string) => localePathname.startsWith(href);
@@ -94,7 +91,8 @@ export function NavBar() {
 	return (
 		<nav
 			className={cn(
-				"fixed top-0 left-0 z-50 w-full transition-shadow duration-200 bg-card",
+				"sticky top-0 z-50 w-full transition-shadow duration-200 bg-background",
+				{ "border-b": !isTop },
 			)}
 			data-test="navigation"
 		>
@@ -102,7 +100,7 @@ export function NavBar() {
 				<div
 					className={cn(
 						"flex items-center justify-stretch gap-6 transition-[padding] duration-200",
-						!isTop || isDocsPage ? "py-4" : "py-6",
+						!isTop ? "py-4" : "py-6",
 					)}
 				>
 					<div className="flex flex-1 justify-start">
@@ -134,11 +132,9 @@ export function NavBar() {
 
 					<div className="flex flex-1 items-center justify-end gap-3">
 						<ColorModeToggle />
-						{config.i18n.enabled && (
-							<Suspense>
-								<LocaleSwitch />
-							</Suspense>
-						)}
+						<Suspense>
+							<LocaleSwitch />
+						</Suspense>
 
 						<Sheet
 							open={mobileMenuOpen}
@@ -148,7 +144,7 @@ export function NavBar() {
 								<Button
 									className="lg:hidden"
 									size="icon"
-									variant="light"
+									variant="secondary"
 									aria-label="Menu"
 								>
 									<MenuIcon className="size-4" />
@@ -189,7 +185,7 @@ export function NavBar() {
 							</SheetContent>
 						</Sheet>
 
-						{config.ui.saas.enabled &&
+						{config.saas.enabled &&
 							(user ? (
 								<Button
 									key="dashboard"

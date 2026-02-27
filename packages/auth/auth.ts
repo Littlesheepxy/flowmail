@@ -1,5 +1,4 @@
 import { passkey } from "@better-auth/passkey";
-import { config } from "@repo/config";
 import {
 	db,
 	getInvitationById,
@@ -8,6 +7,7 @@ import {
 	getUserByEmail,
 } from "@repo/database";
 import type { Locale } from "@repo/i18n";
+import { config as i18nConfig } from "@repo/i18n/config";
 import { logger } from "@repo/logs";
 import { sendEmail } from "@repo/mail";
 import { cancelSubscription } from "@repo/payments";
@@ -24,14 +24,15 @@ import {
 	username,
 } from "better-auth/plugins";
 import { parse as parseCookies } from "cookie";
+import { config } from "./config";
 import { updateSeatsInOrganizationSubscription } from "./lib/organization";
 import { invitationOnlyPlugin } from "./plugins/invitation-only";
 
 const getLocaleFromRequest = (request?: Request) => {
 	const cookies = parseCookies(request?.headers.get("cookie") ?? "");
 	return (
-		(cookies[config.i18n.localeCookieName] as Locale) ??
-		config.i18n.defaultLocale
+		(cookies[i18nConfig.localeCookieName] as Locale) ??
+		i18nConfig.defaultLocale
 	);
 };
 
@@ -40,7 +41,6 @@ const appUrl = getBaseUrl();
 export const auth = betterAuth({
 	baseURL: appUrl,
 	trustedOrigins: [appUrl],
-	appName: config.appName,
 	database: prismaAdapter(db, {
 		provider: "postgresql",
 	}),
@@ -50,7 +50,7 @@ export const auth = betterAuth({
 		},
 	},
 	session: {
-		expiresIn: config.auth.sessionCookieMaxAge,
+		expiresIn: config.sessionCookieMaxAge,
 		freshAge: 0,
 	},
 	account: {
@@ -155,8 +155,8 @@ export const auth = betterAuth({
 		enabled: true,
 		// If signup is disabled, the only way to sign up is via an invitation. So in this case we can auto sign in the user, as the email is already verified by the invitation.
 		// If signup is enabled, we can't auto sign in the user, as the email is not verified yet.
-		autoSignIn: !config.auth.enableSignup,
-		requireEmailVerification: config.auth.enableSignup,
+		autoSignIn: !config.enableSignup,
+		requireEmailVerification: config.enableSignup,
 		sendResetPassword: async ({ user, url }, request) => {
 			const locale = getLocaleFromRequest(request);
 			await sendEmail({
@@ -171,7 +171,7 @@ export const auth = betterAuth({
 		},
 	},
 	emailVerification: {
-		sendOnSignUp: config.auth.enableSignup,
+		sendOnSignUp: config.enableSignup,
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async (
 			{ user: { email, name }, url },

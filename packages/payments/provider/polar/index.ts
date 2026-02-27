@@ -9,7 +9,7 @@ import {
 	getPurchaseBySubscriptionId,
 	updatePurchase,
 } from "@repo/database";
-import { setCustomerIdToEntity } from "../../src/lib/customer";
+import { setCustomerIdToEntity } from "../../lib/customer";
 import type {
 	CancelSubscription,
 	CreateCheckoutLink,

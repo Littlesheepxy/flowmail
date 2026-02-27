@@ -107,6 +107,7 @@
 			"socialAccountAlreadyLinked": "Dieses Konto ist bereits mit einem Benutzer verknüpft.",
 			"unknown": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
 			"userAlreadyExists": "Dieser Benutzer existiert bereits.",
+			"userAlreadyExistsUseAnotherEmail": "Benutzer existiert bereits. Verwenden Sie eine andere E-Mail.",
 			"userEmailNotFound": "E-Mail nicht gefunden.",
 			"userNotFound": "Dieser Benutzer existiert nicht",
 			"sessionExpired": "Die Sitzung ist abgelaufen.",
@@ -822,5 +823,10 @@
 	"choosePlan": {
 		"title": "Wähle einen Plan",
 		"description": "Um weiterzumachen, wähle bitte einen Plan aus."
+	},
+	"notFound": {
+		"code": "404",
+		"title": "Seite nicht gefunden",
+		"goToDashboard": "Zum Dashboard gehen"
 	}
 }

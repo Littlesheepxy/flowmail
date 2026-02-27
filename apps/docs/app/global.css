@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/shadcn.css';
+@import 'fumadocs-ui/css/preset.css';
+@import '@repo/tailwind-config/theme.css';
+
+@source '../../../packages/ui/components';
+
+@layer base {
+    :root {
+        --sidebar-border: var(--border);
+    }
+}

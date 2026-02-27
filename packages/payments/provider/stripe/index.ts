@@ -6,7 +6,7 @@ import {
 } from "@repo/database";
 import { logger } from "@repo/logs";
 import Stripe from "stripe";
-import { setCustomerIdToEntity } from "../../src/lib/customer";
+import { setCustomerIdToEntity } from "../../lib/customer";
 import type {
 	CancelSubscription,
 	CreateCheckoutLink,

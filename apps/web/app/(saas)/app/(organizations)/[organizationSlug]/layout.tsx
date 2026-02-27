@@ -1,4 +1,4 @@
-import { config } from "@repo/config";
+import { config as paymentsConfig } from "@repo/payments/config";
 import { getActiveOrganization } from "@saas/auth/lib/server";
 import { activeOrganizationQueryKey } from "@saas/organizations/lib/api";
 import { AppWrapper } from "@saas/shared/components/AppWrapper";
@@ -30,7 +30,7 @@ export default async function OrganizationLayout({
 		queryFn: () => organization,
 	});
 
-	if (config.users.enableBilling) {
+	if (paymentsConfig.billingAttachedTo === "organization") {
 		await queryClient.prefetchQuery(
 			orpc.payments.listPurchases.queryOptions({
 				input: {

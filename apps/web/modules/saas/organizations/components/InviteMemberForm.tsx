@@ -2,31 +2,28 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
-import { OrganizationRoleSelect } from "@saas/organizations/components/OrganizationRoleSelect";
-import { fullOrganizationQueryKey } from "@saas/organizations/lib/api";
-import { SettingsItem } from "@saas/shared/components/SettingsItem";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
+import { Button } from "@repo/ui/components/button";
 import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
 	FormLabel,
-} from "@ui/components/form";
-import { Input } from "@ui/components/input";
+} from "@repo/ui/components/form";
+import { Input } from "@repo/ui/components/input";
+import { toastError, toastSuccess } from "@repo/ui/components/toast";
+import { OrganizationRoleSelect } from "@saas/organizations/components/OrganizationRoleSelect";
+import { fullOrganizationQueryKey } from "@saas/organizations/lib/api";
+import { SettingsItem } from "@saas/shared/components/SettingsItem";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 const formSchema = z.object({
-	email: z.string().email(),
+	email: z.email(),
 	role: z.enum(["member", "owner", "admin"]),
 });
-
-type FormValues = z.infer<typeof formSchema>;
 
 export function InviteMemberForm({
 	organizationId,
@@ -36,15 +33,15 @@ export function InviteMemberForm({
 	const t = useTranslations();
 	const queryClient = useQueryClient();
 
-	const form = useForm<FormValues>({
+	const form = useForm({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			email: "",
-			role: "member",
+			role: "member" as z.infer<typeof formSchema>["role"],
 		},
 	});
 
-	const onSubmit: SubmitHandler<FormValues> = async (values) => {
+	const onSubmit = form.handleSubmit(async (values) => {
 		try {
 			const { error } = await authClient.organization.inviteMember({
 				...values,
@@ -61,19 +58,19 @@ export function InviteMemberForm({
 				queryKey: fullOrganizationQueryKey(organizationId),
 			});
 
-			toast.success(
+			toastSuccess(
 				t(
 					"organizations.settings.members.inviteMember.notifications.success.title",
 				),
 			);
 		} catch {
-			toast.error(
+			toastError(
 				t(
 					"organizations.settings.members.inviteMember.notifications.error.title",
 				),
 			);
 		}
-	};
+	});
 
 	return (
 		<SettingsItem
@@ -83,10 +80,7 @@ export function InviteMemberForm({
 			)}
 		>
 			<Form {...form}>
-				<form
-					onSubmit={form.handleSubmit(onSubmit)}
-					className="@container"
-				>
+				<form onSubmit={onSubmit} className="@container">
 					<div className="flex @md:flex-row flex-col gap-2">
 						<div className="flex-1">
 							<FormField

@@ -53,7 +53,7 @@ export default async function BlogPostPage(props: { params: Promise<Params> }) {
 	const { title, body } = page;
 
 	return (
-		<div className="container max-w-6xl pt-32 pb-24">
+		<div className="container max-w-6xl pt-24 pb-16">
 			<div className="mx-auto mb-12 max-w-2xl">
 				<h1 className="text-center font-bold text-4xl">{title}</h1>
 			</div>

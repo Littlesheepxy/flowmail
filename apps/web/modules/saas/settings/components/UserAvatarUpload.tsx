@@ -1,12 +1,12 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
+import { Spinner } from "@repo/ui";
 import { useSession } from "@saas/auth/hooks/use-session";
-import { Spinner } from "@shared/components/Spinner";
 import { UserAvatar } from "@shared/components/UserAvatar";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { type HTMLAttributes, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { CropImageDialog } from "./CropImageDialog";
 
@@ -83,7 +83,10 @@ export function UserAvatarUpload({
 
 	return (
 		<>
-			<div className="relative size-24 rounded-full" {...getRootProps()}>
+			<div
+				className="relative size-24 rounded-full"
+				{...(getRootProps() as HTMLAttributes<HTMLDivElement>)}
+			>
 				<input {...getInputProps()} />
 				<UserAvatar
 					className="size-24 cursor-pointer text-xl"

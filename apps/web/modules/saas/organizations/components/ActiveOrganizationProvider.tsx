@@ -2,7 +2,7 @@
 
 import { authClient } from "@repo/auth/client";
 import { isOrganizationAdmin } from "@repo/auth/lib/helper";
-import { config } from "@repo/config";
+import { config as paymentsConfig } from "@repo/payments/config";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { sessionQueryKey } from "@saas/auth/lib/api";
 import {
@@ -62,7 +62,7 @@ export function ActiveOrganizationProvider({
 
 		await refetchActiveOrganization();
 
-		if (config.organizations.enableBilling) {
+		if (paymentsConfig.billingAttachedTo === "organization") {
 			await queryClient.prefetchQuery(
 				orpc.payments.listPurchases.queryOptions({
 					input: {

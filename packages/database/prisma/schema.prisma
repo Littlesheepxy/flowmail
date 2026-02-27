@@ -39,7 +39,6 @@ model User {
   purchases          Purchase[]
   members            Member[]
   twofactors         TwoFactor[]
-  aiChats            AiChat[]
 
   @@unique([email])
   @@unique([username])
@@ -144,7 +143,6 @@ model Organization {
   members            Member[]
   invitations        Invitation[]
   purchases          Purchase[]
-  aiChats            AiChat[]
 
   @@unique([slug])
   @@map("organization")
@@ -204,19 +202,4 @@ model Purchase {
 
   @@index([subscriptionId])
   @@map("purchase")
-}
-
-model AiChat {
-  id             String        @id @default(cuid())
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String?
-  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title          String?
-  /// [ChatMessages]
-  messages       Json          @default("[]")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  @@map("ai_chat")
 }

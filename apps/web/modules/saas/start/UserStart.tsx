@@ -1,8 +1,8 @@
 "use client";
 
-import { config } from "@repo/config";
+import { config } from "@repo/auth/config";
+import { Card } from "@repo/ui/components/card";
 import { OrganizationsGrid } from "@saas/organizations/components/OrganizationsGrid";
-import { Card } from "@ui/components/card";
 
 export default function UserStart() {
 	return (

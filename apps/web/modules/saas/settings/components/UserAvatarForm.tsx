@@ -1,7 +1,7 @@
 "use client";
+import { toastError, toastSuccess } from "@repo/ui/components/toast";
 import { SettingsItem } from "@saas/shared/components/SettingsItem";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import { UserAvatarUpload } from "./UserAvatarUpload";
 
 export function UserAvatarForm() {
@@ -14,12 +14,12 @@ export function UserAvatarForm() {
 		>
 			<UserAvatarUpload
 				onSuccess={() => {
-					toast.success(
+					toastSuccess(
 						t("settings.account.avatar.notifications.success"),
 					);
 				}}
 				onError={() => {
-					toast.error(
+					toastError(
 						t("settings.account.avatar.notifications.error"),
 					);
 				}}

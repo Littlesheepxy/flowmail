@@ -1,46 +1,41 @@
 @import "tailwindcss";
-@import "fumadocs-ui/css/neutral.css";
-@import "fumadocs-ui/css/preset.css";
 @import "@repo/tailwind-config/theme.css";
 @import "@repo/tailwind-config/tailwind-animate.css";
 
-@source "../node_modules/fumadocs-ui/dist/**/*.js";
+@source "../../../packages/ui/components";
 
 @variant dark (&:where(.dark, .dark *));
 
-body {
-	letter-spacing: -0.02em;
+
+@utility container {
+	margin-inline: auto;
+	padding-inline: 1.5rem;
+	width: 100%;
+	max-width: var(--container-6xl);
 }
 
-pre.shiki {
-	@apply mb-4 rounded-lg p-6;
-}
-
-#nd-sidebar {
-	@apply bg-card!;
-
-	button[data-search-full] {
-		@apply bg-transparent;
+@utility no-scrollbar {
+	&::-webkit-scrollbar {
+		display: none;
 	}
+	-ms-overflow-style: none;
+	scrollbar-width: none;
 }
 
-#nd-page .prose {
-	h1,
-	h2,
-	h3,
-	h4,
-	h5,
-	h6 {
-		a {
-			@apply no-underline!;
-		}
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--border);
 	}
-}
 
-div[role="tablist"].bg-secondary {
-	@apply bg-muted!;
-}
+	body {
+		letter-spacing: -0.01em;
+	}
 
-input[cmdk-input] {
-	@apply border-none focus-visible:ring-0;
+	svg.lucide {
+		stroke-width: 1.75;
+	}
 }

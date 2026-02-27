@@ -1,15 +1,15 @@
-import { config } from "@repo/config";
+import { config } from "@repo/i18n/config";
 import { createNavigation } from "next-intl/navigation";
 import { defineRouting } from "next-intl/routing";
 
 export const routing = defineRouting({
-	locales: Object.keys(config.i18n.locales),
-	defaultLocale: config.i18n.defaultLocale,
+	locales: Object.keys(config.locales),
+	defaultLocale: config.defaultLocale,
 	localeCookie: {
-		name: config.i18n.localeCookieName,
+		name: config.localeCookieName,
 	},
-	localePrefix: config.i18n.enabled ? "always" : "never",
-	localeDetection: config.i18n.enabled,
+	localePrefix: Object.keys(config.locales).length > 1 ? "always" : "never",
+	localeDetection: Object.keys(config.locales).length > 1,
 });
 
 export const {

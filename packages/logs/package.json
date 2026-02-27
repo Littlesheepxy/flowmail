@@ -1,16 +1,16 @@
 {
 	"dependencies": {
-		"@repo/config": "workspace:*",
 		"consola": "^3.4.2"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.3.5",
+		"@biomejs/biome": "2.3.13",
 		"@repo/tsconfig": "workspace:*",
 		"@types/node": "^24.10.1"
 	},
 	"main": "./index.ts",
 	"name": "@repo/logs",
 	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"type-check": "tsc --noEmit"
 	},
 	"types": "./**/.tsx",

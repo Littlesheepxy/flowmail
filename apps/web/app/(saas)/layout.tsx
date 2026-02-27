@@ -1,4 +1,5 @@
-import { config } from "@repo/config";
+import { config as authConfig } from "@repo/auth/config";
+import { config as paymentsConfig } from "@repo/payments/config";
 import { SessionProvider } from "@saas/auth/components/SessionProvider";
 import { sessionQueryKey } from "@saas/auth/lib/api";
 import { getOrganizationList, getSession } from "@saas/auth/lib/server";
@@ -30,14 +31,14 @@ export default async function SaaSLayout({ children }: PropsWithChildren) {
 		queryFn: () => session,
 	});
 
-	if (config.organizations.enable) {
+	if (authConfig.organizations.enable) {
 		await queryClient.prefetchQuery({
 			queryKey: organizationListQueryKey,
 			queryFn: getOrganizationList,
 		});
 	}
 
-	if (config.users.enableBilling) {
+	if (paymentsConfig.billingAttachedTo === "user") {
 		await queryClient.prefetchQuery(
 			orpc.payments.listPurchases.queryOptions({
 				input: {},
