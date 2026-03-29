@@ -34,6 +34,7 @@
 		"input-otp": "^1.4.2",
 		"js-cookie": "^3.0.5",
 		"lucide-react": "^0.553.0",
+		"mcp-handler": "^1.1.0",
 		"motion": "^12.35.1",
 		"next": "16.1.6",
 		"next-intl": "4.8.1",

@@ -8,6 +8,7 @@
 		"@repo/ai": "workspace:*",
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",
+		"@repo/email-processor": "workspace:*",
 		"@repo/i18n": "workspace:*",
 		"@repo/logs": "workspace:*",
 		"@repo/mail": "workspace:*",

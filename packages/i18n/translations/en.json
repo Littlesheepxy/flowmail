@@ -86,6 +86,13 @@
 		}
 	},
 	"auth": {
+		"branding": {
+			"headline": "Stop reading emails.\nStart executing.",
+			"subtitle": "Flowmail turns your inbox into actionable workflows — approvals, reports, and tasks, handled automatically.",
+			"feature1": "AI-powered email classification",
+			"feature2": "One-click approval workflows",
+			"feature3": "MCP-native agent integration"
+		},
 		"errors": {
 			"invalidEmailOrPassword": "The credentials you entered are invalid. Please check them and try again.",
 			"unknown": "Something went wrong. Please try again.",
@@ -972,25 +979,5 @@
 		"title": "Page not found",
 		"goToDashboard": "Go to dashboard",
 		"goToHomepage": "Go to homepage"
-	},
-	"call": {
-		"incoming": "Incoming Call",
-		"from": "Flowmail",
-		"slideToAnswer": "Slide to answer",
-		"tapToAnswer": "Tap to answer",
-		"decline": "Decline",
-		"connecting": "Connecting...",
-		"connected": "Connected",
-		"callEnded": "Call Ended",
-		"callEndedDesc": "The conversation has ended. Thank you!",
-		"callNotFound": "Call Not Found",
-		"callNotFoundDesc": "This call link is invalid or has expired.",
-		"callCompleted": "Call Completed",
-		"callCompletedDesc": "This conversation has already ended. Thank you!",
-		"mute": "Mute",
-		"unmute": "Unmute",
-		"speaker": "Speaker",
-		"hangup": "Hang up",
-		"poweredBy": "Powered by Flowmail"
 	}
 }

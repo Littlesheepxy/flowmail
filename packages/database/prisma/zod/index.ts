@@ -78,7 +78,7 @@ export type WaitlistEntryScalarFieldEnum = z.infer<typeof WaitlistEntryScalarFie
 
 // File: EmailConnectionScalarFieldEnum.schema.ts
 
-export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'isActive', 'lastSyncAt', 'createdAt', 'updatedAt'])
+export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'authType', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'imapHost', 'imapPort', 'smtpHost', 'smtpPort', 'imapPassword', 'isActive', 'lastSyncAt', 'syncCursor', 'createdAt', 'updatedAt'])
 
 export type EmailConnectionScalarFieldEnum = z.infer<typeof EmailConnectionScalarFieldEnumSchema>;
 
@@ -318,12 +318,19 @@ export const EmailConnectionSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
   provider: z.string(),
+  authType: z.string().default("oauth2"),
   email: z.string(),
-  accessToken: z.string(),
-  refreshToken: z.string(),
+  accessToken: z.string().nullish(),
+  refreshToken: z.string().nullish(),
   tokenExpiresAt: z.date().nullish(),
+  imapHost: z.string().nullish(),
+  imapPort: z.number().int().nullish(),
+  smtpHost: z.string().nullish(),
+  smtpPort: z.number().int().nullish(),
+  imapPassword: z.string().nullish(),
   isActive: z.boolean().default(true),
   lastSyncAt: z.date().nullish(),
+  syncCursor: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

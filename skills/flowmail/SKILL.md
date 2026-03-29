@@ -25,9 +25,23 @@ Set these environment variables (or configure via OpenClaw's skills config):
 - `FLOWMAIL_ORG_ID` — Your organization ID
 - `FLOWMAIL_BASE_URL` — API base URL (default: `https://app.flowmail.ai`)
 
-## Available Tools (via MCP)
+## MCP Connection
 
 Connect to the Flowmail MCP server at `{FLOWMAIL_BASE_URL}/mcp`.
+
+For Cursor / Claude Desktop, add to your `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "flowmail": {
+      "url": "https://app.flowmail.ai/mcp"
+    }
+  }
+}
+```
+
+## Available Tools
 
 ### Approval Management
 

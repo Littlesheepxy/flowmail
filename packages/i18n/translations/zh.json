@@ -32,6 +32,13 @@
 		}
 	},
 	"auth": {
+		"branding": {
+			"headline": "别再整理邮件了，\n直接执行。",
+			"subtitle": "Flowmail 自动将邮件转化为可执行工作流 — 审批、汇报、任务，全自动处理。",
+			"feature1": "AI 智能邮件分类",
+			"feature2": "一键审批工作流",
+			"feature3": "MCP 原生 Agent 集成"
+		},
 		"login": {
 			"title": "欢迎回来",
 			"subtitle": "请输入你的账号信息登录。",
@@ -327,25 +334,5 @@
 		"title": "页面未找到",
 		"goToDashboard": "前往控制台",
 		"goToHomepage": "返回首页"
-	},
-	"call": {
-		"incoming": "来电",
-		"from": "Flowmail",
-		"slideToAnswer": "滑动接听",
-		"tapToAnswer": "点击接听",
-		"decline": "拒绝",
-		"connecting": "连接中...",
-		"connected": "已接通",
-		"callEnded": "通话结束",
-		"callEndedDesc": "对话已结束，感谢参与！",
-		"callNotFound": "未找到通话",
-		"callNotFoundDesc": "该通话链接无效或已过期。",
-		"callCompleted": "通话已完成",
-		"callCompletedDesc": "该对话已结束，感谢参与！",
-		"mute": "静音",
-		"unmute": "取消静音",
-		"speaker": "免提",
-		"hangup": "挂断",
-		"poweredBy": "由 Flowmail 提供支持"
 	}
 }
