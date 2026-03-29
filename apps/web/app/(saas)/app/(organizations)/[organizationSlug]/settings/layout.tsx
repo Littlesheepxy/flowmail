@@ -6,6 +6,7 @@ import { OrganizationLogo } from "@saas/organizations/components/OrganizationLog
 import { SettingsMenu } from "@saas/settings/components/SettingsMenu";
 import { PageHeader } from "@saas/shared/components/PageHeader";
 import {
+	BarChart3Icon,
 	CreditCardIcon,
 	Settings2Icon,
 	TriangleAlertIcon,
@@ -70,7 +71,12 @@ export default async function SettingsLayout({
 							},
 						]
 					: []),
-				...(userIsOrganizationAdmin
+				{
+				title: "Usage",
+				href: `${organizationSettingsBasePath}/usage`,
+				icon: <BarChart3Icon className="size-4 opacity-50" />,
+			},
+			...(userIsOrganizationAdmin
 					? [
 							{
 								title: t(

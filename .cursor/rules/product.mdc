@@ -1,0 +1,146 @@
+---
+description: Flowmail 产品定义、MVP 边界与场景规范。在新增功能、讨论需求、设计页面时必须参照本文件。
+globs:
+alwaysApply: true
+---
+
+# Flowmail 产品定义
+
+## 一句话定位
+
+> **以邮箱为入口的 AI 原生业务执行平台——把邮件变成可以被 AI 执行的工作流**
+
+## 核心价值主张
+
+用户不用处理邮件本身，系统自动把邮件变成业务结果。
+
+- **不是** 更好的邮件客户端
+- **不是** 通用自动化工具
+- **是** 站在邮箱之上的业务执行层
+
+## 产品分层架构
+
+```
+邮箱（Gmail / Outlook）
+        ↓
+Flowmail（解析 + 能力层）
+  ├── AI Understanding：分类、抽取、总结
+  ├── Entity + State：事项、事件、状态
+  └── Execution Layer：更新系统、创建任务、通知
+        ↓
+业务系统（CRM / ERP / Task）
+```
+
+---
+
+## MVP 范围（严格遵守，不可擅自扩展）
+
+### 第一阶段（当前）：只做两个场景
+
+#### 场景一：审批（Approval）
+- 触发：邮件中包含"请审批"、"approval request"等意图
+- 结构化为：审批事项（申请人、内容、截止时间、状态）
+- 状态机：`pending → approved / rejected`
+- 执行动作：发送审批结果邮件、更新状态
+
+#### 场景二：汇报跟踪（Report Tracking）
+- 触发：周报、进展更新类邮件
+- 结构化为：事项 + timeline
+- 自动追踪状态变化和风险信号
+
+### 核心交付目标（第一阶段）
+
+```
+邮件 → AI 自动结构化 → 状态追踪 → 可确认执行
+```
+
+### 第二阶段（未来，暂不实现）
+- 工单 / 客服场景
+- 附件深度解析
+- 风险识别
+
+### 第三阶段（远期，不讨论）
+- Agent 编排 / Workflow Builder
+- 日历融合
+
+---
+
+## 核心页面（前端产品形态）
+
+### 1. Smart Inbox（入口）
+- 不是传统邮件列表，而是按业务类型分组：Approval / Reports / Issues / Feedback
+- 每封邮件显示：AI 分类标签、提取的关键字段、当前状态
+
+### 2. Entity Workspace（核心页面）
+- 每个结构化事项一个页面
+- 包含：完整 timeline（邮件+事件）、当前状态、AI 总结、附件、操作按钮
+
+### 3. Action Panel（AI + 操作）
+- 用户确认 AI 判断
+- 手动执行动作（审批通过/拒绝、标记状态等）
+- 调整 AI 提取的字段
+
+### 4. Scenario Dashboard（场景化视图）
+- 审批中心（当前阶段实现）
+- 汇报跟踪（当前阶段实现）
+
+---
+
+## 产品边界（必须坚守）
+
+### ❌ 禁止在 MVP 阶段做
+
+- 替代邮箱客户端的完整 UI（不做收发邮件）
+- 全自动执行（无用户确认）
+- 超过 2 个核心场景
+- Workflow Builder / 可视化流程编排
+- 开放 API / webhook 平台
+
+### ✅ 必须坚持的原则
+
+- **邮件是入口，业务结果是目标**：所有功能围绕"把邮件变成结构化事项并执行"设计
+- **人在回路**：AI 判断需用户确认后执行，不做全自动
+- **场景先行**：每个功能必须对应一个明确的业务场景（审批或汇报）
+- **结构优先**：UI 展示结构化数据，而非原始邮件文本
+
+---
+
+## 用户角色
+
+| 角色 | 描述 |
+|------|------|
+| 业务负责人 | 主要用户，需要审批邮件、追踪汇报 |
+| 团队成员 | 发送审批请求、提交汇报 |
+| 管理员 | 配置邮箱接入、场景规则 |
+
+## 核心数据模型
+
+```typescript
+// 事项（Entity）
+interface FlowEntity {
+  id: string;
+  type: "approval" | "report" | "issue" | "feedback";
+  title: string;
+  status: EntityStatus;
+  sourceEmails: string[];       // 关联的邮件 ID
+  extractedFields: Record<string, unknown>;  // AI 抽取的字段
+  timeline: TimelineEvent[];
+  organizationId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 状态（按场景）
+type ApprovalStatus = "pending" | "approved" | "rejected" | "cancelled";
+type ReportStatus = "received" | "in_progress" | "completed" | "overdue";
+
+// 时间线事件（Event）
+interface TimelineEvent {
+  id: string;
+  entityId: string;
+  type: "email_received" | "status_changed" | "action_taken" | "ai_summary";
+  content: string;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+}
+```

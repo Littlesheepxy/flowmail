@@ -1,0 +1,351 @@
+{
+	"common": {
+		"menu": {
+			"blog": "博客",
+			"changelog": "更新日志",
+			"contact": "联系我们",
+			"dashboard": "控制台",
+			"docs": "文档",
+			"faq": "常见问题",
+			"login": "登录",
+			"pricing": "定价"
+		},
+		"confirmation": {
+			"cancel": "取消",
+			"confirm": "确认"
+		},
+		"actions": {
+			"continue": "继续",
+			"verify": "验证"
+		},
+		"colorMode": {
+			"system": "跟随系统",
+			"light": "浅色",
+			"dark": "深色"
+		},
+		"footer": {
+			"blog": "博客",
+			"features": "功能",
+			"pricing": "定价",
+			"privacy": "隐私政策",
+			"terms": "服务条款"
+		}
+	},
+	"auth": {
+		"login": {
+			"title": "欢迎回来",
+			"subtitle": "请输入你的账号信息登录。",
+			"submit": "登录",
+			"forgotPassword": "忘记密码？",
+			"dontHaveAnAccount": "还没有账号？",
+			"createAnAccount": "创建账号",
+			"continueWith": "或通过以下方式继续",
+			"loginWithPasskey": "使用 Passkey 登录",
+			"modes": {
+				"magicLink": "Magic Link",
+				"password": "密码"
+			},
+			"sendMagicLink": "发送 Magic Link"
+		},
+		"signup": {
+			"title": "创建账号",
+			"message": "很高兴你加入我们。请填写以下信息来创建你的账号。",
+			"name": "姓名",
+			"email": "邮箱",
+			"password": "密码",
+			"submit": "创建账号",
+			"alreadyHaveAccount": "已有账号？",
+			"signIn": "登录"
+		},
+		"forgotPassword": {
+			"title": "忘记密码？",
+			"message": "请输入你的邮箱，我们将发送重置密码的链接。",
+			"email": "邮箱",
+			"submit": "发送链接",
+			"backToSignin": "返回登录"
+		},
+		"resetPassword": {
+			"title": "重置密码",
+			"message": "请输入新密码。",
+			"newPassword": "新密码",
+			"submit": "重置密码",
+			"backToSignin": "返回登录"
+		}
+	},
+	"faq": {
+		"title": "常见问题",
+		"description": "关于把邮件转化为执行，你需要知道的一切。",
+		"items": {
+			"q1": "Flowmail 是什么？",
+			"a1": "Flowmail 可以把邮件自动转化为结构化、可执行的工作流。你不再需要手动阅读和整理邮件，它会自动提取审批、汇报和关键信息，让你可以立即行动。",
+			"q2": "Flowmail 如何连接我的邮箱？",
+			"a2": "Flowmail 通过 OAuth 安全连接 Gmail、Outlook 等邮箱服务。你可以自主选择授权范围，并随时撤销访问权限。",
+			"q3": "Flowmail 能对邮件做什么？",
+			"a3": "Flowmail 可以自动分类邮件，提取结构化信息（如审批、进展），并让你或你的 agent 直接执行操作，比如审批或跟踪进度。",
+			"q4": "支持哪些 agent？",
+			"a4": "任何兼容 MCP 的 agent 都可以接入 Flowmail，包括 Claude、Workbuddy 或你自定义的 agent。",
+			"q5": "我的邮件数据安全吗？",
+			"a5": "是的。Flowmail 只会访问你明确授权的数据，且不会在未经允许的情况下用于模型训练，你始终拥有数据控制权。",
+			"q6": "需要改变现有工作流程吗？",
+			"a6": "不需要。邮件仍然照常收发，Flowmail 只是把它们转化为结构化、可执行的流程。"
+		}
+	},
+	"hero": {
+		"badge1": "AI 驱动",
+		"badge2": "Agent 原生",
+		"headline": "别再整理邮件了，直接执行。",
+		"subtitle": "Flowmail 自动分类来信，提取审批与汇报信息，并转化为可执行动作，交给你或你的 agent 立即处理。",
+		"subtitle2": "工作仍然通过邮件到达，而 Flowmail 让它真正被执行。",
+		"cta": "免费开始",
+		"docs": "查看文档",
+		"tagline": "从收件箱，到执行，全自动。",
+		"waitlist_cta": "加入等待列表",
+		"waitlist_placeholder": "输入你的邮箱",
+		"waitlist_success": "已加入！我们会尽快联系你。",
+		"waitlist_error": "出了点问题，请重试。",
+		"waitlist_submitting": "提交中..."
+	},
+	"features": {
+		"label": "Flowmail 能做什么",
+		"title": "从收件箱到执行，全自动",
+		"description": "Flowmail 监听你的邮箱，分类重要邮件，提取结构化数据，并触发执行 — 日历事件、任务创建、IM 通知和自动回复。",
+		"inbox": {
+			"title": "自动分流收件箱",
+			"subtitle": "AI 自动将邮件分类为可执行事项。",
+			"description": "Flowmail 使用 AI 自动将邮件分类为审批、汇报、问题等可执行事项，无需人工整理。",
+			"b1": "智能分类",
+			"b1d": "AI 读取每封来信，自动识别为审批、汇报、问题或反馈 — 附带置信度评分。",
+			"b2": "零人工整理",
+			"b2d": "不再需要文件夹、标签或规则。Flowmail 理解邮件意图，自动路由到正确的工作流。",
+			"b3": "持续学习",
+			"b3d": "分类精度随使用而提升，Flowmail 会不断学习你团队的邮件模式和用语习惯。"
+		},
+		"actions": {
+			"title": "审批一次，全链路执行",
+			"subtitle": "一键触发完整执行链。",
+			"description": "审批通过后，Flowmail 自动发确认邮件、创建日历事件、通知 Slack 或飞书。不用在多个应用间来回复制。",
+			"b1": "一键审批",
+			"b1d": "在统一面板中查看提取的详情（金额、发起人、截止日期），一键批准或拒绝，完整审计追踪。",
+			"b2": "自动回复 & 日历",
+			"b2d": "审批通过后，Flowmail 自动发送确认邮件并创建日历事件。无需手动跟进。",
+			"b3": "IM 通知",
+			"b3d": "审批结果自动推送到 Slack、飞书或 Teams 频道。让团队随时掌握进展。"
+		},
+		"insights": {
+			"title": "把报告自动变成任务",
+			"subtitle": "一步完成提取、分析和创建跟进。",
+			"description": "Flowmail 从状态邮件中提取进展、阻塞、负责人和下一步，然后在 Linear、Jira 或 Notion 中创建任务 — 确保没有遗漏。",
+			"b1": "结构化提取",
+			"b1d": "关键要点、已完成事项、阻塞和下一步 — 从自由文本邮件提取为结构化字段。",
+			"b2": "自动创建任务",
+			"b2d": "阻塞和待办事项自动转为 Linear、Jira 或 Notion 工单，分配给对应负责人。",
+			"b3": "趋势追踪",
+			"b3d": "自动对比本周和上周报告，提前发现风险，追踪解决率，一眼看清项目健康度。"
+		},
+		"agents": {
+			"title": "让 agent 跑通整条流水线",
+			"subtitle": "MCP 工具覆盖分类、审批和执行。",
+			"description": "Flowmail 提供覆盖全生命周期的 MCP 工具 — 分类、审批、创建日历、分配任务、发通知。任何兼容的 agent 都可以端到端运行。",
+			"b1": "全生命周期工具",
+			"b1d": "不只是只读。Agent 可以审批请求、创建事件、分配任务、发送通知 — 通过 Flowmail 的 MCP Server。",
+			"b2": "兼容所有 agent",
+			"b2d": "Claude、Workbuddy、OpenClaw 或你自己的 agent。只要支持 MCP，就能端到端操作 Flowmail。",
+			"b3": "人在回路",
+			"b3d": "Agent 处理日常流程，人工审核边界情况。置信度评分确保没有任何遗漏。"
+		},
+		"demo": {
+			"incoming": "收到的邮件",
+			"classifying": "分类中",
+			"aiClassifying": "AI 分类中",
+			"inbox1from": "finance@acme.co",
+			"inbox1subject": "Q2 预算审批申请",
+			"inbox2from": "eng-lead@acme.co",
+			"inbox2subject": "工程团队周报",
+			"inbox3from": "devops@acme.co",
+			"inbox3subject": "CI 流水线故障告警",
+			"inbox4from": "procurement@acme.co",
+			"inbox4subject": "供应商合同续签",
+			"tagApproval": "审批",
+			"tagReport": "汇报",
+			"tagIssue": "问题",
+			"approvalTitle": "Q2 预算申请",
+			"approvalFrom": "finance@acme.co",
+			"approvalUrgency": "紧急",
+			"approved": "已批准",
+			"executing": "执行中",
+			"execEmail": "确认邮件已发送至 finance@acme.co",
+			"execCalendar": "事件：预算评审，3月31日 14:00",
+			"execSlack": "已发布到飞书 #approvals 频道",
+			"execSummary": "3 个动作已完成，耗时 1.8 秒",
+			"terminalCmd": "$ flowmail process --type report",
+			"terminalReading": "> 读取中：\"工程团队周报\"",
+			"terminalExtracting": "> 正在提取字段...",
+			"terminalStatus": "✓ 状态：正常推进",
+			"terminalBlockers": "✓ 阻塞：CI 超时、API 限流",
+			"terminalNextSteps": "✓ 下一步：已提取 3 项",
+			"terminalCreating": "> 正在 Linear 中创建任务...",
+			"terminalTask1": "✓ LINEAR-142：修复 CI 流水线超时 → @sarah",
+			"terminalTask2": "✓ LINEAR-143：排查 API 限流问题 → @mike",
+			"terminalTask3": "✓ LINEAR-144：更新预发环境配置 → @alex",
+			"terminalDone": "完成。已在 Linear 创建 3 个任务。",
+			"reportsProcessed": "已处理报告",
+			"onTrack": "进展正常",
+			"blockersFound": "发现阻塞",
+			"tasksCreated": "已创建任务",
+			"mcpServer": "MCP 服务器",
+			"mcpProtocol": "MCP 协议 · 任何 Agent",
+			"agent1": "Claude",
+			"agent2": "Workbuddy",
+			"agent3": "OpenClaw",
+			"exec1": "邮箱",
+			"exec2": "日历",
+			"exec3": "飞书",
+			"exec4": "钉钉",
+			"action1": "Claude → 列出待审批项",
+			"action2": "Workbuddy → 审批请求 #42",
+			"action3": "OpenClaw → 创建日历事件",
+			"action4": "Claude → 通知飞书 #approvals"
+		}
+	},
+	"newsletter": {
+		"email": "邮箱",
+		"hints": {
+			"error": {
+				"message": "订阅失败，请稍后重试。"
+			},
+			"success": {
+				"message": "订阅成功！我们会及时推送新功能和产品更新。",
+				"title": "已订阅"
+			}
+		},
+		"submit": "订阅",
+		"subtitle": "了解 Flowmail 的最新功能，以及如何把邮件转化为可执行工作流。",
+		"title": "获取最新动态"
+	},
+	"pricing": {
+		"title": "定价",
+		"description": "选择最适合你的方案。",
+		"choosePlan": "选择方案",
+		"contactSales": "联系销售",
+		"getStarted": "开始使用",
+		"monthly": "月付",
+		"yearly": "年付",
+		"recommended": "推荐",
+		"subscribe": "订阅",
+		"purchase": "购买",
+		"products": {
+			"free": {
+				"title": "免费版",
+				"description": "免费开始使用"
+			},
+			"basic": {
+				"title": "基础版",
+				"description": "适合小团队"
+			},
+			"pro": {
+				"title": "专业版",
+				"description": "适合团队协作"
+			},
+			"enterprise": {
+				"title": "企业版",
+				"description": "为你的需求量身定制"
+			},
+			"lifetime": {
+				"title": "终身版",
+				"description": "一次购买，永久使用"
+			}
+		}
+	},
+	"contact": {
+		"title": "联系我们",
+		"description": "我们随时为你提供帮助，请使用下方表单联系我们。",
+		"form": {
+			"name": "姓名",
+			"email": "邮箱",
+			"message": "留言",
+			"submit": "发送消息",
+			"notifications": {
+				"success": "你的消息已发送成功，我们会尽快回复。",
+				"error": "消息发送失败，请稍后重试。"
+			}
+		}
+	},
+	"settings": {
+		"save": "保存",
+		"account": {
+			"title": "账号设置",
+			"subtitle": "管理你的个人账号设置。"
+		},
+		"billing": {
+			"title": "账单"
+		},
+		"menu": {
+			"account": {
+				"title": "账号",
+				"general": "通用",
+				"security": "安全",
+				"billing": "账单",
+				"dangerZone": "危险区域"
+			},
+			"organization": {
+				"title": "组织",
+				"general": "通用",
+				"members": "成员",
+				"billing": "账单",
+				"dangerZone": "危险区域"
+			}
+		}
+	},
+	"organizations": {
+		"settings": {
+			"title": "组织",
+			"subtitle": "管理组织设置。"
+		},
+		"organizationSelect": {
+			"organizations": "组织",
+			"personalAccount": "个人账号",
+			"createNewOrganization": "创建新组织"
+		},
+		"roles": {
+			"owner": "所有者",
+			"admin": "管理员",
+			"member": "成员"
+		}
+	},
+	"start": {
+		"subtitle": "查看你的业务最新状态。",
+		"welcome": "欢迎 {name}！"
+	},
+	"onboarding": {
+		"title": "设置你的账号",
+		"message": "只需几步即可开始使用。",
+		"continue": "继续",
+		"step": "步骤 {step} / {total}"
+	},
+	"notFound": {
+		"code": "404",
+		"title": "页面未找到",
+		"goToDashboard": "前往控制台",
+		"goToHomepage": "返回首页"
+	},
+	"call": {
+		"incoming": "来电",
+		"from": "Flowmail",
+		"slideToAnswer": "滑动接听",
+		"tapToAnswer": "点击接听",
+		"decline": "拒绝",
+		"connecting": "连接中...",
+		"connected": "已接通",
+		"callEnded": "通话结束",
+		"callEndedDesc": "对话已结束，感谢参与！",
+		"callNotFound": "未找到通话",
+		"callNotFoundDesc": "该通话链接无效或已过期。",
+		"callCompleted": "通话已完成",
+		"callCompletedDesc": "该对话已结束，感谢参与！",
+		"mute": "静音",
+		"unmute": "取消静音",
+		"speaker": "免提",
+		"hangup": "挂断",
+		"poweredBy": "由 Flowmail 提供支持"
+	}
+}

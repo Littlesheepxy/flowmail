@@ -15,7 +15,7 @@ generator zod {
 }
 
 model User {
-  id                 String       @id @default(cuid())
+  id                 String          @id @default(cuid())
   name               String
   email              String
   emailVerified      Boolean
@@ -27,10 +27,10 @@ model User {
   banned             Boolean?
   banReason          String?
   banExpires         DateTime?
-  onboardingComplete Boolean      @default(false)
+  onboardingComplete Boolean         @default(false)
   paymentsCustomerId String?
   locale             String?
-  displayUsername    String?
+  displayUsername     String?
   twoFactorEnabled   Boolean?
   sessions           Session[]
   accounts           Account[]
@@ -39,6 +39,8 @@ model User {
   purchases          Purchase[]
   members            Member[]
   twofactors         TwoFactor[]
+  assignedEntities   FlowEntity[]    @relation("AssignedEntities")
+  timelineActions    TimelineEvent[] @relation("TimelineActor")
 
   @@unique([email])
   @@unique([username])
@@ -133,7 +135,7 @@ model TwoFactor {
 }
 
 model Organization {
-  id                 String       @id @default(cuid())
+  id                 String            @id @default(cuid())
   name               String
   slug               String?
   logo               String?
@@ -143,6 +145,9 @@ model Organization {
   members            Member[]
   invitations        Invitation[]
   purchases          Purchase[]
+  emailConnections   EmailConnection[]
+  emailThreads       EmailThread[]
+  flowEntities       FlowEntity[]
 
   @@unique([slug])
   @@map("organization")
@@ -202,4 +207,110 @@ model Purchase {
 
   @@index([subscriptionId])
   @@map("purchase")
+}
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("waitlist_entry")
+}
+
+// ─── Flowmail: Email Connection ───
+
+model EmailConnection {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider       String       // "gmail" | "outlook"
+  email          String
+  accessToken    String       @db.Text
+  refreshToken   String       @db.Text
+  tokenExpiresAt DateTime?
+  isActive       Boolean      @default(true)
+  lastSyncAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  threads        EmailThread[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@map("email_connection")
+}
+
+// ─── Flowmail: Email Thread (raw email data) ───
+
+model EmailThread {
+  id               String          @id @default(cuid())
+  organizationId   String
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connectionId     String
+  connection       EmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalThreadId String
+  subject          String
+  sender           String
+  participants     String          @db.Text
+  snippet          String?         @db.Text
+  rawPayload       String?         @db.Text
+  entityId         String?
+  entity           FlowEntity?     @relation(fields: [entityId], references: [id])
+  receivedAt       DateTime
+  processedAt      DateTime?
+  createdAt        DateTime        @default(now())
+
+  @@unique([connectionId, externalThreadId])
+  @@index([organizationId])
+  @@index([entityId])
+  @@map("email_thread")
+}
+
+// ─── Flowmail: Structured Entity (core model) ───
+
+enum EntityType {
+  APPROVAL
+  REPORT
+  ISSUE
+  FEEDBACK
+}
+
+model FlowEntity {
+  id              String          @id @default(cuid())
+  organizationId  String
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type            EntityType
+  title           String
+  status          String          @default("pending")
+  extractedFields String          @db.Text @default("{}")
+  aiSummary       String?         @db.Text
+  aiConfidence    Float?
+  requiresReview  Boolean         @default(false)
+  assigneeId      String?
+  assignee        User?           @relation("AssignedEntities", fields: [assigneeId], references: [id])
+  threads         EmailThread[]
+  timeline        TimelineEvent[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+  @@index([assigneeId])
+  @@map("flow_entity")
+}
+
+// ─── Flowmail: Timeline Event ───
+
+model TimelineEvent {
+  id        String     @id @default(cuid())
+  entityId  String
+  entity    FlowEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  type      String     // "email_received" | "status_changed" | "action_taken" | "ai_summary"
+  content   String     @db.Text
+  metadata  String?    @db.Text
+  actorId   String?
+  actor     User?      @relation("TimelineActor", fields: [actorId], references: [id])
+  createdAt DateTime   @default(now())
+
+  @@index([entityId])
+  @@map("timeline_event")
 }

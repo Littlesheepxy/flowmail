@@ -47,51 +47,51 @@
 
 @layer base {
 	:root {
-		--border: #eaeaea;
-		--input: #dfdfdf;
-		--ring: #3875c8;
-		--background: #f8f8f8;
-		--foreground: #313539;
-		--primary: #3875c8;
+		--border: #e4e4e4;
+		--input: #d8d8d8;
+		--ring: #111111;
+		--background: #f9f9f9;
+		--foreground: #111111;
+		--primary: #111111;
 		--primary-foreground: #ffffff;
-		--secondary: #e8e7e5;
-		--secondary-foreground: #1c1e1e;
-		--destructive: #ef4444;
+		--secondary: #ebebeb;
+		--secondary-foreground: #111111;
+		--destructive: #dc2626;
 		--destructive-foreground: #ffffff;
-		--success: #39a561;
+		--success: #16a34a;
 		--success-foreground: #ffffff;
 		--muted: #f0f0f0;
-		--muted-foreground: #4d5155;
-		--accent: #e2e6ec;
-		--accent-foreground: #313539;
+		--muted-foreground: #6b6b6b;
+		--accent: #e8e8e8;
+		--accent-foreground: #111111;
 		--popover: #ffffff;
-		--popover-foreground: #313539;
+		--popover-foreground: #111111;
 		--card: #ffffff;
-		--card-foreground: #313539;
-		--radius: 0.75rem;
+		--card-foreground: #111111;
+		--radius: 0.625rem;
 	}
 
 	.dark {
-		--border: #262929;
-		--input: #333737;
-		--ring: #528ad7;
-		--background: #161818;
-		--foreground: #eae9e5;
-		--primary: #528ad7;
-		--primary-foreground: #ffffff;
-		--secondary: #1f2121;
-		--secondary-foreground: #ffffff;
-		--destructive: #ef4444;
+		--border: #2a2a2a;
+		--input: #333333;
+		--ring: #ffffff;
+		--background: #111111;
+		--foreground: #f5f5f5;
+		--primary: #f5f5f5;
+		--primary-foreground: #111111;
+		--secondary: #1e1e1e;
+		--secondary-foreground: #f5f5f5;
+		--destructive: #dc2626;
 		--destructive-foreground: #ffffff;
-		--success: #39a561;
+		--success: #16a34a;
 		--success-foreground: #ffffff;
-		--muted: #191b1b;
-		--muted-foreground: #a8b4c6;
-		--accent: #1e293b;
-		--accent-foreground: #eae9e5;
-		--popover: #1c1e1e;
-		--popover-foreground: #eae9e5;
-		--card: #1c1e1e;
-		--card-foreground: #eae9e5;
+		--muted: #1a1a1a;
+		--muted-foreground: #888888;
+		--accent: #222222;
+		--accent-foreground: #f5f5f5;
+		--popover: #1a1a1a;
+		--popover-foreground: #f5f5f5;
+		--card: #1a1a1a;
+		--card-foreground: #f5f5f5;
 	}
 }

@@ -1,0 +1,281 @@
+---
+description: Flowmail MCP Server 设计规范——所有 Agent 可调用的 Tool 定义、实现模式与命名规范。在实现 app/mcp/ 或新增业务能力时必须参照。
+globs: ["app/mcp/**", "packages/*/src/tools/**", "skills/**"]
+alwaysApply: false
+---
+
+# Flowmail MCP Tools 规范
+
+## Agent 接入全景（云端 + 本地并存）
+
+Flowmail 的业务能力通过**三层接入**支持所有 Agent 形态：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  任何 AI Agent                           │
+│  Claude Desktop │ Cursor │ OpenClaw │ GPT │ 自建 Agent  │
+└────────┬────────┴───┬────┴────┬─────┴─────┴─────────────┘
+         │            │         │
+    MCP URL       .mcp.json   Skills文件夹
+    (云端)        (本地配置)  (OpenClaw专用)
+         │            │         │
+         └────────────┴────┬────┘
+                           ↓
+              /mcp/[transport]/route.ts
+              （Flowmail MCP Server）
+                           ↓
+              packages/ 核心业务逻辑
+```
+
+### 接入方式一：MCP URL（云端 Agent 通用）
+
+任何支持 MCP 的 Agent 通过 URL 直连：
+
+```json
+// 用户配置到任意 Agent 的 .mcp.json
+{
+  "mcpServers": {
+    "flowmail": {
+      "url": "https://app.flowmail.ai/mcp",
+      "headers": { "Authorization": "Bearer <API_TOKEN>" }
+    }
+  }
+}
+```
+
+### 接入方式二：OpenClaw Skills（本地 Agent 专用）
+
+**OpenClaw** 是最主流的本地 Agent 运行时平台，支持：
+- 3,200+ 预置 MCP Skills（日历、文件、浏览器等）
+- 多 Agent 编排、Cron 自动化、Webhook 触发
+- macOS / Linux / Windows / iOS / Android 全平台
+- 已原生集成 Gmail PubSub（！）——直接复用
+
+Flowmail 为 OpenClaw 提供 Skill 文件，让本地 Agent 直接调用：
+
+```
+skills/
+└── flowmail/
+    └── SKILL.md    ← OpenClaw/AgentSkills 规范的 Skill 文件
+```
+
+### 接入方式三：MCP Server 入口（Next.js 实现）
+
+```typescript
+// app/mcp/[transport]/route.ts
+import { createMcpHandler } from "@vercel/mcp-adapter";
+import { allFlowmailTools } from "@/mcp/tools";
+
+const handler = createMcpHandler({
+  name: "flowmail-mcp",
+  version: "1.0.0",
+  tools: allFlowmailTools,
+});
+
+export { handler as GET, handler as POST };
+```
+
+---
+
+## Flowmail Tool 完整清单（MVP 阶段）
+
+### 📬 邮件连接类
+
+| Tool Name | 描述 | 输入 | 输出 |
+|-----------|------|------|------|
+| `connect_gmail` | 为组织接入 Gmail OAuth 授权 | `organizationId` | 授权 URL |
+| `list_email_connections` | 列出当前组织已接入的邮箱 | `organizationId` | 邮箱列表 |
+
+### 📋 事项管理类
+
+| Tool Name | 描述 | 输入 | 输出 |
+|-----------|------|------|------|
+| `list_entities` | 列出事项（支持按类型/状态过滤） | `organizationId, type?, status?, limit?` | 事项列表 |
+| `get_entity` | 获取单个事项详情（含 timeline） | `entityId` | 事项详情 |
+| `update_entity_status` | 更新事项状态 | `entityId, status, reason?` | 更新后事项 |
+| `search_entities` | 语义搜索事项 | `query, organizationId` | 匹配事项列表 |
+
+### ✅ 审批专属类
+
+| Tool Name | 描述 | 输入 | 输出 |
+|-----------|------|------|------|
+| `approve_request` | 批准一个审批事项 | `entityId, comment?` | 更新结果 + 已发送通知邮件 |
+| `reject_request` | 拒绝一个审批事项 | `entityId, reason` | 更新结果 + 已发送通知邮件 |
+| `list_pending_approvals` | 列出所有待审批事项 | `organizationId, assigneeEmail?` | 待审批列表 |
+
+### 📊 汇报跟踪类
+
+| Tool Name | 描述 | 输入 | 输出 |
+|-----------|------|------|------|
+| `list_reports` | 列出汇报事项 | `organizationId, status?, reporterEmail?` | 汇报列表 |
+| `get_report_summary` | 获取 AI 生成的汇报摘要 | `entityId` | 摘要文本 |
+| `flag_report_risk` | 将汇报标记为有风险 | `entityId, riskDescription` | 更新结果 |
+
+### 🤖 AI 处理类
+
+| Tool Name | 描述 | 输入 | 输出 |
+|-----------|------|------|------|
+| `process_email_now` | 立即处理一封邮件（手动触发） | `emailId, organizationId` | 处理结果 + 创建的 Entity |
+| `reclassify_entity` | 重新分类一个事项 | `entityId, newType` | 更新后事项 |
+
+---
+
+## Tool 实现规范
+
+### 目录结构
+
+```
+apps/web/
+└── mcp/
+    ├── tools/
+    │   ├── index.ts              # 汇总导出所有 tools
+    │   ├── entities.ts           # 事项管理 tools
+    │   ├── approvals.ts          # 审批 tools
+    │   ├── reports.ts            # 汇报 tools
+    │   ├── email-connections.ts  # 邮箱连接 tools
+    │   └── ai-processing.ts     # AI 处理 tools
+    └── [transport]/
+        └── route.ts              # MCP 入口
+```
+
+### 单个 Tool 标准模板
+
+```typescript
+// apps/web/mcp/tools/approvals.ts
+import { z } from "zod";
+import { approveRequest } from "@repo/api/modules/approvals/actions";
+
+export const approveTool = {
+  name: "approve_request",
+
+  // ⭐ 关键：description 要让 Agent 明白"何时调用"
+  description: `
+    批准一个审批请求。当用户说"同意"、"批准"、"通过"某个审批时调用。
+    调用后会自动：1）更新事项状态为 approved；2）发送通知邮件给申请人。
+    需要先用 list_pending_approvals 或 get_entity 获取 entityId。
+  `.trim(),
+
+  // 输入 Schema（Zod）
+  inputSchema: z.object({
+    entityId: z.string().describe("要批准的审批事项 ID"),
+    comment: z.string().optional().describe("审批意见（可选），会附在通知邮件中"),
+  }),
+
+  // 实现：复用 packages/api 中的业务逻辑，禁止在此写业务代码
+  handler: async (input: { entityId: string; comment?: string }) => {
+    try {
+      const result = await approveRequest(input.entityId, input.comment);
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            success: true,
+            entity: result.entity,
+            notificationSent: result.notificationSent,
+            message: `审批已批准，通知邮件已发送给 ${result.entity.requesterEmail}`,
+          }),
+        }],
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: `错误：${error instanceof Error ? error.message : "未知错误"}`,
+        }],
+        isError: true,
+      };
+    }
+  },
+};
+```
+
+### Description 编写原则（极其重要）
+
+Agent 靠 `description` 决定是否调用你的 Tool，必须写清楚：
+
+```typescript
+description: `
+  [一句话说明功能]。
+  当用户说[触发语/意图]时调用。
+  调用后会[副作用说明]。
+  前置条件：[需要哪些 ID / 哪些前置步骤]。
+  注意：[边界/限制]。
+`
+```
+
+**反例（太模糊，Agent 不知道何时用）：**
+```
+description: "Approve an entity"  // ❌
+```
+
+**正例：**
+```
+description: `
+  批准一个审批请求。当用户表达"同意"、"批准通过"、"approve"某项申请时调用。
+  调用后自动更新状态并发送通知邮件。需要 entityId，
+  可先用 list_pending_approvals 获取待审批列表。
+`  // ✅
+```
+
+---
+
+## 身份验证规范
+
+MCP Tool 需要验证调用者身份，通过 HTTP Header 传递 token：
+
+```typescript
+// apps/web/mcp/[transport]/route.ts
+import { createMcpHandler } from "@vercel/mcp-adapter";
+import { verifyMcpToken } from "@/mcp/auth";
+
+const handler = createMcpHandler({
+  name: "flowmail-mcp",
+  version: "1.0.0",
+  tools: allFlowmailTools,
+  // 认证中间件
+  authenticate: async (req) => {
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) throw new Error("Unauthorized");
+    return verifyMcpToken(token);  // 返回 { userId, organizationId }
+  },
+});
+```
+
+---
+
+## MCP 客户端配置（给外部 Agent 使用）
+
+用户可以把 Flowmail 的 MCP Server 配置到任何支持 MCP 的 Agent 中：
+
+```json
+// .mcp.json（用于 Cursor / Claude Desktop 等）
+{
+  "mcpServers": {
+    "flowmail": {
+      "url": "https://app.flowmail.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer <用户的 API Token>"
+      }
+    }
+  }
+}
+```
+
+这意味着：
+- Cursor 中的 AI 可以直接操作用户的审批事项
+- Claude Desktop 可以帮用户汇总所有待处理事项
+- 未来 Flowmail 自己的 Agent 也调用同一套 MCP
+
+---
+
+## 新增业务能力的流程
+
+**每次新增功能，必须同时做：**
+
+```
+1. packages/api/modules/[feature]/actions.ts    ← 核心业务逻辑
+2. packages/api/modules/[feature]/procedures.ts ← oRPC（前端 UI 用）
+3. apps/web/mcp/tools/[feature].ts              ← MCP Tool（Agent 用）
+```
+
+**禁止只做其中一个。**

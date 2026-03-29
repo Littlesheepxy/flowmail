@@ -8,32 +8,46 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@repo/ui/components/tooltip";
-import { useSession } from "@saas/auth/hooks/use-session";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { UserMenu } from "@saas/shared/components/UserMenu";
 import {
-	BotMessageSquareIcon,
-	ChevronRightIcon,
+	CheckCircle2Icon,
+	FileTextIcon,
 	HomeIcon,
+	InboxIcon,
+	MailIcon,
 	PanelLeftCloseIcon,
-	PanelLeftOpenIcon,
-	SettingsIcon,
-	UserCog2Icon,
-	UserCogIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import React from "react";
 import { config as webConfig } from "@/config";
 import { OrganzationSelect } from "../../organizations/components/OrganizationSelect";
 import { useSidebar } from "../lib/sidebar-context";
 
 export function NavBar() {
-	const t = useTranslations();
 	const pathname = usePathname();
-	const { user } = useSession();
-	const { activeOrganization, isOrganizationAdmin } = useActiveOrganization();
+	const { activeOrganization } = useActiveOrganization();
 	const { isCollapsed, toggleCollapsed } = useSidebar();
+
+	const bottomRef = React.useRef<HTMLDivElement>(null);
+	const [spotlight, setSpotlight] = React.useState({
+		x: 0,
+		y: 0,
+		visible: false,
+	});
+
+	const handleBottomMouseMove = (e: React.MouseEvent) => {
+		if (!bottomRef.current) {
+			return;
+		}
+		const rect = bottomRef.current.getBoundingClientRect();
+		setSpotlight({
+			x: e.clientX - rect.left,
+			y: e.clientY - rect.top,
+			visible: true,
+		});
+	};
 
 	const { useSidebarLayout } = webConfig.saas;
 
@@ -41,44 +55,73 @@ export function NavBar() {
 		? `/app/${activeOrganization.slug}`
 		: "/app";
 
-	const menuItems = [
+	type MenuItem = {
+		label: string;
+		icon: React.ElementType;
+		isActive: boolean;
+		href?: string;
+		onClick?: () => void;
+	};
+
+	type MenuGroup = {
+		groupLabel?: string;
+		items: MenuItem[];
+	};
+
+	const menuGroups: MenuGroup[] = [
 		{
-			label: t("app.menu.start"),
-			href: basePath,
-			icon: HomeIcon,
-			isActive: pathname === basePath,
+			items: [
+				{
+					label: "Dashboard",
+					href: basePath,
+					icon: HomeIcon,
+					isActive: pathname === basePath,
+				},
+			],
 		},
-		{
-			label: t("app.menu.aiChatbot"),
-			href: activeOrganization
-				? `/app/${activeOrganization.slug}/chatbot`
-				: "/app/chatbot",
-			icon: BotMessageSquareIcon,
-			isActive: pathname.includes("/chatbot"),
-		},
-		...(activeOrganization && isOrganizationAdmin
+		...(activeOrganization
 			? [
 					{
-						label: t("app.menu.organizationSettings"),
-						href: `${basePath}/settings`,
-						icon: SettingsIcon,
-						isActive: pathname.startsWith(`${basePath}/settings/`),
+						groupLabel: "Workflow",
+						items: [
+							{
+								label: "Inbox",
+								href: `${basePath}/inbox`,
+								icon: InboxIcon,
+								isActive: pathname.startsWith(
+									`${basePath}/inbox`,
+								),
+							},
+							{
+								label: "Approvals",
+								href: `${basePath}/approvals`,
+								icon: CheckCircle2Icon,
+								isActive: pathname.startsWith(
+									`${basePath}/approvals`,
+								),
+							},
+							{
+								label: "Reports",
+								href: `${basePath}/reports`,
+								icon: FileTextIcon,
+								isActive: pathname.startsWith(
+									`${basePath}/reports`,
+								),
+							},
+						],
 					},
-				]
-			: []),
-		{
-			label: t("app.menu.accountSettings"),
-			href: "/app/settings",
-			icon: UserCog2Icon,
-			isActive: pathname.startsWith("/app/settings/"),
-		},
-		...(user?.role === "admin"
-			? [
 					{
-						label: t("app.menu.admin"),
-						href: "/app/admin",
-						icon: UserCogIcon,
-						isActive: pathname.startsWith("/app/admin/"),
+						groupLabel: "Settings",
+						items: [
+							{
+								label: "Email Connections",
+								href: `${basePath}/settings/email-connections`,
+								icon: MailIcon,
+								isActive: pathname.startsWith(
+									`${basePath}/settings/email-connections`,
+								),
+							},
+						],
 					},
 				]
 			: []),
@@ -87,61 +130,94 @@ export function NavBar() {
 	return (
 		<nav
 			className={cn("w-full", {
-				"w-full md:fixed md:top-0 md:left-0 md:h-full md:w-[280px]":
+				"w-full md:fixed md:top-0 md:left-0 md:h-full md:transition-[width] md:duration-300 md:ease-in-out md:w-[260px]":
 					useSidebarLayout,
-				"md:w-[80px]": useSidebarLayout && isCollapsed,
+				"md:w-[64px]": useSidebarLayout && isCollapsed,
 			})}
 		>
 			<div
-				className={cn("container max-w-6xl py-4", {
-					"py-4 md:flex md:h-full md:flex-col md:px-4 md:pb-0":
+				className={cn("py-4 px-4", {
+					"py-0 px-3 md:flex md:h-full md:flex-col md:pb-0":
 						useSidebarLayout,
 				})}
 			>
-				<div className="flex flex-wrap items-center justify-between gap-6">
-					<div
-						className={cn("flex items-center gap-6 md:gap-2", {
-							"md:flex md:w-full md:flex-col md:items-stretch md:align-stretch":
+				{/* ── 顶部：Logo + 折叠按钮 ── */}
+				<div
+					className={cn(
+						"flex flex-wrap items-center justify-between gap-6",
+						{
+							"md:flex-col md:items-stretch md:gap-0":
 								useSidebarLayout,
+						},
+					)}
+				>
+					{/* Logo 区域 */}
+					<div
+						className={cn("flex items-center justify-between", {
+							"md:h-[56px] md:border-b md:border-border/50":
+								useSidebarLayout,
+							"md:justify-center":
+								useSidebarLayout && isCollapsed,
 						})}
 					>
-						<div className="flex items-center gap-2 md:w-full">
-							<Link href="/app" className="block">
-								<Logo withLabel={false} />
-							</Link>
-						</div>
+						{/* 展开状态：logo + 折叠按钮并排 */}
+						{(!isCollapsed || !useSidebarLayout) && (
+							<>
+								<Link href="/app" className="block -ml-1">
+									<Logo withLabel={true} />
+								</Link>
+								{useSidebarLayout && (
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={toggleCollapsed}
+										className="ml-auto shrink-0 size-7 text-muted-foreground hover:text-foreground"
+										aria-label="Collapse sidebar"
+									>
+										<PanelLeftCloseIcon className="size-4" />
+									</Button>
+								)}
+							</>
+						)}
 
-						{authConfig.organizations.enable &&
-							!authConfig.organizations.hideOrganization && (
-								<>
-									{!isCollapsed && (
-										<span
-											className={cn(
-												"hidden opacity-30 md:block",
-												{
-													"md:hidden":
-														useSidebarLayout,
-												},
-											)}
+						{/* 折叠状态：展开按钮 + logo */}
+						{isCollapsed && useSidebarLayout && (
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<button
+											type="button"
+											onClick={toggleCollapsed}
+											className="flex w-full items-center justify-center rounded-md hover:bg-muted/60 transition-colors py-1"
+											aria-label="Expand sidebar"
 										>
-											<ChevronRightIcon className="size-4" />
-										</span>
-									)}
-
-									<OrganzationSelect
-										className={cn({
-											"md:mt-2": useSidebarLayout,
-											"md:flex md:justify-center":
-												useSidebarLayout && isCollapsed,
-										})}
-										collapsed={
-											isCollapsed && useSidebarLayout
-										}
-									/>
-								</>
-							)}
+											<Logo withLabel={false} />
+										</button>
+									</TooltipTrigger>
+									<TooltipContent side="right">
+										Expand
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+						)}
 					</div>
 
+					{/* Organization selector */}
+					{authConfig.organizations.enable &&
+						!authConfig.organizations.hideOrganization && (
+							<div
+								className={cn({
+									"md:mt-3": useSidebarLayout && !isCollapsed,
+									"md:mt-2": useSidebarLayout && isCollapsed,
+								})}
+							>
+								<OrganzationSelect
+									collapsed={isCollapsed && useSidebarLayout}
+								/>
+							</div>
+						)}
+
+					{/* Mobile: user menu on the right */}
 					<div
 						className={cn(
 							"mr-0 ml-auto flex items-center justify-end gap-4",
@@ -154,115 +230,201 @@ export function NavBar() {
 					</div>
 				</div>
 
+				{/* ── CTA 区域（预留） ── */}
+
+				{/* ── 导航菜单 ── */}
 				<TooltipProvider delayDuration={0}>
 					<ul
 						className={cn(
 							"no-scrollbar mt-4 flex list-none items-center justify-start gap-2 overflow-x-auto text-sm",
 							{
-								"md:mx-0 md:my-6 md:flex md:flex-col md:items-stretch md:gap-1 md:px-0":
+								"md:mx-0 md:mt-4 md:mb-0 md:flex md:flex-col md:items-stretch md:gap-0.5 md:px-0":
 									useSidebarLayout,
 								"md:items-center":
 									useSidebarLayout && isCollapsed,
 							},
 						)}
 					>
-						{menuItems.map((menuItem) => {
-							const menuItemContent = (
-								<Link
-									href={menuItem.href}
-									className={cn(
-										"flex items-center border border-transparent gap-3 whitespace-nowrap rounded-lg px-3 py-2 transition-colors",
-										{
-											"font-semibold bg-card border-border":
-												menuItem.isActive,
-											"hover:bg-muted/50":
-												!menuItem.isActive,
-											"md:w-full": useSidebarLayout,
-											"md:justify-center md:px-2":
-												useSidebarLayout && isCollapsed,
-										},
+						{menuGroups.map((group, gi) => (
+							<React.Fragment key={`group-${gi}`}>
+								{/* Group label — only in expanded sidebar */}
+								{group.groupLabel &&
+									!isCollapsed &&
+									useSidebarLayout && (
+										<li className="mt-4 mb-1 px-3">
+											<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+												{group.groupLabel}
+											</span>
+										</li>
 									)}
-									prefetch
-								>
-									<menuItem.icon
-										className={cn(
-											"size-4 shrink-0",
-											menuItem.isActive
-												? "text-foreground"
-												: "text-muted-foreground opacity-60",
-										)}
-									/>
-									{(!isCollapsed || !useSidebarLayout) && (
-										<span
-											className={cn({
-												"text-foreground":
-													menuItem.isActive,
-												"text-muted-foreground":
-													!menuItem.isActive,
-											})}
+								{/* Separator in collapsed sidebar between groups */}
+								{group.groupLabel &&
+									isCollapsed &&
+									useSidebarLayout &&
+									gi > 0 && (
+										<li className="my-1.5 mx-auto w-5 border-t border-border/40" />
+									)}
+								{group.items.map((menuItem) => {
+									const itemKey =
+										menuItem.href ?? menuItem.label;
+									const itemClass = cn(
+										"flex items-center border border-transparent transition-colors",
+										menuItem.isActive
+											? "font-semibold bg-primary/8 border-primary/20 text-primary"
+											: "hover:bg-muted/50",
+									);
+									const iconClass = cn(
+										"size-4 shrink-0",
+										menuItem.isActive
+											? "text-primary"
+											: "text-muted-foreground opacity-60",
+									);
+
+									if (isCollapsed && useSidebarLayout) {
+										const collapsedItem =
+											menuItem.onClick ? (
+												<button
+													type="button"
+													onClick={menuItem.onClick}
+													className={cn(
+														itemClass,
+														"size-9 justify-center rounded-lg",
+													)}
+												>
+													<menuItem.icon
+														className={iconClass}
+													/>
+												</button>
+											) : (
+												<Link
+													href={menuItem.href ?? "#"}
+													className={cn(
+														itemClass,
+														"size-9 justify-center rounded-lg",
+													)}
+													prefetch
+												>
+													<menuItem.icon
+														className={iconClass}
+													/>
+												</Link>
+											);
+										return (
+											<li
+												key={itemKey}
+												className="flex justify-center"
+											>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														{collapsedItem}
+													</TooltipTrigger>
+													<TooltipContent side="right">
+														{menuItem.label}
+													</TooltipContent>
+												</Tooltip>
+											</li>
+										);
+									}
+
+									const expandedItem = menuItem.onClick ? (
+										<button
+											type="button"
+											onClick={menuItem.onClick}
+											className={cn(
+												itemClass,
+												"group w-full whitespace-nowrap rounded-lg px-3 py-2",
+											)}
 										>
-											{menuItem.label}
-										</span>
-									)}
-								</Link>
-							);
+											<span className="flex items-center gap-3 transition-transform duration-150 ease-out group-hover:translate-x-1">
+												<menuItem.icon
+													className={iconClass}
+												/>
+												<span
+													className={cn(
+														menuItem.isActive
+															? "text-primary"
+															: "text-muted-foreground",
+													)}
+												>
+													{menuItem.label}
+												</span>
+											</span>
+										</button>
+									) : (
+										<Link
+											href={menuItem.href ?? "#"}
+											className={cn(
+												itemClass,
+												"group w-full whitespace-nowrap rounded-lg px-3 py-2",
+											)}
+											prefetch
+										>
+											<span className="flex items-center gap-3 transition-transform duration-150 ease-out group-hover:translate-x-1">
+												<menuItem.icon
+													className={iconClass}
+												/>
+												<span
+													className={cn(
+														menuItem.isActive
+															? "text-primary"
+															: "text-muted-foreground",
+													)}
+												>
+													{menuItem.label}
+												</span>
+											</span>
+										</Link>
+									);
 
-							if (isCollapsed && useSidebarLayout) {
-								return (
-									<li key={menuItem.href}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												{menuItemContent}
-											</TooltipTrigger>
-											<TooltipContent side="right">
-												{menuItem.label}
-											</TooltipContent>
-										</Tooltip>
-									</li>
-								);
-							}
-
-							return (
-								<li key={menuItem.href}>{menuItemContent}</li>
-							);
-						})}
+									return (
+										<li key={itemKey}>{expandedItem}</li>
+									);
+								})}
+							</React.Fragment>
+						))}
 					</ul>
 				</TooltipProvider>
 
+				{/* ── 底部：用户信息 ── */}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: decorative spotlight effect only */}
 				<div
-					className={cn("mt-auto mb-0 hidden flex-col gap-2 pb-4", {
-						"md:flex": useSidebarLayout,
-						"md:items-center": useSidebarLayout && isCollapsed,
-					})}
-				>
-					{useSidebarLayout && (
-						<div className="flex justify-end">
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={toggleCollapsed}
-								aria-label={
-									isCollapsed
-										? "Expand sidebar"
-										: "Collapse sidebar"
-								}
-							>
-								{isCollapsed ? (
-									<PanelLeftOpenIcon className="size-4" />
-								) : (
-									<PanelLeftCloseIcon className="size-4" />
-								)}
-							</Button>
-						</div>
+					ref={bottomRef}
+					role="presentation"
+					className={cn(
+						"relative mt-auto mb-0 hidden flex-col overflow-hidden pb-4 pt-2 border-t border-border/50",
+						{
+							"md:flex": useSidebarLayout,
+						},
 					)}
-					<div
-						className={cn({
-							"md:flex md:justify-center":
-								useSidebarLayout && isCollapsed,
-						})}
-					>
-						<UserMenu showUserName={!isCollapsed} />
-					</div>
+					onMouseMove={handleBottomMouseMove}
+					onMouseLeave={() =>
+						setSpotlight((s) => ({ ...s, visible: false }))
+					}
+				>
+					{spotlight.visible && (
+						<div
+							className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+							style={{
+								background: `radial-gradient(circle 100px at ${spotlight.x}px ${spotlight.y}px, hsl(var(--primary) / 0.12), transparent)`,
+							}}
+						/>
+					)}
+					{isCollapsed && useSidebarLayout ? (
+						<TooltipProvider delayDuration={0}>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div className="flex w-full justify-center py-1">
+										<UserMenu showUserName={false} />
+									</div>
+								</TooltipTrigger>
+								<TooltipContent side="right">
+									Account
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					) : (
+						<UserMenu showUserName={true} />
+					)}
 				</div>
 			</div>
 		</nav>

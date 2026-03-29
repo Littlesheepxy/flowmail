@@ -6,8 +6,8 @@ export const config = {
 			label: "English",
 			currency: "USD",
 		},
-		de: {
-			label: "Deutsch",
+		zh: {
+			label: "中文",
 			currency: "USD",
 		},
 	},

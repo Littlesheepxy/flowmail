@@ -17,19 +17,32 @@ export default async function PricingPage() {
 			<ChangelogSection
 				items={[
 					{
-						date: "2026-01-30",
-						title: "Performance Improvements",
-						changes: ["🚀 Improved performance"],
+						date: "2026-03-29",
+						title: "Flowmail Launch",
+						changes: [
+							"AI-powered email classification (approvals, reports, issues)",
+							"Structured approval dashboard with one-click actions",
+							"Report extraction: progress, blockers, owners, next steps",
+							"MCP server for agent integration (Claude, Cursor, OpenClaw)",
+						],
 					},
 					{
-						date: "2026-01-26",
-						title: "Design Updates",
-						changes: ["🎨 Updated design", "🐞 Fixed a bug"],
+						date: "2026-03-20",
+						title: "Email Processing Pipeline",
+						changes: [
+							"Automatic email triage and categorization",
+							"Confidence-scored classification with AI models",
+							"Gmail OAuth integration for secure email access",
+						],
 					},
 					{
-						date: "2026-01-12",
-						title: "New Features",
-						changes: ["🎉 Added new feature", "🐞 Fixed a bug"],
+						date: "2026-03-10",
+						title: "Foundation",
+						changes: [
+							"Core platform architecture and database schema",
+							"Organization-based multi-tenant setup",
+							"Dual API layer: oRPC (frontend) + MCP (agents)",
+						],
 					},
 				]}
 			/>

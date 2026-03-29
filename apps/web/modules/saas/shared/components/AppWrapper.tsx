@@ -14,11 +14,11 @@ function AppContent({ children }: PropsWithChildren) {
 		<div className="bg-background">
 			<NavBar />
 			<div
-				className={cn("flex", {
-					"min-h-[calc(100vh)] md:ml-[280px]":
-						useSidebarLayout && !isCollapsed,
-					"min-h-[calc(100vh)] md:ml-[80px]":
-						useSidebarLayout && isCollapsed,
+				className={cn("flex transition-[margin] duration-300 ease-in-out", {
+				"min-h-[calc(100vh)] md:ml-[260px]":
+					useSidebarLayout && !isCollapsed,
+				"min-h-[calc(100vh)] md:ml-[64px]":
+					useSidebarLayout && isCollapsed,
 				})}
 			>
 				<main

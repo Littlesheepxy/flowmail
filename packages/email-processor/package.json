@@ -1,0 +1,19 @@
+{
+	"name": "@repo/email-processor",
+	"version": "0.0.0",
+	"main": "./index.ts",
+	"scripts": {
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@ai-sdk/openai": "^2.0.0",
+		"@repo/database": "workspace:*",
+		"ai": "^5.0.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.13",
+		"@repo/tsconfig": "workspace:*",
+		"typescript": "5.9.3"
+	}
+}

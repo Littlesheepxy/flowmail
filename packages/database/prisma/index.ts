@@ -1,3 +1,3 @@
 export * from "./client";
-export * from "./queries";
-export * from "./zod";
+export * from "./queries/index";
+export * from "./zod/index";

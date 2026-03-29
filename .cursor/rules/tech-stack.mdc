@@ -1,0 +1,225 @@
+---
+description: Flowmail 技术栈规范与架构决策。写代码时必须遵循，不可引入规范外的技术。
+globs:
+alwaysApply: true
+---
+
+# Flowmail 技术栈规范
+
+## 基础框架（基于 supastarter-template）
+
+| 层级 | 技术选型 | 说明 |
+|------|----------|------|
+| 框架 | Next.js 16 App Router | RSC 优先，最小化 "use client" |
+| 语言 | TypeScript（严格模式） | 接口优于 type alias，禁用 any |
+| 包管理 | pnpm + Turborepo | monorepo，不可改用 npm/yarn |
+| 前端 API | oRPC + Hono | 类型安全 RPC，前端 UI 调用层 |
+| **Agent API** | **MCP Server（mcp-handler）** | **Agent 调用层，2026 行业标准** |
+| 数据库 | Prisma + PostgreSQL | 查询统一放 packages/database |
+| 认证 | better-auth | 已集成，不引入其他认证库 |
+| UI | shadcn/ui + Radix + Tailwind | 组件从 @repo/ui 导入 |
+| 状态 | TanStack Query + nuqs | 不使用 Zustand/Redux |
+| 表单 | react-hook-form + zod | 统一方案，不可使用 Formik |
+| 邮件发送 | React Email + Resend | 模板在 packages/mail/emails |
+| AI | Vercel AI SDK v5 (ai@5.x) | 支持 OpenAI / Anthropic，模型无关 |
+| 任务队列 | trigger.dev | 后台邮件处理任务 |
+| 存储 | S3 兼容（@repo/storage） | 附件存储 |
+| 监控 | Sentry | 错误追踪 |
+| 代码质量 | Biome | 格式化 + lint，不使用 ESLint/Prettier |
+
+---
+
+## 核心架构原则：双轨 API 设计
+
+**所有业务能力必须同时暴露为两个接口层：**
+
+```
+packages/email-processor/   ←  核心业务逻辑（唯一真相来源）
+packages/api/               ←  核心业务逻辑（唯一真相来源）
+        ↓                              ↓
+  oRPC Procedures                MCP Tools
+ （前端 UI 调用）               （Agent 调用）
+/api/orpc/[...path]          /mcp/[transport]
+```
+
+- **oRPC**：给 Web UI 用，通过 TanStack Query 在前端调用
+- **MCP**：给所有 AI Agent 用（Claude、GPT、Cursor、未来的 Flowmail Agent）
+- **禁止**：在 MCP Tool 里写业务逻辑；必须复用 packages/ 中的核心函数
+
+---
+
+## Flowmail 专属模块结构
+
+在 supastarter 基础上，新增以下模块：
+
+```
+packages/
+├── email-processor/     # 邮件解析与 AI 理解核心包
+│   ├── src/
+│   │   ├── connectors/  # Gmail / Outlook OAuth 连接器
+│   │   ├── parser/      # 邮件内容解析（thread、attachment）
+│   │   ├── classifier/  # AI 分类（审批/汇报/问题/反馈）
+│   │   └── extractor/   # AI 字段抽取（结构化输出）
+│   └── index.ts
+
+apps/web/modules/
+├── flowmail/            # Flowmail 核心业务模块
+│   ├── inbox/           # Smart Inbox 相关组件
+│   ├── entity/          # Entity Workspace 页面
+│   ├── approval/        # 审批场景专属
+│   ├── reports/         # 汇报跟踪专属
+│   └── action-panel/    # Action Panel 组件
+```
+
+数据库新增 Schema（在 packages/database 中扩展）：
+
+```
+FlowEntity        # 结构化事项
+FlowTimeline      # 时间线事件
+EmailConnection   # 用户邮箱授权配置
+EmailThread       # 原始邮件线程（关联到 FlowEntity）
+```
+
+---
+
+## 路由结构
+
+```
+app/
+├── (marketing)/                    # 营销主页（保留模板原有）
+├── (saas)/
+│   ├── [organizationSlug]/
+│   │   ├── inbox/                  # Smart Inbox
+│   │   │   └── page.tsx
+│   │   ├── entity/
+│   │   │   └── [entityId]/
+│   │   │       └── page.tsx        # Entity Workspace
+│   │   ├── approvals/              # 审批中心 Dashboard
+│   │   │   └── page.tsx
+│   │   ├── reports/                # 汇报跟踪 Dashboard
+│   │   │   └── page.tsx
+│   │   └── settings/
+│   │       └── email-connections/  # 邮箱接入配置
+│   │           └── page.tsx
+├── mcp/
+│   └── [transport]/
+│       └── route.ts                # ⭐ MCP Server 入口（Agent 调用层）
+└── api/
+    ├── webhooks/
+    │   └── gmail/                  # Gmail Push Notification
+    └── email-processor/            # 邮件处理触发入口
+```
+
+---
+
+## oRPC 模块规划
+
+在 `packages/api/modules/` 中新增：
+
+```
+modules/
+├── flow-entities/      # 事项的 CRUD + 状态变更
+├── email-connections/  # 邮箱连接授权管理
+├── approvals/          # 审批专属操作（approve/reject）
+└── reports/            # 汇报专属操作
+```
+
+---
+
+## 邮件接入策略（MVP）
+
+### Gmail（优先实现）
+
+**路径 A：直连模式（用户在 Flowmail 内授权）**
+```
+OAuth 2.0 授权
+  → 获取 access_token + refresh_token
+  → 注册 Gmail Push Notification（Pub/Sub）
+  → Webhook 推送到 /api/webhooks/gmail
+  → trigger.dev Job 处理
+  → AI 理解 → 写入 FlowEntity
+```
+
+**路径 B：OpenClaw 本地模式（高级用户）**
+```
+OpenClaw + Gmail PubSub 内置集成
+  → openclaw webhooks gmail setup
+  → Hook 触发 → 调用 Flowmail MCP Tool（process_email_now）
+  → AI 理解 → 写入 FlowEntity
+```
+
+OpenClaw 已原生支持 Gmail PubSub（`openclaw webhooks gmail setup`），
+本地用户可以直接复用，无需 Flowmail 自建 Gmail 接入基础设施。
+
+### Outlook（第二阶段）
+- Microsoft Graph API
+- 结构与 Gmail 一致
+
+---
+
+## Agent 生态接入（OpenClaw）
+
+**OpenClaw** 是当前最主流的开源本地 Agent 运行时，Flowmail 必须支持：
+
+| 接入形式 | 文件位置 | 用途 |
+|----------|----------|------|
+| MCP Server | `app/mcp/[transport]/route.ts` | 云端所有 Agent |
+| OpenClaw Skill | `skills/flowmail/SKILL.md` | 本地 OpenClaw Agent |
+| `.mcp.json` 示例 | 文档/README | Cursor/Claude Desktop |
+
+OpenClaw 生态中，日历、Slack、Notion、GitHub 等 3,200+ Skills 都已
+作为 MCP Server 存在。Flowmail 接入后，用户的 OpenClaw Agent 可以
+**跨 Flowmail + 日历 + Slack** 自动协同工作，无需任何额外集成代码。
+
+---
+
+## AI 模型配置
+
+```typescript
+// packages/ai/src/config.ts
+export const AI_CONFIG = {
+  classification: {
+    model: "gpt-4o-mini",    // 快速分类，成本低
+    maxTokens: 200,
+  },
+  extraction: {
+    model: "gpt-4o",         // 结构化抽取，需要准确
+    maxTokens: 1000,
+  },
+  summary: {
+    model: "gpt-4o-mini",    // thread 总结
+    maxTokens: 500,
+  },
+} as const;
+```
+
+---
+
+## 关键开发原则
+
+### 代码组织
+- 新建功能先在 `packages/` 中建业务逻辑，再在 `apps/web` 中建 UI
+- 禁止在 `apps/web` 中直接写业务逻辑
+- API 调用统一走 oRPC，禁止在组件中直接调用 DB
+
+### 环境变量命名（Flowmail 扩展）
+```bash
+# 邮件接入
+GMAIL_CLIENT_ID=
+GMAIL_CLIENT_SECRET=
+GOOGLE_PUBSUB_TOPIC=
+
+# AI
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+
+# 任务队列
+TRIGGER_SECRET_KEY=
+```
+
+### 禁止事项
+- ❌ 禁止使用 `useEffect` 做数据获取
+- ❌ 禁止在 Server Component 之外调用数据库
+- ❌ 禁止引入 supastarter 规范外的 UI 库（MUI、Ant Design 等）
+- ❌ 禁止跳过 Zod validation 直接使用用户输入
+- ❌ 禁止 hardcode 任何 API Key 或密钥

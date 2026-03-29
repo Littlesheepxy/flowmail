@@ -1,5 +1,5 @@
 {
-	"extends": "@repo/tsconfig/nextjs.json",
+	"extends": "../../tooling/typescript/nextjs.json",
 	"compilerOptions": {
 		"plugins": [{ "name": "next" }],
 		"paths": {
@@ -10,6 +10,7 @@
 			"@i18n": ["./modules/i18n"],
 			"@i18n/*": ["./modules/i18n/*"],
 			"@shared/*": ["./modules/shared/*"],
+			"@flowmail/*": ["./modules/flowmail/*"],
 			"content-collections": ["./.content-collections/generated"]
 		}
 	},

@@ -1,1 +1,1 @@
-export * from "./prisma";
+export * from "./prisma/index";

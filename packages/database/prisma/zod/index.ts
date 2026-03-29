@@ -70,6 +70,36 @@ export const PurchaseScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'us
 
 export type PurchaseScalarFieldEnum = z.infer<typeof PurchaseScalarFieldEnumSchema>;
 
+// File: WaitlistEntryScalarFieldEnum.schema.ts
+
+export const WaitlistEntryScalarFieldEnumSchema = z.enum(['id', 'email', 'createdAt'])
+
+export type WaitlistEntryScalarFieldEnum = z.infer<typeof WaitlistEntryScalarFieldEnumSchema>;
+
+// File: EmailConnectionScalarFieldEnum.schema.ts
+
+export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'isActive', 'lastSyncAt', 'createdAt', 'updatedAt'])
+
+export type EmailConnectionScalarFieldEnum = z.infer<typeof EmailConnectionScalarFieldEnumSchema>;
+
+// File: EmailThreadScalarFieldEnum.schema.ts
+
+export const EmailThreadScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'connectionId', 'externalThreadId', 'subject', 'sender', 'participants', 'snippet', 'rawPayload', 'entityId', 'receivedAt', 'processedAt', 'createdAt'])
+
+export type EmailThreadScalarFieldEnum = z.infer<typeof EmailThreadScalarFieldEnumSchema>;
+
+// File: FlowEntityScalarFieldEnum.schema.ts
+
+export const FlowEntityScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'type', 'title', 'status', 'extractedFields', 'aiSummary', 'aiConfidence', 'requiresReview', 'assigneeId', 'createdAt', 'updatedAt'])
+
+export type FlowEntityScalarFieldEnum = z.infer<typeof FlowEntityScalarFieldEnumSchema>;
+
+// File: TimelineEventScalarFieldEnum.schema.ts
+
+export const TimelineEventScalarFieldEnumSchema = z.enum(['id', 'entityId', 'type', 'content', 'metadata', 'actorId', 'createdAt'])
+
+export type TimelineEventScalarFieldEnum = z.infer<typeof TimelineEventScalarFieldEnumSchema>;
+
 // File: SortOrder.schema.ts
 
 export const SortOrderSchema = z.enum(['asc', 'desc'])
@@ -93,6 +123,12 @@ export type NullsOrder = z.infer<typeof NullsOrderSchema>;
 export const PurchaseTypeSchema = z.enum(['SUBSCRIPTION', 'ONE_TIME'])
 
 export type PurchaseType = z.infer<typeof PurchaseTypeSchema>;
+
+// File: EntityType.schema.ts
+
+export const EntityTypeSchema = z.enum(['APPROVAL', 'REPORT', 'ISSUE', 'FEEDBACK'])
+
+export type EntityType = z.infer<typeof EntityTypeSchema>;
 
 // File: User.schema.ts
 
@@ -264,3 +300,89 @@ export const PurchaseSchema = z.object({
 });
 
 export type PurchaseModel = z.infer<typeof PurchaseSchema>;
+
+// File: WaitlistEntry.schema.ts
+
+export const WaitlistEntrySchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  createdAt: z.date(),
+});
+
+export type WaitlistEntryType = z.infer<typeof WaitlistEntrySchema>;
+
+
+// File: EmailConnection.schema.ts
+
+export const EmailConnectionSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  provider: z.string(),
+  email: z.string(),
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  tokenExpiresAt: z.date().nullish(),
+  isActive: z.boolean().default(true),
+  lastSyncAt: z.date().nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type EmailConnectionType = z.infer<typeof EmailConnectionSchema>;
+
+
+// File: EmailThread.schema.ts
+
+export const EmailThreadSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  connectionId: z.string(),
+  externalThreadId: z.string(),
+  subject: z.string(),
+  sender: z.string(),
+  participants: z.string(),
+  snippet: z.string().nullish(),
+  rawPayload: z.string().nullish(),
+  entityId: z.string().nullish(),
+  receivedAt: z.date(),
+  processedAt: z.date().nullish(),
+  createdAt: z.date(),
+});
+
+export type EmailThreadType = z.infer<typeof EmailThreadSchema>;
+
+
+// File: FlowEntity.schema.ts
+
+export const FlowEntitySchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  type: EntityTypeSchema,
+  title: z.string(),
+  status: z.string().default("pending"),
+  extractedFields: z.string().default("{}"),
+  aiSummary: z.string().nullish(),
+  aiConfidence: z.number().nullish(),
+  requiresReview: z.boolean(),
+  assigneeId: z.string().nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type FlowEntityType = z.infer<typeof FlowEntitySchema>;
+
+
+// File: TimelineEvent.schema.ts
+
+export const TimelineEventSchema = z.object({
+  id: z.string(),
+  entityId: z.string(),
+  type: z.string(),
+  content: z.string(),
+  metadata: z.string().nullish(),
+  actorId: z.string().nullish(),
+  createdAt: z.date(),
+});
+
+export type TimelineEventType = z.infer<typeof TimelineEventSchema>;
+

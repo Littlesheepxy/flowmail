@@ -66,8 +66,7 @@ export function OrganzationSelect({
 			className={cn(
 				"flex w-full items-center justify-between gap-3 text-left outline-none transition-colors",
 				{
-					"justify-center": collapsed,
-					"px-2 py-2 rounded-lg hover:bg-muted/50": collapsed,
+					"justify-center rounded-lg py-2 hover:bg-muted/50": collapsed,
 				},
 			)}
 		>
@@ -75,7 +74,7 @@ export function OrganzationSelect({
 				className={cn(
 					"flex flex-1 items-center gap-3 overflow-hidden",
 					{
-						"flex-1 flex justify-center": collapsed,
+						"flex-none justify-center": collapsed,
 					},
 				)}
 			>

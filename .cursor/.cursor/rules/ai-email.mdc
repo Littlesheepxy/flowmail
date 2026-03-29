@@ -1,0 +1,268 @@
+---
+description: Flowmail AI 邮件处理规范——分类、抽取、结构化输出的 Prompt 设计和 Schema 定义。在实现 email-processor 相关功能时必须参照。
+globs: ["packages/email-processor/**", "packages/ai/**"]
+alwaysApply: false
+---
+
+# Flowmail AI 邮件处理规范
+
+## 处理流程
+
+```
+原始邮件（thread）
+    ↓
+Step 1: 分类（Classifier）
+    → 确定 EntityType
+    ↓
+Step 2: 字段抽取（Extractor）
+    → 结构化 JSON（基于 EntityType）
+    ↓
+Step 3: Thread 总结（Summarizer）
+    → 可读摘要
+    ↓
+Step 4: 状态判断
+    → 初始 Status
+    ↓
+写入 FlowEntity
+```
+
+---
+
+## Step 1：邮件分类
+
+### 分类维度
+
+| EntityType | 触发信号 | 示例 |
+|------------|----------|------|
+| `approval` | 请审批、请批准、需要您的批准、approval request、please approve | 采购审批、休假申请 |
+| `report` | 周报、日报、进展更新、update、report | 项目周报、数据日报 |
+| `issue` | 问题、bug、故障、error、issue、incident | 系统故障、线上 bug |
+| `feedback` | 反馈、建议、complaint、feedback | 客户反馈、用户建议 |
+| `unknown` | 无法判断 | 归类失败时 |
+
+### 分类 Prompt 模板
+
+```typescript
+export const CLASSIFICATION_PROMPT = `
+你是一个企业邮件分类助手。分析以下邮件，判断其业务类型。
+
+邮件主题：{subject}
+发件人：{sender}
+邮件内容（前500字）：{content}
+
+请返回以下 JSON 格式（只返回 JSON，不要其他文字）：
+{
+  "type": "approval" | "report" | "issue" | "feedback" | "unknown",
+  "confidence": 0.0-1.0,
+  "reasoning": "简短说明分类依据（中文，不超过50字）"
+}
+`.trim();
+```
+
+### 分类 Zod Schema
+
+```typescript
+import { z } from "zod";
+
+export const ClassificationResultSchema = z.object({
+  type: z.enum(["approval", "report", "issue", "feedback", "unknown"]),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string().max(100),
+});
+
+export type ClassificationResult = z.infer<typeof ClassificationResultSchema>;
+```
+
+---
+
+## Step 2：字段抽取
+
+### 审批场景抽取 Schema
+
+```typescript
+export const ApprovalExtractionSchema = z.object({
+  title: z.string().describe("审批事项标题，简洁描述"),
+  requester: z.object({
+    name: z.string(),
+    email: z.string().email(),
+  }).describe("申请人信息"),
+  requestContent: z.string().describe("申请内容摘要，100字以内"),
+  amount: z.number().optional().describe("涉及金额（如有），单位元"),
+  currency: z.string().optional().describe("货币单位，如 CNY/USD"),
+  deadline: z.string().optional().describe("需要审批完成的截止时间，ISO 8601格式"),
+  urgency: z.enum(["low", "normal", "high", "urgent"]).describe("紧急程度"),
+  attachmentSummary: z.string().optional().describe("附件摘要（如有）"),
+});
+
+export type ApprovalExtraction = z.infer<typeof ApprovalExtractionSchema>;
+```
+
+### 汇报跟踪场景抽取 Schema
+
+```typescript
+export const ReportExtractionSchema = z.object({
+  title: z.string().describe("汇报标题"),
+  reporter: z.object({
+    name: z.string(),
+    email: z.string().email(),
+  }),
+  period: z.object({
+    type: z.enum(["daily", "weekly", "monthly", "ad_hoc"]),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+  }).describe("汇报周期"),
+  keyPoints: z.array(z.string()).max(5).describe("核心要点，最多5条"),
+  completedItems: z.array(z.string()).describe("已完成事项"),
+  inProgressItems: z.array(z.string()).describe("进行中事项"),
+  blockers: z.array(z.string()).describe("阻塞项/风险"),
+  nextActions: z.array(z.string()).describe("下一步计划"),
+  overallStatus: z.enum(["on_track", "at_risk", "blocked"]).describe("整体状态"),
+});
+
+export type ReportExtraction = z.infer<typeof ReportExtractionSchema>;
+```
+
+### 使用 Vercel AI SDK structured output
+
+```typescript
+import { generateObject } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+export async function extractApprovalFields(emailContent: string) {
+  const { object } = await generateObject({
+    model: openai("gpt-4o"),
+    schema: ApprovalExtractionSchema,
+    prompt: `
+从以下邮件中提取审批相关信息。如果某项信息不存在，返回 null 或省略该字段。
+
+邮件内容：
+${emailContent}
+    `.trim(),
+  });
+
+  return object;
+}
+```
+
+---
+
+## Step 3：Thread 总结
+
+### 总结 Prompt 规范
+
+```typescript
+export const THREAD_SUMMARY_PROMPT = `
+你是一个企业邮件助手。请对以下邮件对话线程做简洁总结。
+
+要求：
+1. 总结不超过150字
+2. 重点突出：当前状态、关键决策、待办事项
+3. 使用中文
+4. 不要重复邮件原文，提炼关键信息
+
+邮件线程（按时间顺序）：
+{threadContent}
+
+请返回纯文本总结，不要 JSON 格式。
+`.trim();
+```
+
+---
+
+## Step 4：状态初始化规则
+
+```typescript
+// 根据分类和抽取结果确定初始状态
+export function determineInitialStatus(
+  type: EntityType,
+  extraction: ApprovalExtraction | ReportExtraction
+): EntityStatus {
+  switch (type) {
+    case "approval":
+      return "pending";  // 审批默认待处理
+    case "report":
+      const report = extraction as ReportExtraction;
+      if (report.overallStatus === "blocked") return "blocked";
+      return "in_progress";
+    default:
+      return "open";
+  }
+}
+```
+
+---
+
+## 错误处理规范
+
+```typescript
+// AI 处理失败时的降级策略
+export interface ProcessingResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  requiresManualReview: boolean;  // 需要人工确认
+}
+
+// 低置信度（< 0.7）时标记为需人工确认
+export function shouldRequireReview(confidence: number): boolean {
+  return confidence < 0.7;
+}
+```
+
+---
+
+## 成本控制原则
+
+- **分类用 `gpt-4o-mini`**：快速且便宜，分类任务不需要最强模型
+- **抽取用 `gpt-4o`**：结构化抽取需要准确性
+- **总结用 `gpt-4o-mini`**：摘要任务轻量
+- **批量处理时加 rate limiting**：避免 API 超限
+- **缓存 AI 结果**：相同邮件 ID 不重复调用
+
+---
+
+## 测试数据（开发阶段使用）
+
+```typescript
+export const MOCK_APPROVAL_EMAIL = {
+  subject: "【请审批】市场部 Q2 广告投放预算申请",
+  sender: { name: "李明", email: "li.ming@company.com" },
+  content: `
+    张总，
+    
+    您好！我是市场部李明，现申请 Q2 广告投放预算如下：
+    
+    - 平台：微信朋友圈 + 抖音
+    - 预算：¥50,000
+    - 投放周期：2026年4月1日 - 6月30日
+    - 预期ROI：3x
+    
+    请您审批，谢谢！
+    截止时间：3月31日前
+    
+    李明
+  `,
+};
+
+export const MOCK_REPORT_EMAIL = {
+  subject: "【周报】技术团队 W13 进展汇报",
+  sender: { name: "王芳", email: "wang.fang@company.com" },
+  content: `
+    本周（3/23-3/29）进展：
+    
+    ✅ 已完成：
+    - 用户认证模块上线
+    - 数据库性能优化（查询提速30%）
+    
+    🔄 进行中：
+    - 邮件处理 AI 模块开发（70%）
+    
+    ⚠️ 风险：
+    - 第三方 API 响应不稳定，可能影响下周上线计划
+    
+    下周计划：
+    - 完成 AI 模块测试
+    - 上线 Smart Inbox MVP
+  `,
+};
+```

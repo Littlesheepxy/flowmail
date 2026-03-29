@@ -221,6 +221,13 @@
 			"system": "System",
 			"light": "Light",
 			"dark": "Dark"
+		},
+		"footer": {
+			"blog": "Blog",
+			"features": "Features",
+			"pricing": "Pricing",
+			"privacy": "Privacy policy",
+			"terms": "Terms and conditions"
 		}
 	},
 	"contact": {
@@ -241,8 +248,139 @@
 		"title": "Documentation"
 	},
 	"faq": {
-		"description": "Do you have any questions? We have got you covered.",
-		"title": "Frequently asked questions"
+		"description": "Everything you need to know about turning email into execution.",
+		"title": "Frequently asked questions",
+		"items": {
+			"q1": "What is Flowmail?",
+			"a1": "Flowmail turns incoming emails into structured, actionable workflows. Instead of manually reading and sorting emails, it automatically extracts approvals, reports, and key updates so you can act immediately.",
+			"q2": "How does Flowmail connect to my email?",
+			"a2": "Flowmail connects securely via OAuth to providers like Gmail or Outlook. You can choose what access to grant, and revoke it at any time.",
+			"q3": "What can Flowmail actually do with my emails?",
+			"a3": "Flowmail can classify emails, extract structured data (like approvals or report updates), and let you or your agents take action — such as approving requests or tracking progress.",
+			"q4": "Which agents are supported?",
+			"a4": "Any MCP-compatible agent can integrate with Flowmail, including tools like Claude, Cursor, or your own custom agents.",
+			"q5": "Is my email data safe?",
+			"a5": "Yes. Flowmail only accesses data you explicitly authorize, and we do not use your email content for training without permission. You remain in full control of your data.",
+			"q6": "Do I need to change my workflow?",
+			"a6": "No. Flowmail works with your existing email flow. Emails still arrive as usual — Flowmail simply makes them structured and actionable."
+		}
+	},
+	"hero": {
+		"badge1": "AI-Powered",
+		"badge2": "Agent-Native",
+		"headline": "Stop sorting email. Start executing it.",
+		"subtitle": "Flowmail automatically classifies incoming emails, extracts approvals and report updates, and turns them into actions — ready for you or your agents.",
+		"subtitle2": "Work still arrives by email. Flowmail turns it into execution.",
+		"cta": "Get started free",
+		"docs": "Read the docs",
+		"tagline": "From inbox to execution. Automatically.",
+		"waitlist_cta": "Join the waitlist",
+		"waitlist_placeholder": "Enter your email",
+		"waitlist_success": "You're on the list! We'll be in touch.",
+		"waitlist_error": "Something went wrong. Please try again.",
+		"waitlist_submitting": "Submitting..."
+	},
+	"features": {
+		"label": "What Flowmail does",
+		"title": "From inbox to execution, automatically",
+		"description": "Flowmail watches your email, classifies what matters, extracts structured data, and triggers actions — calendar events, task creation, IM notifications, and auto-replies.",
+		"inbox": {
+			"title": "Auto-triage your inbox",
+			"subtitle": "AI classifies emails into actionable categories.",
+			"description": "Flowmail uses AI to automatically classify emails into approvals, reports, issues, and other actionable workflows — no manual sorting needed.",
+			"b1": "Smart classification",
+			"b1d": "AI reads every incoming email and categorizes it as an approval, report, issue, or feedback — with confidence scores.",
+			"b2": "Zero manual sorting",
+			"b2d": "No more folders, labels, or rules. Flowmail understands intent and routes emails to the right workflow automatically.",
+			"b3": "Continuous learning",
+			"b3d": "Classification improves over time as Flowmail learns your team's patterns and email conventions."
+		},
+		"actions": {
+			"title": "Approve once, execute everywhere",
+			"subtitle": "One click triggers a full execution chain.",
+			"description": "Approve a request and Flowmail handles the rest — sends a confirmation email, creates a calendar event, and notifies your team on Slack or Feishu. No copy-pasting between apps.",
+			"b1": "One-click approval",
+			"b1d": "Review extracted details (amount, requester, deadline) and approve or reject from a single dashboard. Full audit trail included.",
+			"b2": "Auto-reply & calendar",
+			"b2d": "After approval, Flowmail sends a confirmation email and creates calendar events automatically. No manual follow-up needed.",
+			"b3": "IM notifications",
+			"b3d": "Push approval results to Slack, Feishu, or Teams channels. Keep your team in the loop without leaving your inbox."
+		},
+		"insights": {
+			"title": "Turn reports into tasks automatically",
+			"subtitle": "Extract, analyze, and create follow-ups in one step.",
+			"description": "Flowmail extracts progress, blockers, owners, and next steps from status emails, then creates tasks in Linear, Jira, or Notion — so nothing falls through the cracks.",
+			"b1": "Structured extraction",
+			"b1d": "Key points, completed items, blockers, and next actions are pulled from free-text emails into structured fields.",
+			"b2": "Auto-create tasks",
+			"b2d": "Blockers and action items are automatically turned into tickets in Linear, Jira, or Notion. Assigned to the right owner.",
+			"b3": "Trend tracking",
+			"b3d": "Compare this week's report to last week. Spot risks early, track resolution rates, and see project health at a glance."
+		},
+		"agents": {
+			"title": "Let agents run the whole pipeline",
+			"subtitle": "MCP tools for classification, approval, and execution.",
+			"description": "Flowmail exposes MCP tools for the full lifecycle — classify, approve, create calendar events, assign tasks, send notifications. Any compatible agent can run it end-to-end.",
+			"b1": "Full lifecycle tools",
+			"b1d": "Not just read-only. Agents can approve requests, create events, assign tasks, and send notifications through Flowmail's MCP server.",
+			"b2": "Works with any agent",
+			"b2d": "Claude, Cursor, OpenClaw, or your own custom agents. If it speaks MCP, it can operate Flowmail end-to-end.",
+			"b3": "Human-in-the-loop",
+			"b3d": "Agents handle routine workflows; humans review edge cases. Confidence scores ensure nothing slips through unchecked."
+		},
+		"demo": {
+			"incoming": "Incoming Emails",
+			"classifying": "Classifying",
+			"aiClassifying": "AI Classifying",
+			"inbox1from": "finance@acme.co",
+			"inbox1subject": "Q2 Budget Approval Request",
+			"inbox2from": "eng-lead@acme.co",
+			"inbox2subject": "Weekly Engineering Update",
+			"inbox3from": "devops@acme.co",
+			"inbox3subject": "CI Pipeline Failure Alert",
+			"inbox4from": "procurement@acme.co",
+			"inbox4subject": "Vendor Contract Renewal",
+			"tagApproval": "Approval",
+			"tagReport": "Report",
+			"tagIssue": "Issue",
+			"approvalTitle": "Q2 Budget Request",
+			"approvalFrom": "finance@acme.co",
+			"approvalUrgency": "High",
+			"approved": "Approved",
+			"executing": "Executing",
+			"execEmail": "Confirmation sent to finance@acme.co",
+			"execCalendar": "Event: Budget Review, Mar 31 2pm",
+			"execSlack": "Posted to #approvals on Slack",
+			"execSummary": "3 actions completed in 1.8s",
+			"terminalCmd": "$ flowmail process --type report",
+			"terminalReading": "> Reading: \"Weekly Engineering Update\"",
+			"terminalExtracting": "> Extracting fields...",
+			"terminalStatus": "✓ Status: On Track",
+			"terminalBlockers": "✓ Blockers: CI timeout, API rate limit",
+			"terminalNextSteps": "✓ Next Steps: 3 items extracted",
+			"terminalCreating": "> Creating tasks in Linear...",
+			"terminalTask1": "✓ LINEAR-142: Fix CI pipeline timeout → @sarah",
+			"terminalTask2": "✓ LINEAR-143: Investigate API rate limit → @mike",
+			"terminalTask3": "✓ LINEAR-144: Update staging config → @alex",
+			"terminalDone": "Done. 3 tasks created in Linear.",
+			"reportsProcessed": "Reports Processed",
+			"onTrack": "On Track",
+			"blockersFound": "Blockers Found",
+			"tasksCreated": "Tasks Created",
+			"mcpServer": "MCP Server",
+			"mcpProtocol": "MCP Protocol · Any Agent",
+			"agent1": "Claude",
+			"agent2": "Cursor",
+			"agent3": "OpenClaw",
+			"exec1": "Gmail",
+			"exec2": "Calendar",
+			"exec3": "Linear",
+			"exec4": "Slack",
+			"action1": "Claude → list_pending_approvals",
+			"action2": "Cursor → approve_request #42",
+			"action3": "OpenClaw → create_calendar_event",
+			"action4": "Claude → notify_slack #approvals"
+		}
 	},
 	"mail": {
 		"common": {
@@ -261,17 +399,17 @@
 			"subject": "Reset your password"
 		},
 		"magicLink": {
-			"body": "Hey,\nyou requested a login email from supastarter.\n\nClick the link below to login.",
+			"body": "Hey,\nyou requested a login email from Flowmail.\n\nClick the link below to login.",
 			"login": "Login",
-			"subject": "Login to supastarter"
+			"subject": "Login to Flowmail"
 		},
 		"newUser": {
-			"body": "Hey,\nthanks for signing up for supastarter.\n\nTo start using our app, please confirm your email address by clicking the link below.",
+			"body": "Hey,\nthanks for signing up for Flowmail.\n\nTo start using our app, please confirm your email address by clicking the link below.",
 			"confirmEmail": "Confirm email",
 			"subject": "Confirm your email"
 		},
 		"newsletterSignup": {
-			"body": "Thank you for signing up for the supastarter newsletter. We will keep you updated with the latest news and updates.",
+			"body": "Thank you for signing up for the Flowmail newsletter. We will keep you updated with the latest news and updates.",
 			"subject": "Welcome to our newsletter"
 		},
 		"organizationInvitation": {
@@ -285,16 +423,16 @@
 		"email": "Email",
 		"hints": {
 			"error": {
-				"message": "Could not subscribe to newsletter. Please try again later."
+				"message": "Could not subscribe. Please try again later."
 			},
 			"success": {
-				"message": "Thank you for subscribing to our newsletter. We will keep you posted.",
+				"message": "You're in! We'll keep you posted on new features and updates.",
 				"title": "Subscribed"
 			}
 		},
 		"submit": "Subscribe",
-		"subtitle": "Be among the first to get access to supastarter.nextjs.",
-		"title": "Get early access"
+		"subtitle": "Get updates on Flowmail, new features, and how to turn email into action.",
+		"title": "Stay in the loop"
 	},
 	"onboarding": {
 		"account": {
@@ -834,5 +972,25 @@
 		"title": "Page not found",
 		"goToDashboard": "Go to dashboard",
 		"goToHomepage": "Go to homepage"
+	},
+	"call": {
+		"incoming": "Incoming Call",
+		"from": "Flowmail",
+		"slideToAnswer": "Slide to answer",
+		"tapToAnswer": "Tap to answer",
+		"decline": "Decline",
+		"connecting": "Connecting...",
+		"connected": "Connected",
+		"callEnded": "Call Ended",
+		"callEndedDesc": "The conversation has ended. Thank you!",
+		"callNotFound": "Call Not Found",
+		"callNotFoundDesc": "This call link is invalid or has expired.",
+		"callCompleted": "Call Completed",
+		"callCompletedDesc": "This conversation has already ended. Thank you!",
+		"mute": "Mute",
+		"unmute": "Unmute",
+		"speaker": "Speaker",
+		"hangup": "Hang up",
+		"poweredBy": "Powered by Flowmail"
 	}
 }

@@ -1,8 +1,7 @@
 import { getActiveOrganization } from "@saas/auth/lib/server";
-import OrganizationStart from "@saas/organizations/components/OrganizationStart";
 import { PageHeader } from "@saas/shared/components/PageHeader";
+import { DashboardCards } from "@flowmail/components/DashboardCards";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({
 	params,
@@ -10,14 +9,8 @@ export async function generateMetadata({
 	params: Promise<{ organizationSlug: string }>;
 }) {
 	const { organizationSlug } = await params;
-
-	const activeOrganization = await getActiveOrganization(
-		organizationSlug as string,
-	);
-
-	return {
-		title: activeOrganization?.name,
-	};
+	const activeOrganization = await getActiveOrganization(organizationSlug as string);
+	return { title: activeOrganization?.name ?? "Dashboard" };
 }
 
 export default async function OrganizationPage({
@@ -26,11 +19,7 @@ export default async function OrganizationPage({
 	params: Promise<{ organizationSlug: string }>;
 }) {
 	const { organizationSlug } = await params;
-	const t = await getTranslations();
-
-	const activeOrganization = await getActiveOrganization(
-		organizationSlug as string,
-	);
+	const activeOrganization = await getActiveOrganization(organizationSlug as string);
 
 	if (!activeOrganization) {
 		return notFound();
@@ -39,11 +28,10 @@ export default async function OrganizationPage({
 	return (
 		<div>
 			<PageHeader
-				title={activeOrganization.name}
-				subtitle={t("organizations.start.subtitle")}
+				title="Dashboard"
+				subtitle="Turn emails into actionable workflows"
 			/>
-
-			<OrganizationStart />
+			<DashboardCards />
 		</div>
 	);
 }

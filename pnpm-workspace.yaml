@@ -1,5 +1,4 @@
 packages:
-  - config
   - apps/*
   - packages/*
   - tooling/*

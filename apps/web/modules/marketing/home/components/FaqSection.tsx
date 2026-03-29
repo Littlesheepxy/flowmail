@@ -13,22 +13,12 @@ export function FaqSection({ className }: { className?: string }) {
 	const t = useTranslations();
 
 	const items = [
-		{
-			question: "What is the refund policy?",
-			answer: "We offer a 30-day money-back guarantee if you're not happy with our product.",
-		},
-		{
-			question: "How do I cancel my subscription?",
-			answer: "You can cancel your subscription by visiting the billing page.",
-		},
-		{
-			question: "Can I change my plan?",
-			answer: "Yes, you can change your plan at any time by visiting the billing page.",
-		},
-		{
-			question: "Do you offer a free trial?",
-			answer: "Yes, we offer a 14-day free trial.",
-		},
+		{ question: t("faq.items.q1"), answer: t("faq.items.a1") },
+		{ question: t("faq.items.q2"), answer: t("faq.items.a2") },
+		{ question: t("faq.items.q3"), answer: t("faq.items.a3") },
+		{ question: t("faq.items.q4"), answer: t("faq.items.a4") },
+		{ question: t("faq.items.q5"), answer: t("faq.items.a5") },
+		{ question: t("faq.items.q6"), answer: t("faq.items.a6") },
 	];
 
 	if (!items) {

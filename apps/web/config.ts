@@ -1,6 +1,6 @@
 export const config = {
 	// the name of the app
-	appName: "supastarter for Next.js Demo",
+	appName: "Flowmail",
 
 	// the link to the documentation app (if not defined, the documentation link will not be shown in the app)
 	docsLink: process.env.NEXT_PUBLIC_DOCS_URL as string | undefined,
@@ -29,5 +29,8 @@ export const config = {
 	marketing: {
 		// whether the marketing features should be enabled (otherwise all routes will be redirect to the saas part)
 		enabled: true,
+
+		// when true, Hero CTA becomes a waitlist email form instead of sign-up link
+		waitlistMode: true,
 	},
 } as const;

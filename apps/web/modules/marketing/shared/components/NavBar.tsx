@@ -118,7 +118,7 @@ export function NavBar() {
 								key={menuItem.href}
 								href={menuItem.href}
 								className={cn(
-									"block px-3 py-2 font-medium text-foreground/80 text-sm",
+									"block whitespace-nowrap px-3 py-2 font-medium text-foreground/80 text-sm",
 									isMenuItemActive(menuItem.href)
 										? "font-bold text-foreground"
 										: "",
