@@ -10,23 +10,46 @@ import {
 } from "@repo/ui/components/tooltip";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { UserMenu } from "@saas/shared/components/UserMenu";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useQuery } from "@tanstack/react-query";
 import {
-	CheckCircle2Icon,
+	AlertTriangleIcon,
 	FileTextIcon,
-	HomeIcon,
 	InboxIcon,
 	MailIcon,
+	MessageSquareIcon,
 	PanelLeftCloseIcon,
+	PlusIcon,
+	SettingsIcon,
+	ShieldCheckIcon,
+	TagIcon,
+	type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import React from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import React, { useMemo } from "react";
 import { config as webConfig } from "@/config";
 import { OrganzationSelect } from "../../organizations/components/OrganizationSelect";
 import { useSidebar } from "../lib/sidebar-context";
 
+const ICON_MAP: Record<string, LucideIcon> = {
+	ShieldCheckIcon,
+	FileTextIcon,
+	AlertTriangleIcon,
+	MessageSquareIcon,
+	InboxIcon,
+	MailIcon,
+	TagIcon,
+	SettingsIcon,
+};
+
+function resolveIcon(iconName: string): LucideIcon {
+	return ICON_MAP[iconName] ?? TagIcon;
+}
+
 export function NavBar() {
 	const pathname = usePathname();
+	const searchParams = useSearchParams();
 	const { activeOrganization } = useActiveOrganization();
 	const { isCollapsed, toggleCollapsed } = useSidebar();
 
@@ -55,12 +78,21 @@ export function NavBar() {
 		? `/app/${activeOrganization.slug}`
 		: "/app";
 
+	const { data: categories } = useQuery({
+		...orpc.categories.list.queryOptions({
+			input: { organizationId: activeOrganization?.id ?? "" },
+		}),
+		enabled: !!activeOrganization?.id,
+	});
+
 	type MenuItem = {
 		label: string;
 		icon: React.ElementType;
 		isActive: boolean;
 		href?: string;
 		onClick?: () => void;
+		badge?: number;
+		color?: string;
 	};
 
 	type MenuGroup = {
@@ -68,57 +100,62 @@ export function NavBar() {
 		items: MenuItem[];
 	};
 
+	const categoryMenuItems: MenuItem[] = useMemo(() => {
+		if (!categories) {
+			return [];
+		}
+		return categories.map((cat) => ({
+			label: cat.name,
+			icon: resolveIcon(cat.icon),
+			href: `${basePath}/inbox?category=${cat.slug}`,
+			isActive:
+				pathname.startsWith(`${basePath}/inbox`) &&
+				searchParams.get("category") === cat.slug,
+			badge: cat._count.entities,
+			color: cat.color,
+		}));
+	}, [categories, basePath, pathname, searchParams]);
+
 	const menuGroups: MenuGroup[] = [
-		{
-			items: [
-				{
-					label: "Dashboard",
-					href: basePath,
-					icon: HomeIcon,
-					isActive: pathname === basePath,
-				},
-			],
-		},
 		...(activeOrganization
 			? [
 					{
-						groupLabel: "Workflow",
 						items: [
 							{
-								label: "Inbox",
+								label: "收件箱",
 								href: `${basePath}/inbox`,
 								icon: InboxIcon,
-								isActive: pathname.startsWith(
-									`${basePath}/inbox`,
-								),
-							},
-							{
-								label: "Approvals",
-								href: `${basePath}/approvals`,
-								icon: CheckCircle2Icon,
-								isActive: pathname.startsWith(
-									`${basePath}/approvals`,
-								),
-							},
-							{
-								label: "Reports",
-								href: `${basePath}/reports`,
-								icon: FileTextIcon,
-								isActive: pathname.startsWith(
-									`${basePath}/reports`,
-								),
+						isActive:
+								pathname.startsWith(`${basePath}/inbox`) &&
+								!searchParams.has("category"),
 							},
 						],
 					},
+					...(categoryMenuItems.length > 0
+						? [
+								{
+									groupLabel: "分类",
+									items: categoryMenuItems,
+								},
+							]
+						: []),
 					{
-						groupLabel: "Settings",
+						groupLabel: "管理",
 						items: [
 							{
-								label: "Email Connections",
-								href: `${basePath}/settings/email-connections`,
+								label: "邮箱连接",
+								href: `${basePath}/connections`,
 								icon: MailIcon,
 								isActive: pathname.startsWith(
-									`${basePath}/settings/email-connections`,
+									`${basePath}/connections`,
+								),
+							},
+							{
+								label: "分类管理",
+								href: `${basePath}/categories`,
+								icon: SettingsIcon,
+								isActive: pathname.startsWith(
+									`${basePath}/categories`,
 								),
 							},
 						],
@@ -130,7 +167,7 @@ export function NavBar() {
 	return (
 		<nav
 			className={cn("w-full", {
-				"w-full md:fixed md:top-0 md:left-0 md:h-full md:transition-[width] md:duration-300 md:ease-in-out md:w-[260px]":
+				"w-full md:fixed md:top-0 md:left-0 md:h-full md:z-20 md:transition-[width] md:duration-300 md:ease-in-out md:w-[260px]":
 					useSidebarLayout,
 				"md:w-[64px]": useSidebarLayout && isCollapsed,
 			})}
@@ -153,12 +190,11 @@ export function NavBar() {
 				>
 					{/* Logo 区域 */}
 					<div
-						className={cn("flex items-center justify-between", {
-							"md:h-[56px] md:border-b md:border-border/50":
-								useSidebarLayout,
-							"md:justify-center":
-								useSidebarLayout && isCollapsed,
-						})}
+					className={cn("flex items-center justify-between", {
+						"md:h-[56px]": useSidebarLayout,
+						"md:justify-center":
+							useSidebarLayout && isCollapsed,
+					})}
 					>
 						{/* 展开状态：logo + 折叠按钮并排 */}
 						{(!isCollapsed || !useSidebarLayout) && (
@@ -251,33 +287,65 @@ export function NavBar() {
 								{group.groupLabel &&
 									!isCollapsed &&
 									useSidebarLayout && (
-										<li className="mt-4 mb-1 px-3">
+										<li className="mt-4 mb-1 px-3 flex items-center justify-between">
 											<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
 												{group.groupLabel}
 											</span>
+											{group.groupLabel === "分类" && (
+												<Link
+													href={`${basePath}/categories`}
+													className="flex size-4 items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
+													prefetch
+												>
+													<PlusIcon className="size-3" />
+												</Link>
+											)}
 										</li>
 									)}
-								{/* Separator in collapsed sidebar between groups */}
+								{/* Separator + add button in collapsed sidebar between groups */}
 								{group.groupLabel &&
 									isCollapsed &&
 									useSidebarLayout &&
 									gi > 0 && (
-										<li className="my-1.5 mx-auto w-5 border-t border-border/40" />
+										<li className="my-1.5 flex justify-center">
+											{group.groupLabel === "分类" ? (
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Link
+															href={`${basePath}/categories`}
+															className="flex size-5 items-center justify-center rounded text-muted-foreground/40 hover:text-foreground hover:bg-muted transition-colors"
+															prefetch
+														>
+															<PlusIcon className="size-3" />
+														</Link>
+													</TooltipTrigger>
+													<TooltipContent side="right">
+														新建分类
+													</TooltipContent>
+												</Tooltip>
+											) : (
+												<div className="w-5" />
+											)}
+										</li>
 									)}
 								{group.items.map((menuItem) => {
 									const itemKey =
 										menuItem.href ?? menuItem.label;
 									const itemClass = cn(
-										"flex items-center border border-transparent transition-colors",
+										"flex items-center transition-colors",
 										menuItem.isActive
-											? "font-semibold bg-primary/8 border-primary/20 text-primary"
+											? "font-semibold bg-primary/8 text-primary"
 											: "hover:bg-muted/50",
 									);
+									const iconStyle = menuItem.color
+										? { color: menuItem.color }
+										: undefined;
 									const iconClass = cn(
 										"size-4 shrink-0",
-										menuItem.isActive
-											? "text-primary"
-											: "text-muted-foreground opacity-60",
+										!menuItem.color &&
+											(menuItem.isActive
+												? "text-primary"
+												: "text-muted-foreground opacity-60"),
 									);
 
 									if (isCollapsed && useSidebarLayout) {
@@ -293,6 +361,7 @@ export function NavBar() {
 												>
 													<menuItem.icon
 														className={iconClass}
+														style={iconStyle}
 													/>
 												</button>
 											) : (
@@ -306,6 +375,7 @@ export function NavBar() {
 												>
 													<menuItem.icon
 														className={iconClass}
+														style={iconStyle}
 													/>
 												</Link>
 											);
@@ -320,11 +390,42 @@ export function NavBar() {
 													</TooltipTrigger>
 													<TooltipContent side="right">
 														{menuItem.label}
+														{menuItem.badge != null &&
+															menuItem.badge > 0 && (
+																<span className="ml-1.5 text-xs opacity-70">
+																	{menuItem.badge}
+																</span>
+															)}
 													</TooltipContent>
 												</Tooltip>
 											</li>
 										);
 									}
+
+									const itemContent = (
+										<span className="flex w-full items-center gap-3 transition-transform duration-150 ease-out group-hover:translate-x-1">
+											<menuItem.icon
+												className={iconClass}
+												style={iconStyle}
+											/>
+											<span
+												className={cn(
+													"flex-1 truncate",
+													menuItem.isActive
+														? "text-primary"
+														: "text-muted-foreground",
+												)}
+											>
+												{menuItem.label}
+											</span>
+											{menuItem.badge != null &&
+												menuItem.badge > 0 && (
+													<span className="ml-auto text-[10px] tabular-nums text-muted-foreground/70">
+														{menuItem.badge}
+													</span>
+												)}
+										</span>
+									);
 
 									const expandedItem = menuItem.onClick ? (
 										<button
@@ -335,20 +436,7 @@ export function NavBar() {
 												"group w-full whitespace-nowrap rounded-lg px-3 py-2",
 											)}
 										>
-											<span className="flex items-center gap-3 transition-transform duration-150 ease-out group-hover:translate-x-1">
-												<menuItem.icon
-													className={iconClass}
-												/>
-												<span
-													className={cn(
-														menuItem.isActive
-															? "text-primary"
-															: "text-muted-foreground",
-													)}
-												>
-													{menuItem.label}
-												</span>
-											</span>
+											{itemContent}
 										</button>
 									) : (
 										<Link
@@ -359,20 +447,7 @@ export function NavBar() {
 											)}
 											prefetch
 										>
-											<span className="flex items-center gap-3 transition-transform duration-150 ease-out group-hover:translate-x-1">
-												<menuItem.icon
-													className={iconClass}
-												/>
-												<span
-													className={cn(
-														menuItem.isActive
-															? "text-primary"
-															: "text-muted-foreground",
-													)}
-												>
-													{menuItem.label}
-												</span>
-											</span>
+											{itemContent}
 										</Link>
 									);
 
@@ -380,6 +455,22 @@ export function NavBar() {
 										<li key={itemKey}>{expandedItem}</li>
 									);
 								})}
+
+								{/* Dashed "add category" button after category items */}
+								{group.groupLabel === "分类" &&
+									!isCollapsed &&
+									useSidebarLayout && (
+										<li className="px-2 mt-1">
+											<Link
+												href={`${basePath}/categories`}
+												className="flex items-center justify-center gap-1.5 w-full rounded-lg border border-dashed border-border/60 px-3 py-1.5 text-xs text-muted-foreground/60 hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all"
+												prefetch
+											>
+												<PlusIcon className="size-3" />
+												添加分类
+											</Link>
+										</li>
+									)}
 							</React.Fragment>
 						))}
 					</ul>
@@ -391,7 +482,7 @@ export function NavBar() {
 					ref={bottomRef}
 					role="presentation"
 					className={cn(
-						"relative mt-auto mb-0 hidden flex-col overflow-hidden pb-4 pt-2 border-t border-border/50",
+						"relative mt-auto mb-0 hidden flex-col overflow-hidden pb-4 pt-2",
 						{
 							"md:flex": useSidebarLayout,
 						},

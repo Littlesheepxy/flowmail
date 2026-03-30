@@ -14,14 +14,34 @@ export const listEntities = protectedProcedure
 		const where: Record<string, unknown> = {
 			organizationId: input.organizationId,
 		};
-		if (input.type) where.type = input.type;
-		if (input.status) where.status = input.status;
+		if (input.type) {
+			where.type = input.type;
+		}
+		if (input.categoryId) {
+			where.categoryId = input.categoryId;
+		}
+		if (input.categorySlug) {
+			const cat = await db.category.findFirst({
+				where: {
+					organizationId: input.organizationId,
+					slug: input.categorySlug,
+				},
+				select: { id: true },
+			});
+			if (cat) {
+				where.categoryId = cat.id;
+			}
+		}
+		if (input.status) {
+			where.status = input.status;
+		}
 
 		const [entities, total] = await Promise.all([
 			db.flowEntity.findMany({
 				where,
 				include: {
 					assignee: { select: { id: true, name: true, email: true, image: true } },
+					category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
 					_count: { select: { timeline: true, threads: true } },
 				},
 				orderBy: { updatedAt: "desc" },

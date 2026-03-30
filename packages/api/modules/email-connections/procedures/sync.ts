@@ -17,11 +17,16 @@ export const syncEmailConnection = protectedProcedure
 			where: { id: input.connectionId },
 		});
 
-		if (!connection) throw new ORPCError("NOT_FOUND");
-		if (!connection.isActive)
+		if (!connection) {
+			throw new ORPCError("NOT_FOUND");
+		}
+		if (!connection.isActive) {
 			throw new ORPCError("BAD_REQUEST", { message: "Connection is inactive" });
+		}
 
 		const connector = getConnector(connection.provider);
+
+		console.log(`[Sync] Starting sync for ${connection.provider}:${connection.email}, cursor=${connection.syncCursor}`);
 
 		const { emails, newCursor } = await connector.fetchNewEmails(
 			{
@@ -37,6 +42,11 @@ export const syncEmailConnection = protectedProcedure
 			connection.syncCursor,
 		);
 
+		console.log(`[Sync] Fetched ${emails.length} emails, newCursor=${newCursor}`);
+		if (emails.length > 0) {
+			console.log(`[Sync] First email: "${emails[0].subject}" from ${emails[0].senderEmail}`);
+		}
+
 		let processed = 0;
 		let errors = 0;
 
@@ -50,7 +60,10 @@ export const syncEmailConnection = protectedProcedure
 				},
 			});
 
-			if (existing) continue;
+			if (existing) {
+				console.log(`[Sync] Skip existing: "${email.subject}"`);
+				continue;
+			}
 
 			const result = await processEmail({
 				threadId: email.threadId ?? email.externalId,
@@ -58,6 +71,11 @@ export const syncEmailConnection = protectedProcedure
 				sender: email.sender,
 				senderEmail: email.senderEmail,
 				content: email.content,
+				bodyHtml: email.bodyHtml,
+				bodyText: email.bodyText,
+				toRecipients: email.toRecipients,
+				ccRecipients: email.ccRecipients,
+				attachments: email.attachments,
 				organizationId: connection.organizationId,
 				connectionId: connection.id,
 				externalThreadId: email.externalId,
@@ -66,10 +84,14 @@ export const syncEmailConnection = protectedProcedure
 
 			if (result.success) {
 				processed++;
+				console.log(`[Sync] Processed: "${email.subject}" → ${result.categorySlug ?? result.classification}`);
 			} else {
 				errors++;
+				console.error(`[Sync] Failed: "${email.subject}" → ${result.error}`);
 			}
 		}
+
+		console.log(`[Sync] Done: fetched=${emails.length}, processed=${processed}, errors=${errors}`);
 
 		await db.emailConnection.update({
 			where: { id: connection.id },

@@ -1,16 +1,10 @@
-import { PageHeader } from "@saas/shared/components/PageHeader";
-import { PendingApprovalsList } from "@flowmail/components/ApprovalActions";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Approvals" };
-
-export default function ApprovalsPage() {
-	return (
-		<div>
-			<PageHeader
-				title="Approvals"
-				subtitle="Review and act on pending approval requests"
-			/>
-			<PendingApprovalsList />
-		</div>
-	);
+export default async function ApprovalsPage({
+	params,
+}: {
+	params: Promise<{ organizationSlug: string }>;
+}) {
+	const { organizationSlug } = await params;
+	redirect(`/app/${organizationSlug}/inbox?category=approval`);
 }

@@ -2,7 +2,9 @@ import { google } from "googleapis";
 import type {
 	ConnectionCredentials,
 	EmailConnector,
+	EmailRecipient,
 	RawEmail,
+	RawEmailAttachment,
 	SyncResult,
 } from "./types";
 
@@ -22,27 +24,38 @@ function decodeBase64Url(data: string): string {
 	return Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
 }
 
-function extractEmailContent(payload: Record<string, unknown>): string {
+function extractEmailParts(payload: Record<string, unknown>): {
+	text: string;
+	html: string;
+} {
+	let text = "";
+	let html = "";
 	const parts = payload.parts as Array<Record<string, unknown>> | undefined;
 	if (parts) {
 		for (const part of parts) {
-			if (part.mimeType === "text/plain" && part.body) {
+			if (part.mimeType === "text/plain" && part.body && !text) {
 				const body = part.body as { data?: string };
-				if (body.data) return decodeBase64Url(body.data);
+				if (body.data) {
+					text = decodeBase64Url(body.data);
+				}
 			}
-		}
-		for (const part of parts) {
-			if (part.mimeType === "text/html" && part.body) {
+			if (part.mimeType === "text/html" && part.body && !html) {
 				const body = part.body as { data?: string };
-				if (body.data) return decodeBase64Url(body.data);
+				if (body.data) {
+					html = decodeBase64Url(body.data);
+				}
 			}
 		}
 	}
 
-	const body = payload.body as { data?: string } | undefined;
-	if (body?.data) return decodeBase64Url(body.data);
+	if (!text && !html) {
+		const body = payload.body as { data?: string } | undefined;
+		if (body?.data) {
+			text = decodeBase64Url(body.data);
+		}
+	}
 
-	return "";
+	return { text, html };
 }
 
 function getHeader(
@@ -54,8 +67,47 @@ function getHeader(
 
 function parseSenderName(from: string): { name: string; email: string } {
 	const match = from.match(/^"?(.+?)"?\s*<(.+?)>$/);
-	if (match) return { name: match[1].trim(), email: match[2].trim() };
+	if (match) {
+		return { name: match[1].trim(), email: match[2].trim() };
+	}
 	return { name: from, email: from };
+}
+
+function parseRecipientList(raw: string): EmailRecipient[] {
+	if (!raw) {
+		return [];
+	}
+	return raw.split(",").map((entry) => {
+		const parsed = parseSenderName(entry.trim());
+		return { name: parsed.name !== parsed.email ? parsed.name : undefined, address: parsed.email };
+	});
+}
+
+function extractAttachments(
+	payload: Record<string, unknown>,
+	messageId: string,
+): RawEmailAttachment[] {
+	const results: RawEmailAttachment[] = [];
+	const parts = payload.parts as Array<Record<string, unknown>> | undefined;
+	if (!parts) {
+		return results;
+	}
+
+	for (const part of parts) {
+		const filename = part.filename as string | undefined;
+		const body = part.body as { attachmentId?: string; size?: number } | undefined;
+		if (filename && body?.attachmentId) {
+			results.push({
+				filename,
+				mimeType: part.mimeType as string | undefined,
+				size: body.size,
+				externalId: `${messageId}/${body.attachmentId}`,
+				contentId: (part.headers as Array<{name: string; value: string}> | undefined)
+					?.find((h) => h.name.toLowerCase() === "content-id")?.value?.replace(/[<>]/g, ""),
+			});
+		}
+	}
+	return results;
 }
 
 export const gmailConnector: EmailConnector = {
@@ -78,7 +130,9 @@ export const gmailConnector: EmailConnector = {
 		const emails: RawEmail[] = [];
 
 		for (const msg of messageIds) {
-			if (!msg.id) continue;
+			if (!msg.id) {
+				continue;
+			}
 
 			const detail = await gmail.users.messages.get({
 				userId: "me",
@@ -87,7 +141,9 @@ export const gmailConnector: EmailConnector = {
 			});
 
 			const payload = detail.data.payload;
-			if (!payload) continue;
+			if (!payload) {
+				continue;
+			}
 
 			const headers = (payload.headers ?? []) as Array<{
 				name: string;
@@ -96,10 +152,22 @@ export const gmailConnector: EmailConnector = {
 			const from = getHeader(headers, "From");
 			const subject = getHeader(headers, "Subject");
 			const to = getHeader(headers, "To");
+			const cc = getHeader(headers, "Cc");
 			const date = getHeader(headers, "Date");
 
 			const { name, email } = parseSenderName(from);
-			const content = extractEmailContent(payload as Record<string, unknown>);
+			const { text: bodyText, html: bodyHtml } = extractEmailParts(
+				payload as Record<string, unknown>,
+			);
+			const content = bodyText || bodyHtml;
+
+			const toRecipients = parseRecipientList(to);
+			const ccRecipients = parseRecipientList(cc);
+
+			const attachments = extractAttachments(
+				payload as Record<string, unknown>,
+				msg.id,
+			);
 
 			emails.push({
 				externalId: msg.id,
@@ -107,8 +175,13 @@ export const gmailConnector: EmailConnector = {
 				sender: name,
 				senderEmail: email,
 				recipients: to.split(",").map((r) => r.trim()),
+				toRecipients,
+				ccRecipients: ccRecipients.length > 0 ? ccRecipients : undefined,
 				content,
 				snippet: detail.data.snippet ?? "",
+				bodyHtml: bodyHtml || undefined,
+				bodyText: bodyText || undefined,
+				attachments: attachments.length > 0 ? attachments : undefined,
 				receivedAt: date ? new Date(date) : new Date(),
 				threadId: detail.data.threadId ?? undefined,
 			});

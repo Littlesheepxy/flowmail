@@ -7,3 +7,13 @@ export const ClassificationResultSchema = z.object({
 });
 
 export type ClassificationResult = z.infer<typeof ClassificationResultSchema>;
+
+export const DynamicClassificationResultSchema = z.object({
+	categorySlug: z.string(),
+	confidence: z.number().min(0).max(1),
+	reasoning: z.string().max(200),
+});
+
+export type DynamicClassificationResult = z.infer<
+	typeof DynamicClassificationResultSchema
+>;

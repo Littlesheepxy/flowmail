@@ -9,6 +9,8 @@ export type { ReportExtraction } from "./src/schemas/report";
 export type {
 	ConnectionCredentials,
 	EmailConnector,
+	EmailRecipient,
 	RawEmail,
+	RawEmailAttachment,
 	SyncResult,
 } from "./src/connectors";

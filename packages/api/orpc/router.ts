@@ -1,6 +1,7 @@
 import type { RouterClient } from "@orpc/server";
 import { adminRouter } from "../modules/admin/router";
 import { approvalsRouter } from "../modules/approvals/router";
+import { categoriesRouter } from "../modules/categories/router";
 import { contactRouter } from "../modules/contact/router";
 import { emailConnectionsRouter } from "../modules/email-connections/router";
 import { flowEntitiesRouter } from "../modules/flow-entities/router";
@@ -20,6 +21,7 @@ export const router = publicProcedure.router({
 	flowEntities: flowEntitiesRouter,
 	approvals: approvalsRouter,
 	emailConnections: emailConnectionsRouter,
+	categories: categoriesRouter,
 });
 
 export type ApiRouterClient = RouterClient<typeof router>;

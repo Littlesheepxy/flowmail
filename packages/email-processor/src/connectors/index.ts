@@ -1,12 +1,13 @@
+import { feishuConnector } from "./feishu";
 import { gmailConnector } from "./gmail";
 import { imapConnector } from "./imap";
 import type { EmailConnector } from "./types";
 
-export type { ConnectionCredentials, EmailConnector, RawEmail, SyncResult } from "./types";
+export type { ConnectionCredentials, EmailConnector, EmailRecipient, RawEmail, RawEmailAttachment, SyncResult } from "./types";
 
 const connectorMap: Record<string, EmailConnector> = {
 	gmail: gmailConnector,
-	feishu: imapConnector,
+	feishu: feishuConnector,
 	dingtalk: imapConnector,
 	wecom: imapConnector,
 	imap: imapConnector,

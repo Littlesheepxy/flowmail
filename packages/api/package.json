@@ -18,6 +18,7 @@
 		"@scalar/hono-api-reference": "^0.9.24",
 		"@sindresorhus/slugify": "^3.0.0",
 		"cookie": "^1.0.2",
+		"googleapis": "^171.4.0",
 		"hono": "^4.11.7",
 		"livekit-server-sdk": "^2.15.0",
 		"nanoid": "^5.1.6",

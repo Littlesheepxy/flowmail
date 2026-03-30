@@ -24,11 +24,12 @@ export function MagicCard({
 	children,
 	className,
 	gradientSize = 200,
-	gradientColor = "#262626",
-	gradientOpacity = 0.8,
+	gradientColor,
+	gradientOpacity = 0.5,
 	gradientFrom = "#9E7AFF",
 	gradientTo = "#FE8BBB",
 }: MagicCardProps) {
+	const resolvedGradientColor = gradientColor ?? gradientFrom;
 	const ref = useRef<HTMLDivElement>(null);
 
 	const mouseX = useMotionValue(-gradientSize);
@@ -132,7 +133,7 @@ export function MagicCard({
 				className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 				style={{
 					background: useMotionTemplate`
-            radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px, ${gradientColor}, transparent 100%)
+            radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px, ${resolvedGradientColor}, transparent 100%)
           `,
 					opacity: gradientOpacity,
 				}}

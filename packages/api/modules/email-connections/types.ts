@@ -32,3 +32,18 @@ export const syncConnectionSchema = z.object({
 export const testConnectionSchema = z.object({
 	connectionId: z.string(),
 });
+
+export const connectOAuthSchema = z.object({
+	organizationId: z.string(),
+	provider: z.enum(["feishu", "dingtalk", "wecom"]),
+	appId: z.string().min(1),
+	appSecret: z.string().min(1),
+	authCode: z.string().min(1),
+	redirectUri: z.string().url(),
+	imapPassword: z.string().optional(),
+});
+
+export const updateImapPasswordSchema = z.object({
+	connectionId: z.string(),
+	imapPassword: z.string().min(1),
+});

@@ -1,11 +1,29 @@
+export interface RawEmailAttachment {
+	filename: string;
+	mimeType?: string;
+	size?: number;
+	externalId: string;
+	contentId?: string;
+}
+
+export interface EmailRecipient {
+	name?: string;
+	address: string;
+}
+
 export interface RawEmail {
 	externalId: string;
 	subject: string;
 	sender: string;
 	senderEmail: string;
 	recipients: string[];
+	toRecipients?: EmailRecipient[];
+	ccRecipients?: EmailRecipient[];
 	content: string;
 	snippet: string;
+	bodyHtml?: string;
+	bodyText?: string;
+	attachments?: RawEmailAttachment[];
 	receivedAt: Date;
 	threadId?: string;
 }

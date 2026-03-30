@@ -16,14 +16,30 @@ export const getEntity = protectedProcedure
 			where: { id: input.entityId },
 			include: {
 				assignee: { select: { id: true, name: true, email: true, image: true } },
+				category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
 				threads: {
 					orderBy: { receivedAt: "desc" },
 					select: {
 						id: true,
 						subject: true,
 						sender: true,
+						senderName: true,
+						toRecipients: true,
+						ccRecipients: true,
 						snippet: true,
+						bodyHtml: true,
+						bodyText: true,
 						receivedAt: true,
+						attachments: {
+							select: {
+								id: true,
+								filename: true,
+								mimeType: true,
+								size: true,
+								externalId: true,
+								contentId: true,
+							},
+						},
 					},
 				},
 				timeline: {

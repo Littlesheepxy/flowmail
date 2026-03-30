@@ -20,9 +20,20 @@ export const listEmailConnections = protectedProcedure
 				isActive: true,
 				lastSyncAt: true,
 				createdAt: true,
+				authType: true,
+				imapPassword: true,
 			},
 			orderBy: { createdAt: "desc" },
 		});
 
-		return connections;
+		return connections.map((c) => ({
+			id: c.id,
+			provider: c.provider,
+			email: c.email,
+			isActive: c.isActive,
+			lastSyncAt: c.lastSyncAt,
+			createdAt: c.createdAt,
+			authType: c.authType,
+			hasImapPassword: !!c.imapPassword,
+		}));
 	});
