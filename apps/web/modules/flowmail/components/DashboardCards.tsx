@@ -31,15 +31,17 @@ export function DashboardCards() {
 	const pathname = usePathname();
 	const orgId = activeOrganization?.id ?? "";
 
-	const { data: allData, isLoading } = useQuery(
-		orpc.flowEntities.list.queryOptions({
+	const { data: allData, isLoading } = useQuery({
+		...orpc.flowEntities.list.queryOptions({
 			input: { organizationId: orgId, limit: 100, offset: 0 },
 		}),
-	);
+		refetchInterval: 5000,
+	});
 
-	const { data: pendingApprovals } = useQuery(
-		orpc.approvals.listPending.queryOptions({ input: { organizationId: orgId } }),
-	);
+	const { data: pendingApprovals } = useQuery({
+		...orpc.approvals.listPending.queryOptions({ input: { organizationId: orgId } }),
+		refetchInterval: 5000,
+	});
 
 	const { data: connections } = useQuery(
 		orpc.emailConnections.list.queryOptions({ input: { organizationId: orgId } }),

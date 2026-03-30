@@ -45,8 +45,8 @@ export function EntityCardList({
 }: EntityCardListProps) {
 	const { activeOrganization } = useActiveOrganization();
 
-	const { data, isLoading } = useQuery(
-		orpc.flowEntities.list.queryOptions({
+	const { data, isLoading } = useQuery({
+		...orpc.flowEntities.list.queryOptions({
 			input: {
 				organizationId: activeOrganization?.id ?? "",
 				categorySlug,
@@ -54,7 +54,8 @@ export function EntityCardList({
 				offset: 0,
 			},
 		}),
-	);
+		refetchInterval: 5000,
+	});
 
 	const entities = data?.entities ?? [];
 

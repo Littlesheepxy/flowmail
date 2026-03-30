@@ -19,6 +19,7 @@ import {
 	MailIcon,
 	MessageSquareIcon,
 	PanelLeftCloseIcon,
+	PlugIcon,
 	PlusIcon,
 	SettingsIcon,
 	ShieldCheckIcon,
@@ -27,9 +28,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { config as webConfig } from "@/config";
 import { OrganzationSelect } from "../../organizations/components/OrganizationSelect";
+import { OrgSettingsModal, type OrgTab } from "./OrgSettingsModal";
 import { useSidebar } from "../lib/sidebar-context";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -52,6 +54,8 @@ export function NavBar() {
 	const searchParams = useSearchParams();
 	const { activeOrganization } = useActiveOrganization();
 	const { isCollapsed, toggleCollapsed } = useSidebar();
+	const [orgModalOpen, setOrgModalOpen] = useState(false);
+	const [orgModalTab, setOrgModalTab] = useState<OrgTab>("general");
 
 	const bottomRef = React.useRef<HTMLDivElement>(null);
 	const [spotlight, setSpotlight] = React.useState({
@@ -160,11 +164,26 @@ export function NavBar() {
 							},
 						],
 					},
+					{
+						groupLabel: "Agent",
+						items: [
+							{
+								label: "Agent 接入",
+								icon: PlugIcon,
+								isActive: false,
+								onClick: () => {
+									setOrgModalTab("agent-integration");
+									setOrgModalOpen(true);
+								},
+							},
+						],
+					},
 				]
 			: []),
 	];
 
 	return (
+		<>
 		<nav
 			className={cn("w-full", {
 				"w-full md:fixed md:top-0 md:left-0 md:h-full md:z-20 md:transition-[width] md:duration-300 md:ease-in-out md:w-[260px]":
@@ -433,7 +452,7 @@ export function NavBar() {
 											onClick={menuItem.onClick}
 											className={cn(
 												itemClass,
-												"group w-full whitespace-nowrap rounded-lg px-3 py-2",
+												"group w-full whitespace-nowrap rounded-lg px-3 py-2 text-left",
 											)}
 										>
 											{itemContent}
@@ -519,5 +538,14 @@ export function NavBar() {
 				</div>
 			</div>
 		</nav>
+
+		{activeOrganization && (
+			<OrgSettingsModal
+				open={orgModalOpen}
+				onOpenChange={setOrgModalOpen}
+				defaultTab={orgModalTab}
+			/>
+		)}
+		</>
 	);
 }

@@ -4,353 +4,466 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Spinner, cn } from "@repo/ui";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useChat } from "@ai-sdk/react";
+import {
+	DefaultChatTransport,
+	isTextUIPart,
+	isToolOrDynamicToolUIPart,
+	getToolOrDynamicToolName,
+	type UIMessage,
+	type DynamicToolUIPart,
+} from "ai";
 import {
 	BotIcon,
-	CheckIcon,
 	SendIcon,
 	SparklesIcon,
 	XIcon,
+	RefreshCwIcon,
+	LightbulbIcon,
 } from "lucide-react";
-import { useRef, useState, useEffect, type FormEvent } from "react";
+import { useEffect, useRef, useState, useMemo, type FormEvent } from "react";
+import { usePathname } from "next/navigation";
+import { AgentCard } from "../agent/AgentCards";
+import { buildPageContext } from "../agent/build-page-context";
+import type { AgentBlock, AgentUICard } from "../agent/types";
 
 interface AgentPanelProps {
 	entityId: string | null;
+	organizationId?: string;
 	className?: string;
 	onClose?: () => void;
 }
 
-interface ChatMessage {
-	id: string;
-	role: "user" | "assistant" | "system";
-	content: string;
-	toolCard?: {
-		type: "approval_action" | "status_change" | "entity_info";
-		data: Record<string, unknown>;
-	};
+// ── Blocks 解析 ──────────────────────────────────────────
+
+/**
+ * 从 AI 原始文本中提取有序 blocks。
+ * AI 输出格式：普通文本 + <ui_block>{...}</ui_block> 标签穿插。
+ * 最终输出一个 AgentBlock[] 数组，前端按顺序渲染。
+ */
+function parseBlocks(text: string): AgentBlock[] {
+	const blocks: AgentBlock[] = [];
+	const parts = text.split(/(<ui_block>[\s\S]*?<\/ui_block>)/g);
+
+	for (const part of parts) {
+		const match = part.match(/^<ui_block>([\s\S]*?)<\/ui_block>$/);
+		if (match) {
+			try {
+				const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
+				const blockType = parsed.type as string;
+
+				if (blockType === "suggestions" && Array.isArray(parsed.items)) {
+					blocks.push({ type: "suggestions", items: parsed.items as string[] });
+				} else if (["approval_card", "report_card", "risk_card", "timeline_diff", "entity_list", "action_confirm", "action_result"].includes(blockType)) {
+					blocks.push(parsed as AgentBlock);
+				}
+			} catch {
+				// ignore malformed JSON
+			}
+		} else {
+			const trimmed = part.trim();
+			if (trimmed) {
+				blocks.push({ type: "text", content: trimmed });
+			}
+		}
+	}
+
+	return blocks;
 }
 
-export function AgentPanel({ entityId, className, onClose }: AgentPanelProps) {
-	const queryClient = useQueryClient();
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
-	const [input, setInput] = useState("");
-	const [isThinking, setIsThinking] = useState(false);
+/** Tool 结果 → UI 卡片 block */
+function toolResultToBlock(
+	toolName: string,
+	result: Record<string, unknown>,
+	entityCtx: { id: string; title: string; type: string; status: string } | null,
+): AgentUICard | null {
+	if (result.error) { return null; }
+
+	if (toolName === "approve_entity" || toolName === "reject_entity") {
+		return {
+			type: "action_result",
+			data: {
+				success:    Boolean(result.success),
+				action:     toolName === "approve_entity" ? "approved" : "rejected",
+				message:    toolName === "approve_entity" ? "审批已通过" : "审批已拒绝",
+				fromStatus: String(result.fromStatus ?? "pending"),
+				toStatus:   String(result.toStatus ?? (toolName === "approve_entity" ? "approved" : "rejected")),
+			},
+		};
+	}
+
+	if (toolName === "predict_risk" && result.riskLevel) {
+		return {
+			type: "risk_card",
+			data: {
+				entityId:         String(result.entityId ?? entityCtx?.id ?? ""),
+				riskLevel:        result.riskLevel as "low" | "medium" | "high" | "critical",
+				riskFactors:      (result.riskFactors as string[]) ?? [],
+				predictedOutcome: String(result.predictedOutcome ?? ""),
+				suggestedActions: (result.suggestedActions as string[]) ?? [],
+				deadlineRisk:     (result.deadlineRisk ?? { hasDeadline: false, isAtRisk: false }) as { hasDeadline: boolean; isAtRisk: boolean; deadline?: string | null; daysRemaining?: number | null },
+				confidence:       Number(result.confidence ?? 0),
+			},
+		};
+	}
+
+	if (toolName === "get_timeline_diff" && result.summary) {
+		return {
+			type: "timeline_diff",
+			data: {
+				entityId:       String(result.entityId ?? entityCtx?.id ?? ""),
+				summary:        String(result.summary ?? ""),
+				changes:        (result.changes ?? []) as [],
+				riskSignals:    (result.riskSignals as string[]) ?? [],
+				progressDelta:  result.progressDelta != null ? Number(result.progressDelta) : null,
+				recommendation: result.recommendation ? String(result.recommendation) : null,
+			},
+		};
+	}
+
+	if (toolName === "list_pending_approvals" && result.items) {
+		const items = result.items as Array<{ id: string; title: string; type: string; status: string; aiConfidence?: number | null; updatedAt: string }>;
+		return {
+			type: "entity_list",
+			data: { totalCount: Number(result.count ?? items.length), filterLabel: "待审批事项", items },
+		};
+	}
+
+	return null;
+}
+
+// ── 快捷建议 ─────────────────────────────────────────────
+
+function getSuggestions(type: string, status: string): string[] {
+	if (type === "APPROVAL" && status === "pending") {
+		return ["帮我分析这个审批", "有哪些风险？", "批准这个审批", "拒绝，预算超限"];
+	}
+	if (type === "REPORT") {
+		return ["总结一下项目进展", "分析风险", "查看最近变化"];
+	}
+	return ["分析这个事项", "有什么风险？", "查看时间线变化"];
+}
+
+// ── Block 渲染器 ─────────────────────────────────────────
+
+function BlockRenderer({ block, onSuggestionClick }: { block: AgentBlock; onSuggestionClick?: (text: string) => void }) {
+	if (block.type === "text") {
+		return (
+			<div className="rounded-2xl rounded-bl-sm bg-muted/60 border px-3.5 py-2.5">
+				<p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+					{block.content}
+				</p>
+			</div>
+		);
+	}
+
+	if (block.type === "suggestions") {
+		return (
+			<div className="flex gap-1.5 flex-wrap">
+				{block.items.map((s) => (
+					<button
+						key={s}
+						type="button"
+						onClick={() => onSuggestionClick?.(s)}
+						className="text-[11px] px-2.5 py-1.5 rounded-full border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors flex items-center gap-1"
+					>
+						<LightbulbIcon className="size-3 text-amber-500" />
+						{s}
+					</button>
+				))}
+			</div>
+		);
+	}
+
+	return <AgentCard card={block as AgentUICard} />;
+}
+
+// ── 主组件 ───────────────────────────────────────────────
+
+export function AgentPanel({ entityId, organizationId, className, onClose }: AgentPanelProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
+	const [input, setInput] = useState("");
+	const pathname = usePathname();
 
 	const { data: entity } = useQuery({
-		...orpc.flowEntities.get.queryOptions({
-			input: { entityId: entityId ?? "" },
-		}),
+		...orpc.flowEntities.get.queryOptions({ input: { entityId: entityId ?? "" } }),
 		enabled: !!entityId,
 	});
 
-	const approveMutation = useMutation(
-		orpc.approvals.approve.mutationOptions({
-			onSuccess: () => {
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.get.key({ input: { entityId: entityId ?? "" } }) });
-				queryClient.invalidateQueries({ queryKey: orpc.approvals.listPending.key() });
-				addAssistantMessage("已批准 ✓", {
-					type: "status_change",
-					data: { from: "pending", to: "approved" },
-				});
-			},
-		}),
+	const entityCtx = entity
+		? { id: entity.id, title: entity.title, type: entity.type, status: entity.status }
+		: null;
+
+	const pageContext = useMemo(
+		() =>
+			buildPageContext({
+				route: pathname,
+				organizationId,
+				entity: entity
+					? {
+							id: entity.id,
+							title: entity.title,
+							type: entity.type,
+							status: entity.status,
+							aiSummary: entity.aiSummary,
+							extractedFields: entity.extractedFields as string | null,
+							aiConfidence: entity.aiConfidence,
+							timeline: (entity.timeline ?? []).map((e) => ({
+								type: e.type,
+								content: e.content,
+								createdAt: e.createdAt.toString(),
+							})),
+						}
+					: null,
+			}),
+		[pathname, organizationId, entity],
 	);
 
-	const rejectMutation = useMutation(
-		orpc.approvals.reject.mutationOptions({
-			onSuccess: () => {
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.get.key({ input: { entityId: entityId ?? "" } }) });
-				queryClient.invalidateQueries({ queryKey: orpc.approvals.listPending.key() });
-				addAssistantMessage("已拒绝 ✗", {
-					type: "status_change",
-					data: { from: "pending", to: "rejected" },
-				});
-			},
-		}),
+	const transport = useMemo(
+		() =>
+			new DefaultChatTransport({
+				api: "/api/agent/chat",
+				body: { pageContext },
+			}),
+		[pageContext],
 	);
+
+	const { messages, sendMessage, status, setMessages } = useChat({ transport });
+
+	const isLoading = status === "streaming" || status === "submitted";
+	const hasMessages = messages.length > 0;
 
 	useEffect(() => {
 		setMessages([]);
-	}, [entityId]);
-
-	useEffect(() => {
-		if (entity && messages.length === 0) {
-			const fields: Record<string, unknown> = entity.extractedFields
-				? JSON.parse(entity.extractedFields as string)
-				: {};
-			const intro = buildEntityIntro(entity, fields);
-			addAssistantMessage(intro, entity.type === "APPROVAL" ? {
-				type: "entity_info",
-				data: fields,
-			} : undefined);
-		}
-	}, [entity]);
-
-	function addAssistantMessage(content: string, toolCard?: ChatMessage["toolCard"]) {
-		setMessages((prev) => [
-			...prev,
-			{
-				id: crypto.randomUUID(),
-				role: "assistant",
-				content,
-				toolCard,
-			},
-		]);
-	}
-
-	function handleSubmit(e: FormEvent) {
-		e.preventDefault();
-		if (!input.trim()) {
-			return;
-		}
-
-		const userMsg: ChatMessage = {
-			id: crypto.randomUUID(),
-			role: "user",
-			content: input.trim(),
-		};
-		setMessages((prev) => [...prev, userMsg]);
 		setInput("");
-		handleUserCommand(userMsg.content);
-	}
-
-	function handleUserCommand(text: string) {
-		const lower = text.toLowerCase();
-
-		if (!entity) {
-			addAssistantMessage("请先在左侧选择一个条目。");
-			return;
-		}
-
-		if (
-			entity.type === "APPROVAL" &&
-			entity.status === "pending" &&
-			(lower.includes("批准") || lower.includes("approve") || lower.includes("同意") || lower.includes("通过"))
-		) {
-			setIsThinking(true);
-			const comment = text.replace(/批准|approve|同意|通过/gi, "").trim() || undefined;
-			approveMutation.mutate(
-				{ entityId: entity.id, comment },
-				{ onSettled: () => setIsThinking(false) },
-			);
-			return;
-		}
-
-		if (
-			entity.type === "APPROVAL" &&
-			entity.status === "pending" &&
-			(lower.includes("拒绝") || lower.includes("reject") || lower.includes("驳回"))
-		) {
-			setIsThinking(true);
-			const reason = text.replace(/拒绝|reject|驳回/gi, "").trim() || "通过 Agent 拒绝";
-			rejectMutation.mutate(
-				{ entityId: entity.id, reason },
-				{ onSettled: () => setIsThinking(false) },
-			);
-			return;
-		}
-
-		addAssistantMessage("目前我可以帮你处理审批操作（批准/拒绝）。更多能力正在开发中，你也可以通过 MCP 连接你自己的 Agent。");
-	}
+	}, [entityId, setMessages]);
 
 	useEffect(() => {
 		scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
 	}, [messages]);
 
-	const isApprovalPending = entity?.type === "APPROVAL" && entity?.status === "pending";
+	function handleSubmit(e: FormEvent) {
+		e.preventDefault();
+		const text = input.trim();
+		if (!text || isLoading) { return; }
+		setInput("");
+		sendMessage({ text });
+	}
+
+	function handleSuggestionClick(text: string) {
+		if (isLoading) { return; }
+		sendMessage({ text });
+	}
+
+	const suggestions = entity ? getSuggestions(entity.type, entity.status) : [];
 
 	return (
 		<div className={cn("flex flex-col h-full", className)}>
 			{/* Header */}
-			<div className="px-4 py-3 flex items-center justify-between shrink-0">
+			<div className="px-4 py-3 flex items-center justify-between shrink-0 border-b border-border/50">
 				<div className="flex items-center gap-2">
-					<SparklesIcon className="size-4 text-primary" />
-					<span className="text-sm font-medium">Flowmail Agent</span>
+					<SparklesIcon className="size-4 text-violet-500" />
+					<span className="text-sm font-semibold">Flowmail Agent</span>
+					{isLoading && (
+						<span className="text-[10px] text-muted-foreground flex items-center gap-1">
+							<Spinner className="size-2.5" />
+							思考中
+						</span>
+					)}
 				</div>
-				{onClose && (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7 text-muted-foreground hover:text-foreground"
-						onClick={onClose}
-					>
-						<XIcon className="size-3.5" />
-					</Button>
-				)}
+				<div className="flex items-center gap-1">
+					{hasMessages && (
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7 text-muted-foreground hover:text-foreground"
+							onClick={() => setMessages([])}
+						>
+							<RefreshCwIcon className="size-3" />
+						</Button>
+					)}
+					{onClose && (
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7 text-muted-foreground hover:text-foreground"
+							onClick={onClose}
+						>
+							<XIcon className="size-3.5" />
+						</Button>
+					)}
+				</div>
 			</div>
 
-			{/* Context card */}
+			{/* 当前 entity 上下文 */}
 			{entity && (
-				<div className="mx-3 mt-3 rounded-lg border bg-muted/30 p-3 shrink-0">
-					<div className="flex items-center gap-1.5 mb-1">
-						<Badge status="info" className="text-[10px] px-1.5 py-0">{entity.type}</Badge>
-						<Badge status={entity.status === "pending" ? "warning" : entity.status === "approved" ? "success" : "info"} className="text-[10px] px-1.5 py-0">
+				<div className="mx-3 mt-3 rounded-lg border bg-muted/20 px-3 py-2.5 shrink-0">
+					<div className="flex items-center gap-1.5 mb-0.5">
+						<Badge
+							status={entity.type === "APPROVAL" ? "warning" : entity.type === "REPORT" ? "success" : "info"}
+							className="h-4 rounded-sm px-1.5 text-[10px]"
+						>
+							{entity.type}
+						</Badge>
+						<Badge
+							status={
+								entity.status === "pending" ? "warning"
+								: entity.status === "approved" || entity.status === "completed" ? "success"
+								: entity.status === "rejected" ? "error"
+								: "info"
+							}
+							className="h-4 rounded-sm px-1.5 text-[10px]"
+						>
 							{entity.status}
 						</Badge>
 						{entity.aiConfidence != null && (
-							<span className="text-[10px] text-muted-foreground ml-auto">
-								{Math.round(entity.aiConfidence * 100)}%
+							<span className="ml-auto text-[10px] text-muted-foreground">
+								AI {Math.round(entity.aiConfidence * 100)}%
 							</span>
 						)}
 					</div>
-					<p className="text-sm font-medium truncate">{entity.title}</p>
+					<p className="text-xs font-medium truncate">{entity.title}</p>
 				</div>
 			)}
 
-			{/* Messages */}
-			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-				{!entityId && (
-					<div className="flex flex-col items-center justify-center h-full text-muted-foreground/50">
-						<BotIcon className="size-8 mb-2" />
-						<p className="text-xs text-center">选择一个条目后，<br />Agent 将为你分析并提供操作建议</p>
+			{/* 消息列表 */}
+			<div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+				{!entityId && !hasMessages && (
+					<div className="flex flex-col items-center justify-center h-full text-muted-foreground/40 pb-8">
+						<BotIcon className="size-10 mb-3" />
+						<p className="text-xs text-center leading-relaxed">
+							选择一个条目后，<br />Agent 将为你分析并提供操作建议
+						</p>
 					</div>
 				)}
 
-				{messages.map((msg) => (
-					<div key={msg.id} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
-						<div
-							className={cn(
-								"max-w-[90%] rounded-lg px-3 py-2 text-sm",
-								msg.role === "user"
-									? "bg-primary text-primary-foreground"
-									: "bg-muted/60 border",
-							)}
-						>
-							<p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-
-							{/* Tool card: approval action buttons */}
-							{msg.toolCard?.type === "entity_info" && isApprovalPending && (
-								<div className="mt-2 flex gap-2">
-									<Button
-										size="sm"
-										className="h-7 text-xs"
-										disabled={approveMutation.isPending || rejectMutation.isPending}
-										onClick={() => {
-											setIsThinking(true);
-											approveMutation.mutate(
-												{ entityId: entity!.id },
-												{ onSettled: () => setIsThinking(false) },
-											);
-										}}
-									>
-										<CheckIcon className="size-3 mr-1" />
-										批准
-									</Button>
-									<Button
-										size="sm"
-										variant="destructive"
-										className="h-7 text-xs"
-										disabled={approveMutation.isPending || rejectMutation.isPending}
-										onClick={() => {
-											setIsThinking(true);
-											rejectMutation.mutate(
-												{ entityId: entity!.id, reason: "Rejected via Agent" },
-												{ onSettled: () => setIsThinking(false) },
-											);
-										}}
-									>
-										<XIcon className="size-3 mr-1" />
-										拒绝
-									</Button>
-								</div>
-							)}
-
-							{/* Tool card: status change */}
-							{msg.toolCard?.type === "status_change" && (
-								<div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
-									<span className="line-through">{String(msg.toolCard.data.from)}</span>
-									<span>→</span>
-									<Badge
-										status={msg.toolCard.data.to === "approved" ? "success" : "error"}
-										className="text-[10px] px-1 py-0"
-									>
-										{String(msg.toolCard.data.to)}
-									</Badge>
-								</div>
-							)}
-						</div>
+				{entityId && !hasMessages && (
+					<div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 pb-8 gap-2">
+						<SparklesIcon className="size-8 text-violet-300" />
+						<p className="text-xs text-center">有什么我可以帮你的？</p>
 					</div>
-				))}
+				)}
 
-				{isThinking && (
-					<div className="flex items-center gap-2 text-muted-foreground">
-						<Spinner className="size-3" />
-						<span className="text-xs">处理中...</span>
+				{(messages as UIMessage[]).map((msg) => {
+					if (msg.role === "user") {
+						const userText = (msg.parts ?? [])
+							.filter(isTextUIPart)
+							.map((p) => p.text)
+							.join("");
+						return (
+							<div key={msg.id} className="flex justify-end">
+								<div className="max-w-[88%] rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-3.5 py-2.5">
+									<p className="text-sm leading-relaxed whitespace-pre-wrap">{userText}</p>
+								</div>
+							</div>
+						);
+					}
+
+					if (msg.role === "assistant") {
+						const textParts = (msg.parts ?? []).filter(isTextUIPart);
+						const toolParts = (msg.parts ?? []).filter(isToolOrDynamicToolUIPart);
+
+						const rawText = textParts.map((p) => p.text).join("");
+
+						// 从 AI 文本中提取有序 blocks
+						const textBlocks = parseBlocks(rawText);
+
+						// 从 Tool Results 中提取卡片 blocks
+						const toolBlocks: AgentBlock[] = toolParts.flatMap((p) => {
+							const dynP = p as DynamicToolUIPart;
+							if (dynP.state !== "output-available") { return []; }
+							const toolName = getToolOrDynamicToolName(p);
+							const card = toolResultToBlock(toolName, dynP.output as Record<string, unknown>, entityCtx);
+							return card ? [card] : [];
+						});
+
+						const hasPendingTool = toolParts.some((p) => {
+							const dynP = p as DynamicToolUIPart;
+							return dynP.state === "input-streaming" || dynP.state === "input-available";
+						});
+
+						// 合并：tool 卡片插在文本 blocks 和 suggestions 之间
+						const allBlocks: AgentBlock[] = [];
+						const suggestionBlocks: AgentBlock[] = [];
+						for (const b of textBlocks) {
+							if (b.type === "suggestions") {
+								suggestionBlocks.push(b);
+							} else {
+								allBlocks.push(b);
+							}
+						}
+						allBlocks.push(...toolBlocks, ...suggestionBlocks);
+
+						return (
+							<div key={msg.id} className="flex justify-start">
+								<div className="max-w-[92%] space-y-2">
+									{hasPendingTool && (
+										<div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
+											<Spinner className="size-3" />
+											<span>正在调用工具...</span>
+										</div>
+									)}
+
+									{allBlocks.map((block, i) => (
+										<BlockRenderer
+											key={i}
+											block={block}
+											onSuggestionClick={handleSuggestionClick}
+										/>
+									))}
+								</div>
+							</div>
+						);
+					}
+
+					return null;
+				})}
+
+				{isLoading && (messages as UIMessage[]).at(-1)?.role !== "assistant" && (
+					<div className="flex items-center gap-2 text-muted-foreground px-1">
+						<Spinner className="size-3.5" />
+						<span className="text-xs">Agent 正在思考...</span>
 					</div>
 				)}
 			</div>
 
-			{/* Quick actions */}
-			{entity && isApprovalPending && messages.length <= 1 && (
+			{/* 初始快捷建议 */}
+			{suggestions.length > 0 && !hasMessages && (
 				<div className="px-3 pb-2 flex gap-1.5 flex-wrap shrink-0">
-					{["批准这个审批", "拒绝，预算不足"].map((suggestion) => (
+					{suggestions.map((s) => (
 						<button
-							key={suggestion}
+							key={s}
 							type="button"
-							onClick={() => {
-								setInput(suggestion);
-							}}
-							className="text-[11px] px-2.5 py-1 rounded-full border text-muted-foreground hover:bg-muted/50 transition-colors"
+							onClick={() => handleSuggestionClick(s)}
+							className="text-[11px] px-2.5 py-1.5 rounded-full border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
 						>
-							{suggestion}
+							{s}
 						</button>
 					))}
 				</div>
 			)}
 
-			{/* Input */}
+			{/* 输入框 */}
 			<form onSubmit={handleSubmit} className="px-3 pb-3 pt-1 shrink-0">
-				<div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-1.5 focus-within:ring-1 focus-within:ring-primary/50">
+				<div className="flex items-center gap-2 rounded-xl border bg-background px-3 py-2 focus-within:ring-1 focus-within:ring-violet-500/40 transition-all">
 					<input
 						type="text"
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
-						placeholder="输入指令..."
-						className="flex-1 bg-transparent text-sm outline-none"
+						placeholder={entity ? `问关于「${entity.title.slice(0, 12)}...」的问题` : "输入指令..."}
+						className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+						disabled={isLoading}
 					/>
 					<button
 						type="submit"
-						disabled={!input.trim()}
-						className="text-muted-foreground hover:text-primary disabled:opacity-30 transition-colors"
+						disabled={!input.trim() || isLoading}
+						className="text-muted-foreground hover:text-violet-600 disabled:opacity-30 transition-colors"
 					>
-						<SendIcon className="size-4" />
+						{isLoading ? <Spinner className="size-4" /> : <SendIcon className="size-4" />}
 					</button>
 				</div>
 			</form>
 		</div>
 	);
-}
-
-function buildEntityIntro(entity: { type: string; title: string; aiSummary?: string | null }, fields: Record<string, unknown>): string {
-	const parts: string[] = [];
-
-	if (entity.type === "APPROVAL") {
-		parts.push(`这是一条审批请求：「${entity.title}」`);
-		if (fields.amount) {
-			parts.push(`金额：${fields.currency ?? ""}${fields.amount}`);
-		}
-		if (fields.deadline) {
-			parts.push(`截止：${fields.deadline}`);
-		}
-		if (fields.urgency && fields.urgency !== "normal") {
-			parts.push(`紧急度：${fields.urgency}`);
-		}
-		parts.push("\n你可以直接说「批准」或「拒绝」来处理。");
-	} else if (entity.type === "REPORT") {
-		parts.push(`这是一份汇报：「${entity.title}」`);
-		if (fields.overallStatus) {
-			parts.push(`整体状态：${fields.overallStatus}`);
-		}
-		if (entity.aiSummary) {
-			parts.push(`\n摘要：${entity.aiSummary}`);
-		}
-	} else {
-		parts.push(`「${entity.title}」— ${entity.type}`);
-		if (entity.aiSummary) {
-			parts.push(`\n${entity.aiSummary}`);
-		}
-	}
-
-	return parts.join("\n");
 }

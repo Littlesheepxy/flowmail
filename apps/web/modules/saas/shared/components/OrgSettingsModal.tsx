@@ -20,23 +20,33 @@ import { cn } from "@repo/ui";
 import {
 	BuildingIcon,
 	CreditCardIcon,
+	PlugIcon,
 	TriangleAlertIcon,
 	UsersIcon,
 	XIcon,
 } from "lucide-react";
+import { OpenClawSettings } from "@/modules/flowmail/components/OpenClawSettings";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+export type OrgTab = "general" | "members" | "billing" | "agent-integration" | "danger-zone";
 
 interface OrgSettingsModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	defaultTab?: OrgTab;
 }
 
-type OrgTab = "general" | "members" | "billing" | "danger-zone";
-
-export function OrgSettingsModal({ open, onOpenChange }: OrgSettingsModalProps) {
+export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettingsModalProps) {
 	const t = useTranslations();
-	const [activeTab, setActiveTab] = useState<OrgTab>("general");
+	const [activeTab, setActiveTab] = useState<OrgTab>(defaultTab ?? "general");
+
+	useEffect(() => {
+		if (open && defaultTab) {
+			setActiveTab(defaultTab);
+		}
+	}, [open, defaultTab]);
+
 	const { activeOrganization, isOrganizationAdmin } = useActiveOrganization();
 	const { activePlan } = usePurchases(activeOrganization?.id);
 
@@ -62,15 +72,20 @@ export function OrgSettingsModal({ open, onOpenChange }: OrgSettingsModalProps) 
 					},
 				]
 			: []),
-		...(isOrganizationAdmin
-			? [
-					{
-						id: "danger-zone" as const,
-						title: t("settings.menu.organization.dangerZone"),
-						icon: TriangleAlertIcon,
-					},
-				]
-			: []),
+	{
+		id: "agent-integration" as const,
+		title: "Agent 接入",
+		icon: PlugIcon,
+	},
+	...(isOrganizationAdmin
+		? [
+				{
+					id: "danger-zone" as const,
+					title: t("settings.menu.organization.dangerZone"),
+					icon: TriangleAlertIcon,
+				},
+			]
+		: []),
 	];
 
 	if (!activeOrganization) {
@@ -163,6 +178,13 @@ export function OrgSettingsModal({ open, onOpenChange }: OrgSettingsModalProps) 
 										activePlanId={activePlan?.id}
 									/>
 								</SettingsList>
+							)}
+
+							{activeTab === "agent-integration" && (
+								<OpenClawSettings
+									organizationId={activeOrganization.id}
+									mcpEndpointUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/mcp`}
+								/>
 							)}
 
 							{activeTab === "danger-zone" && (

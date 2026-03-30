@@ -1,5 +1,4 @@
-import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { generateObject, textModel } from "@repo/ai";
 import {
 	ClassificationResultSchema,
 	DynamicClassificationResultSchema,
@@ -25,7 +24,7 @@ export async function classifyEmail(input: {
 	content: string;
 }): Promise<ClassificationResult> {
 	const { object } = await generateObject({
-		model: openai("gpt-4o-mini"),
+		model: textModel,
 		schema: ClassificationResultSchema,
 		prompt: `You are an enterprise email classifier. Analyze the following email and determine its business type.
 
@@ -72,7 +71,7 @@ export async function classifyEmailDynamic(
 	const validSlugs = categories.map((c) => c.slug).join(", ");
 
 	const { object } = await generateObject({
-		model: openai("gpt-4o-mini"),
+		model: textModel,
 		schema: DynamicClassificationResultSchema,
 		prompt: `You are an enterprise email classifier. Analyze the following email and classify it into ONE of the provided categories.
 

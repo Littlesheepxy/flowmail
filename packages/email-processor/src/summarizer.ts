@@ -1,9 +1,8 @@
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { generateText, textModel } from "@repo/ai";
 
 export async function summarizeThread(threadContent: string): Promise<string> {
 	const { text } = await generateText({
-		model: openai("gpt-4o-mini"),
+		model: textModel,
 		prompt: `You are an enterprise email assistant. Summarize this email thread concisely.
 
 Requirements:
