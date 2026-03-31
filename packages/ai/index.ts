@@ -1,8 +1,21 @@
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 
-export const textModel = openai("gpt-4o-mini");
-export const imageModel = openai("dall-e-3");
-export const audioModel = openai("whisper-1");
+const gatewayBaseURL =
+	process.env.AI_GATEWAY_BASE_URL ?? "https://gateway.zerail.com/v1";
+const gatewayApiKey =
+	process.env.AI_GATEWAY_API_KEY ??
+	process.env.OPENAI_API_KEY ??
+	"";
+const gatewayModel =
+	process.env.AI_GATEWAY_MODEL ?? "Kimi-K2.5";
+
+const gateway = createOpenAI({
+	baseURL: gatewayBaseURL,
+	apiKey: gatewayApiKey,
+});
+
+export const textModel = gateway.chat(gatewayModel);
+export const fastModel = gateway.chat(gatewayModel);
 
 export * from "ai";
 export * from "./lib";

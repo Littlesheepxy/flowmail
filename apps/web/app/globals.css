@@ -39,3 +39,69 @@
 		stroke-width: 1.75;
 	}
 }
+
+/* Email body rendering styles */
+.email-body-wrapper {
+	max-width: 680px;
+}
+
+.email-body {
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: var(--foreground);
+	overflow-x: auto;
+}
+
+.email-body img {
+	max-width: 100%;
+	height: auto;
+}
+
+.email-body a {
+	color: var(--primary);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.email-body table {
+	border-collapse: collapse;
+	max-width: 100%;
+}
+
+.email-body blockquote {
+	border-left: 3px solid var(--border);
+	padding-left: 0.75rem;
+	margin-left: 0;
+	color: var(--muted-foreground);
+}
+
+.email-body.hide-quoted blockquote,
+.email-body.hide-quoted .gmail_quote {
+	display: none;
+}
+
+.email-body pre {
+	overflow-x: auto;
+	max-width: 100%;
+	background: var(--muted);
+	padding: 0.75rem;
+	border-radius: 0.375rem;
+	font-size: 0.8125rem;
+}
+
+.email-body h1,
+.email-body h2,
+.email-body h3 {
+	margin-top: 1rem;
+	margin-bottom: 0.5rem;
+	font-weight: 600;
+}
+
+.email-body p {
+	margin-bottom: 0.5rem;
+}
+
+.email-body hr {
+	border-color: var(--border);
+	margin: 1rem 0;
+}

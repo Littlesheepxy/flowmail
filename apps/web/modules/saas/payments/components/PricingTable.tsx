@@ -14,7 +14,7 @@ import {
 	ArrowRightIcon,
 	BadgePercentIcon,
 	CheckIcon,
-	PhoneIcon,
+	MailIcon,
 	StarIcon,
 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
@@ -273,7 +273,7 @@ export function PricingTable({
 												asChild
 											>
 												<LocaleLink href="/contact">
-													<PhoneIcon className="mr-2 size-4" />
+													<MailIcon className="mr-2 size-4" />
 													{t("pricing.contactSales")}
 												</LocaleLink>
 											</Button>

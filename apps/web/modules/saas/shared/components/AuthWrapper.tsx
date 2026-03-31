@@ -3,20 +3,29 @@ import { cn, Logo } from "@repo/ui";
 import { Footer } from "@saas/shared/components/Footer";
 import { ColorModeToggle } from "@shared/components/ColorModeToggle";
 import { LocaleSwitch } from "@shared/components/LocaleSwitch";
-import { CheckCircle2Icon, PhoneCallIcon, ZapIcon } from "lucide-react";
+import {
+	BotIcon,
+	InboxIcon,
+	WorkflowIcon,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { type PropsWithChildren, Suspense } from "react";
 
-const features = [
-	{ icon: PhoneCallIcon, text: "Skills-based call routing" },
-	{ icon: ZapIcon, text: "Real-time transcription & AI insights" },
-	{ icon: CheckCircle2Icon, text: "CRM & workflow integrations" },
-];
+const featureIcons = [InboxIcon, WorkflowIcon, BotIcon];
 
 export function AuthWrapper({
 	children,
 	contentClass,
 }: PropsWithChildren<{ contentClass?: string }>) {
+	const t = useTranslations("auth.branding");
+
+	const features = [
+		{ icon: featureIcons[0], text: t("feature1") },
+		{ icon: featureIcons[1], text: t("feature2") },
+		{ icon: featureIcons[2], text: t("feature3") },
+	];
+
 	return (
 		<div className="flex min-h-screen w-full">
 			{/* Left: gradient branding panel */}
@@ -39,12 +48,10 @@ export function AuthWrapper({
 				{/* Center content */}
 				<div className="relative z-10 flex flex-1 flex-col justify-center px-10 pb-8">
 					<h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
-						Your AI voice agent,
-						<br />
-						always on call.
+						{t("headline")}
 					</h1>
 					<p className="mt-4 text-white/50 text-base max-w-sm">
-						Automate inbound and outbound calls with a human-like AI that never sleeps.
+						{t("subtitle")}
 					</p>
 
 					<ul className="mt-8 flex flex-col gap-3">

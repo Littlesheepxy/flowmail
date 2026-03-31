@@ -1,20 +1,10 @@
-import { PageHeader } from "@saas/shared/components/PageHeader";
-import { EntityList } from "@flowmail/components/EntityList";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Reports" };
-
-export default function ReportsPage() {
-	return (
-		<div>
-			<PageHeader
-				title="Reports"
-				subtitle="Track progress updates and status reports from your team"
-			/>
-			<EntityList
-				type="REPORT"
-				title="Reports"
-				emptyMessage="No reports yet. Reports extracted from emails will appear here."
-			/>
-		</div>
-	);
+export default async function ReportsPage({
+	params,
+}: {
+	params: Promise<{ organizationSlug: string }>;
+}) {
+	const { organizationSlug } = await params;
+	redirect(`/app/${organizationSlug}/inbox?category=report`);
 }

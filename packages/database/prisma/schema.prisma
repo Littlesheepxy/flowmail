@@ -148,6 +148,7 @@ model Organization {
   emailConnections   EmailConnection[]
   emailThreads       EmailThread[]
   flowEntities       FlowEntity[]
+  categories         Category[]
 
   @@unique([slug])
   @@map("organization")
@@ -223,13 +224,22 @@ model EmailConnection {
   id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  provider       String       // "gmail" | "outlook"
+  provider       String       // "gmail" | "feishu" | "dingtalk" | "wecom" | "outlook" | "imap"
+  authType       String       @default("oauth2") // "oauth2" | "password" | "app_token"
   email          String
-  accessToken    String       @db.Text
-  refreshToken   String       @db.Text
+  accessToken    String?      @db.Text
+  refreshToken   String?      @db.Text
   tokenExpiresAt DateTime?
+  imapHost       String?
+  imapPort       Int?
+  smtpHost       String?
+  smtpPort       Int?
+  imapPassword   String?      @db.Text
+  appId          String?
+  appSecret      String?      @db.Text
   isActive       Boolean      @default(true)
   lastSyncAt     DateTime?
+  syncCursor     String?      @db.Text
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   threads        EmailThread[]
@@ -242,27 +252,72 @@ model EmailConnection {
 // ─── Flowmail: Email Thread (raw email data) ───
 
 model EmailThread {
-  id               String          @id @default(cuid())
+  id               String            @id @default(cuid())
   organizationId   String
-  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   connectionId     String
-  connection       EmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connection       EmailConnection   @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   externalThreadId String
   subject          String
   sender           String
-  participants     String          @db.Text
-  snippet          String?         @db.Text
-  rawPayload       String?         @db.Text
+  senderName       String?
+  participants     String            @db.Text
+  toRecipients     String?           @db.Text
+  ccRecipients     String?           @db.Text
+  snippet          String?           @db.Text
+  bodyHtml         String?           @db.Text
+  bodyText         String?           @db.Text
+  rawPayload       String?           @db.Text
   entityId         String?
-  entity           FlowEntity?     @relation(fields: [entityId], references: [id])
+  entity           FlowEntity?       @relation(fields: [entityId], references: [id])
+  attachments      EmailAttachment[]
   receivedAt       DateTime
   processedAt      DateTime?
-  createdAt        DateTime        @default(now())
+  createdAt        DateTime          @default(now())
 
   @@unique([connectionId, externalThreadId])
   @@index([organizationId])
   @@index([entityId])
   @@map("email_thread")
+}
+
+// ─── Flowmail: Email Attachment ───
+
+model EmailAttachment {
+  id         String      @id @default(cuid())
+  threadId   String
+  thread     EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String?
+  size       Int?
+  externalId String
+  contentId  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([threadId])
+  @@map("email_attachment")
+}
+
+// ─── Flowmail: Category (dynamic, user-defined) ───
+
+model Category {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String
+  icon           String       @default("InboxIcon")
+  color          String       @default("#6366f1")
+  aiPrompt       String       @db.Text @default("")
+  sortOrder      Int          @default(0)
+  isDefault      Boolean      @default(false)
+  entities       FlowEntity[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("category")
 }
 
 // ─── Flowmail: Structured Entity (core model) ───
@@ -279,6 +334,8 @@ model FlowEntity {
   organizationId  String
   organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   type            EntityType
+  categoryId      String?
+  category        Category?       @relation(fields: [categoryId], references: [id])
   title           String
   status          String          @default("pending")
   extractedFields String          @db.Text @default("{}")
@@ -293,6 +350,7 @@ model FlowEntity {
   updatedAt       DateTime        @updatedAt
 
   @@index([organizationId, type])
+  @@index([organizationId, categoryId])
   @@index([organizationId, status])
   @@index([assigneeId])
   @@map("flow_entity")
@@ -304,7 +362,7 @@ model TimelineEvent {
   id        String     @id @default(cuid())
   entityId  String
   entity    FlowEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  type      String     // "email_received" | "status_changed" | "action_taken" | "ai_summary"
+  type      String     // "email_received" | "email_sent" | "status_changed" | "action_taken" | "ai_summary"
   content   String     @db.Text
   metadata  String?    @db.Text
   actorId   String?

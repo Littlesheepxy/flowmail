@@ -10,6 +10,14 @@ export const metadata: Metadata = {
 		default: config.appName,
 		template: `%s | ${config.appName}`,
 	},
+	description:
+		"Flowmail turns your inbox into actionable workflows. AI-powered email classification, one-click approvals, and MCP-native agent integration.",
+	openGraph: {
+		title: config.appName,
+		description:
+			"Stop reading emails. Start executing. Flowmail automates approvals, reports, and tasks from your inbox.",
+		siteName: config.appName,
+	},
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {

@@ -29,6 +29,7 @@
 		"push": "dotenv -c -e ../../.env -- prisma db push",
 		"migrate": "dotenv -c -e ../../.env -- prisma migrate dev",
 		"studio": "dotenv -c -e ../../.env -- prisma studio",
+		"seed:flowmail": "dotenv -c -e ../../.env.local -- tsx prisma/seed-flowmail.ts",
 		"type-check": "tsc --noEmit"
 	},
 	"types": "./**/.tsx",

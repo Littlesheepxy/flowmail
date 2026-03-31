@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@repo/ui";
+import { AgentFloatingButton } from "@flowmail/components/AgentFloatingButton";
+import { AgentProvider } from "@flowmail/components/AgentProvider";
 import { NavBar } from "@saas/shared/components/NavBar";
 import type { PropsWithChildren } from "react";
 import { config } from "@/config";
@@ -23,12 +25,13 @@ function AppContent({ children }: PropsWithChildren) {
 			>
 				<main
 					className={cn(
-						"py-6 bg-card px-4 md:p-8 min-h-full w-full border-t md:border-t-0 md:border-l",
+						"py-6 bg-card px-4 md:p-8 min-h-full w-full border-t md:border-t-0",
 					)}
 				>
 					<div className="container px-0 h-full">{children}</div>
 				</main>
 			</div>
+			<AgentFloatingButton />
 		</div>
 	);
 }
@@ -36,7 +39,9 @@ function AppContent({ children }: PropsWithChildren) {
 export function AppWrapper({ children }: PropsWithChildren) {
 	return (
 		<SidebarProvider>
-			<AppContent>{children}</AppContent>
+			<AgentProvider>
+				<AppContent>{children}</AppContent>
+			</AgentProvider>
 		</SidebarProvider>
 	);
 }

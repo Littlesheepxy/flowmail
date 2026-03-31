@@ -523,16 +523,16 @@ export function AgentsVisual() {
 					{agentNodes.map((agent, i) => (
 						<div key={agent.nameKey} className="flex items-center gap-2">
 							<MagicCard className="rounded-full p-0" gradientOpacity={0.3}>
-								<div
-									ref={agentRefs[i]}
+							<div
+								ref={agentRefs[i]}
 									className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full bg-background p-2.5"
-								>
+							>
 									{agent.logoSrc ? (
-										<Image
+								<Image
 											src={agent.logoSrc}
 											alt={t(agent.nameKey)}
-											width={20}
-											height={20}
+									width={20}
+									height={20}
 											className={`h-5 w-5 ${agent.invertDark ? "dark:invert" : ""}`}
 										/>
 									) : agent.lucideIcon ? (
@@ -541,7 +541,7 @@ export function AgentsVisual() {
 											return <Icon className="h-5 w-5 text-foreground/70" />;
 										})()
 									) : null}
-								</div>
+							</div>
 							</MagicCard>
 							<span className="text-[11px] text-foreground/50 font-medium hidden md:block">
 								{t(agent.nameKey)}
@@ -562,8 +562,8 @@ export function AgentsVisual() {
 							className="relative z-10 flex h-18 w-18 items-center justify-center rounded-full bg-background"
 							animate={{ scale: [1, 1.06, 1] }}
 							transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-						>
-							<Image
+					>
+						<Image
 								src="/logo.png"
 								alt="Flowmail"
 								width={40}
@@ -612,7 +612,7 @@ export function AgentsVisual() {
 									) : null}
 								</div>
 							</MagicCard>
-						</div>
+					</div>
 					))}
 				</div>
 			</div>
@@ -653,21 +653,21 @@ export function AgentsVisual() {
 			{execRefs.map((ref, i) => {
 				const curvatures = [-12, -4, 4, 12];
 				return (
-					<AnimatedBeam
+			<AnimatedBeam
 						key={`beam-r-${i}`}
-						containerRef={containerRef}
+				containerRef={containerRef}
 						fromRef={hubRef}
 						toRef={ref}
 						curvature={curvatures[i]}
 						startXOffset={36}
 						endXOffset={-20}
-						pathWidth={1.5}
+				pathWidth={1.5}
 						pathOpacity={0.1}
-						gradientStartColor="#22c55e"
-						gradientStopColor="#4ade80"
+				gradientStartColor="#22c55e"
+				gradientStopColor="#4ade80"
 						duration={3.5 + i * 0.3}
 						delay={0.5}
-					/>
+			/>
 				);
 			})}
 

@@ -78,19 +78,31 @@ export type WaitlistEntryScalarFieldEnum = z.infer<typeof WaitlistEntryScalarFie
 
 // File: EmailConnectionScalarFieldEnum.schema.ts
 
-export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'isActive', 'lastSyncAt', 'createdAt', 'updatedAt'])
+export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'authType', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'imapHost', 'imapPort', 'smtpHost', 'smtpPort', 'imapPassword', 'appId', 'appSecret', 'isActive', 'lastSyncAt', 'syncCursor', 'createdAt', 'updatedAt'])
 
 export type EmailConnectionScalarFieldEnum = z.infer<typeof EmailConnectionScalarFieldEnumSchema>;
 
 // File: EmailThreadScalarFieldEnum.schema.ts
 
-export const EmailThreadScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'connectionId', 'externalThreadId', 'subject', 'sender', 'participants', 'snippet', 'rawPayload', 'entityId', 'receivedAt', 'processedAt', 'createdAt'])
+export const EmailThreadScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'connectionId', 'externalThreadId', 'subject', 'sender', 'senderName', 'participants', 'toRecipients', 'ccRecipients', 'snippet', 'bodyHtml', 'bodyText', 'rawPayload', 'entityId', 'receivedAt', 'processedAt', 'createdAt'])
 
 export type EmailThreadScalarFieldEnum = z.infer<typeof EmailThreadScalarFieldEnumSchema>;
 
+// File: EmailAttachmentScalarFieldEnum.schema.ts
+
+export const EmailAttachmentScalarFieldEnumSchema = z.enum(['id', 'threadId', 'filename', 'mimeType', 'size', 'externalId', 'contentId', 'createdAt'])
+
+export type EmailAttachmentScalarFieldEnum = z.infer<typeof EmailAttachmentScalarFieldEnumSchema>;
+
+// File: CategoryScalarFieldEnum.schema.ts
+
+export const CategoryScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'name', 'slug', 'icon', 'color', 'aiPrompt', 'sortOrder', 'isDefault', 'createdAt', 'updatedAt'])
+
+export type CategoryScalarFieldEnum = z.infer<typeof CategoryScalarFieldEnumSchema>;
+
 // File: FlowEntityScalarFieldEnum.schema.ts
 
-export const FlowEntityScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'type', 'title', 'status', 'extractedFields', 'aiSummary', 'aiConfidence', 'requiresReview', 'assigneeId', 'createdAt', 'updatedAt'])
+export const FlowEntityScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'type', 'categoryId', 'title', 'status', 'extractedFields', 'aiSummary', 'aiConfidence', 'requiresReview', 'assigneeId', 'createdAt', 'updatedAt'])
 
 export type FlowEntityScalarFieldEnum = z.infer<typeof FlowEntityScalarFieldEnumSchema>;
 
@@ -318,12 +330,21 @@ export const EmailConnectionSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
   provider: z.string(),
+  authType: z.string().default("oauth2"),
   email: z.string(),
-  accessToken: z.string(),
-  refreshToken: z.string(),
+  accessToken: z.string().nullish(),
+  refreshToken: z.string().nullish(),
   tokenExpiresAt: z.date().nullish(),
+  imapHost: z.string().nullish(),
+  imapPort: z.number().int().nullish(),
+  smtpHost: z.string().nullish(),
+  smtpPort: z.number().int().nullish(),
+  imapPassword: z.string().nullish(),
+  appId: z.string().nullish(),
+  appSecret: z.string().nullish(),
   isActive: z.boolean().default(true),
   lastSyncAt: z.date().nullish(),
+  syncCursor: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -340,8 +361,13 @@ export const EmailThreadSchema = z.object({
   externalThreadId: z.string(),
   subject: z.string(),
   sender: z.string(),
+  senderName: z.string().nullish(),
   participants: z.string(),
+  toRecipients: z.string().nullish(),
+  ccRecipients: z.string().nullish(),
   snippet: z.string().nullish(),
+  bodyHtml: z.string().nullish(),
+  bodyText: z.string().nullish(),
   rawPayload: z.string().nullish(),
   entityId: z.string().nullish(),
   receivedAt: z.date(),
@@ -352,12 +378,48 @@ export const EmailThreadSchema = z.object({
 export type EmailThreadType = z.infer<typeof EmailThreadSchema>;
 
 
+// File: EmailAttachment.schema.ts
+
+export const EmailAttachmentSchema = z.object({
+  id: z.string(),
+  threadId: z.string(),
+  filename: z.string(),
+  mimeType: z.string().nullish(),
+  size: z.number().int().nullish(),
+  externalId: z.string(),
+  contentId: z.string().nullish(),
+  createdAt: z.date(),
+});
+
+export type EmailAttachmentType = z.infer<typeof EmailAttachmentSchema>;
+
+
+// File: Category.schema.ts
+
+export const CategorySchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  icon: z.string().default("InboxIcon"),
+  color: z.string().default("#6366f1"),
+  aiPrompt: z.string(),
+  sortOrder: z.number().int(),
+  isDefault: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type CategoryType = z.infer<typeof CategorySchema>;
+
+
 // File: FlowEntity.schema.ts
 
 export const FlowEntitySchema = z.object({
   id: z.string(),
   organizationId: z.string(),
   type: EntityTypeSchema,
+  categoryId: z.string().nullish(),
   title: z.string(),
   status: z.string().default("pending"),
   extractedFields: z.string().default("{}"),

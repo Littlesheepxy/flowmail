@@ -6,9 +6,11 @@
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@ai-sdk/openai": "^2.0.0",
+		"@repo/ai": "workspace:*",
 		"@repo/database": "workspace:*",
 		"ai": "^5.0.0",
+		"googleapis": "^171.4.0",
+		"imapflow": "^1.2.18",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {

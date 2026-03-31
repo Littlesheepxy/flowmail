@@ -1,20 +1,23 @@
-# Relay
+# Flowmail
 
-AI-powered voice communication platform. Every capability is exposed as both REST API and MCP Tools — AI Agent friendly by design.
+AI-powered email execution platform. Flowmail turns your inbox into actionable workflows — approvals, reports, and tasks, handled automatically. Every capability is exposed as both REST API and MCP Tools — AI Agent friendly by design.
 
 ## Architecture
 
 ```
-relay/
-├── apps/web/           # Next.js SaaS application (auth, billing, dashboard)
-├── packages/           # Shared TypeScript packages (api, auth, db, payments, mcp)
-├── services/           # Python microservices
-│   ├── voice-agent/    # Pipecat voice AI pipeline
-│   ├── voice-api/      # FastAPI for voice/task management
-│   ├── mcp_server/     # MCP server (Python, legacy — migrating to packages/mcp)
-│   └── livekit/        # LiveKit WebRTC config
-├── tooling/            # Build tooling and shared configs
-└── docker-compose.yml  # Infrastructure: PG + Redis + MinIO + LiveKit + Python services
+flowmail/
+├── apps/web/              # Next.js SaaS application (auth, billing, dashboard, marketing)
+├── packages/              # Shared TypeScript packages
+│   ├── api/               # oRPC API routes (approvals, entities, email-connections)
+│   ├── auth/              # Authentication (better-auth)
+│   ├── database/          # Prisma ORM + PostgreSQL schema
+│   ├── email-processor/   # AI email classification, extraction & summarization
+│   ├── i18n/              # Internationalization (en/zh)
+│   ├── mcp/               # MCP server (tools for agents)
+│   ├── payments/          # Stripe billing
+│   └── ui/                # Shared UI components
+├── tooling/               # Build tooling and shared configs
+└── docker-compose.yml     # Infrastructure: PostgreSQL + Redis + MinIO
 ```
 
 ## Getting Started
@@ -24,15 +27,14 @@ relay/
 - Node.js >= 20
 - pnpm >= 10
 - Docker & Docker Compose
-- Python 3.11+ (for voice services)
 
 ### Development
 
 ```bash
-# 1. Start infrastructure + Python services
+# 1. Start infrastructure
 docker compose up -d
 
-# 2. Install Node.js dependencies
+# 2. Install dependencies
 pnpm install
 
 # 3. Initialize database
@@ -42,11 +44,19 @@ pnpm --filter database db:push
 pnpm dev
 ```
 
+## Core Features
+
+- **Smart Inbox** — AI classifies incoming emails into approvals, reports, issues, and more
+- **One-click Approvals** — Review extracted details and approve/reject with full audit trail
+- **Auto-execution** — Approved items trigger confirmation emails, calendar events, and IM notifications
+- **Report Insights** — Extract progress, blockers, and next steps from status emails; auto-create tasks
+- **Agent-native** — MCP tools covering the full lifecycle: classify, approve, execute, notify
+
 ## Dual Interface: API + MCP
 
 Every platform capability has two entry points:
 
 - **REST API** — for web frontend and traditional integrations
-- **MCP Tools** — for AI agents (OpenClaw, Claude, Cursor, etc.)
+- **MCP Tools** — for AI agents (Claude, Cursor, OpenClaw, etc.)
 
 Both share the same business logic packages — MCP is not a wrapper around the API.

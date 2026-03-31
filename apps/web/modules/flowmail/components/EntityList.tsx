@@ -66,8 +66,8 @@ export function EntityList({
 	const { activeOrganization } = useActiveOrganization();
 	const pathname = usePathname();
 
-	const { data, isLoading } = useQuery(
-		orpc.flowEntities.list.queryOptions({
+	const { data, isLoading } = useQuery({
+		...orpc.flowEntities.list.queryOptions({
 			input: {
 				organizationId: activeOrganization?.id ?? "",
 				type,
@@ -75,7 +75,8 @@ export function EntityList({
 				offset: 0,
 			},
 		}),
-	);
+		refetchInterval: 5000,
+	});
 
 	const entities = data?.entities ?? [];
 

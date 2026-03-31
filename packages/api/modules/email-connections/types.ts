@@ -10,6 +10,40 @@ export const connectGmailSchema = z.object({
 	redirectUri: z.string().url(),
 });
 
+export const connectImapSchema = z.object({
+	organizationId: z.string(),
+	provider: z.enum(["feishu", "dingtalk", "wecom", "imap"]),
+	email: z.string().email(),
+	password: z.string().min(1),
+	imapHost: z.string().optional(),
+	imapPort: z.number().optional(),
+	smtpHost: z.string().optional(),
+	smtpPort: z.number().optional(),
+});
+
 export const disconnectSchema = z.object({
 	connectionId: z.string(),
+});
+
+export const syncConnectionSchema = z.object({
+	connectionId: z.string(),
+});
+
+export const testConnectionSchema = z.object({
+	connectionId: z.string(),
+});
+
+export const connectOAuthSchema = z.object({
+	organizationId: z.string(),
+	provider: z.enum(["feishu", "dingtalk", "wecom"]),
+	appId: z.string().min(1),
+	appSecret: z.string().min(1),
+	authCode: z.string().min(1),
+	redirectUri: z.string().url(),
+	imapPassword: z.string().optional(),
+});
+
+export const updateImapPasswordSchema = z.object({
+	connectionId: z.string(),
+	imapPassword: z.string().min(1),
 });
