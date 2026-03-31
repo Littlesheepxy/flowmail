@@ -19,6 +19,7 @@ import {
 	AlertTriangleIcon,
 	BotIcon,
 	BrainIcon,
+	CheckCircle2Icon,
 	ChevronDownIcon,
 	SendIcon,
 	SparklesIcon,
@@ -96,6 +97,54 @@ function toolResultToBlock(
 		return {
 			type: "entity_list",
 			data: { totalCount: Number(result.count ?? items.length), filterLabel: "待审批事项", items },
+		};
+	}
+
+	if (toolName === "get_entity" && result.id) {
+		const entityType = String(result.type ?? "");
+		if (entityType === "APPROVAL") {
+			const fields = (result.extractedFields ?? {}) as Record<string, string>;
+			return {
+				type: "approval_card",
+				data: {
+					entityId:      String(result.id),
+					title:         String(result.title ?? ""),
+					applicant:     fields.applicant ?? fields.申请人,
+					amount:        fields.amount ?? fields.金额,
+					purpose:       fields.purpose ?? fields.用途 ?? String(result.aiSummary ?? ""),
+					deadline:      fields.deadline ?? fields.截止日期,
+					urgency:       fields.urgency ?? fields.紧急程度,
+					currentStatus: String(result.status ?? "pending"),
+				},
+			};
+		}
+		if (entityType === "REPORT") {
+			const fields = (result.extractedFields ?? {}) as Record<string, string>;
+			return {
+				type: "report_card",
+				data: {
+					entityId:            String(result.id),
+					title:               String(result.title ?? ""),
+					progress:            fields.progress ?? fields.进度,
+					weeklyVelocity:      fields.weeklyVelocity ?? fields.本周速度,
+					blockers:            fields.blockers ?? fields.阻塞项,
+					completedMilestones: fields.completedMilestones ?? fields.已完成里程碑,
+					plannedCompletion:   fields.plannedCompletion ?? fields.预计完成,
+				},
+			};
+		}
+	}
+
+	if ((toolName === "add_note" || toolName === "update_entity_status") && result.success) {
+		return {
+			type: "action_result",
+			data: {
+				success: true,
+				action:  toolName === "add_note" ? "add_note" : "update_status",
+				message: toolName === "add_note" ? "备注已添加" : "状态已更新",
+				fromStatus: result.fromStatus ? String(result.fromStatus) : undefined,
+				toStatus:   result.toStatus ? String(result.toStatus) : undefined,
+			},
 		};
 	}
 
@@ -510,7 +559,12 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 														</div>
 													);
 												}
-												return null;
+												return (
+													<div key={`${msg.id}-tool-${i}`} className="flex items-center gap-1.5 text-xs text-muted-foreground/70 px-1 py-0.5">
+														<CheckCircle2Icon className="size-3 text-emerald-500" />
+														<span>{toolLabel(toolName).replace("正在", "已完成").replace("...", "")}</span>
+													</div>
+												);
 											}
 										}
 
