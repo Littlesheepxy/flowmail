@@ -9,6 +9,7 @@ import { useChat } from "@ai-sdk/react";
 import {
 	DefaultChatTransport,
 	isTextUIPart,
+	isReasoningUIPart,
 	isToolOrDynamicToolUIPart,
 	getToolOrDynamicToolName,
 	type UIMessage,
@@ -16,6 +17,8 @@ import {
 } from "ai";
 import {
 	BotIcon,
+	BrainIcon,
+	ChevronDownIcon,
 	SendIcon,
 	SparklesIcon,
 	XIcon,
@@ -54,11 +57,13 @@ function parseBlocks(text: string): AgentBlock[] {
 				const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
 				const blockType = parsed.type as string;
 
-				if (blockType === "suggestions" && Array.isArray(parsed.items)) {
-					blocks.push({ type: "suggestions", items: parsed.items as string[] });
-				} else if (["approval_card", "report_card", "risk_card", "timeline_diff", "entity_list", "action_confirm", "action_result"].includes(blockType)) {
-					blocks.push(parsed as AgentBlock);
-				}
+			if (blockType === "suggestions" && Array.isArray(parsed.items)) {
+				blocks.push({ type: "suggestions", items: parsed.items as string[] });
+			} else if (["approval_card", "report_card", "risk_card", "timeline_diff", "entity_list", "action_confirm", "action_result"].includes(blockType)) {
+				const { type: _type, ...rest } = parsed;
+				const cardData = parsed.data ?? rest;
+				blocks.push({ type: blockType, data: cardData } as AgentBlock);
+			}
 			} catch {
 				// ignore malformed JSON
 			}
@@ -71,6 +76,85 @@ function parseBlocks(text: string): AgentBlock[] {
 	}
 
 	return blocks;
+}
+
+function toolResultToText(toolName: string, result: Record<string, unknown>): string {
+	if (result.error) {
+		return `⚠️ 操作失败：${result.error}`;
+	}
+	switch (toolName) {
+		case "get_entity": {
+			const title = result.title ?? "未知";
+			const type = result.type ?? "";
+			const status = result.status ?? "";
+			const summary = result.aiSummary ?? "";
+			const fields = result.extractedFields as Record<string, unknown> | undefined;
+			const lines = [`📋 **${title}**（${type} · ${status}）`];
+			if (summary) {
+				lines.push(String(summary));
+			}
+			if (fields && typeof fields === "object") {
+				const fieldParts = Object.entries(fields)
+					.slice(0, 5)
+					.map(([k, v]) => `${k}: ${v}`)
+					.join("  |  ");
+				if (fieldParts) {
+					lines.push(fieldParts);
+				}
+			}
+			const eventCount = result.timelineCount;
+			if (eventCount) {
+				lines.push(`共 ${eventCount} 条时间线事件`);
+			}
+			return lines.join("\n");
+		}
+		case "approve_entity":
+			return `✅ 已批准「${result.title ?? "审批请求"}」`;
+		case "reject_entity":
+			return `❌ 已拒绝「${result.title ?? "审批请求"}」`;
+		case "predict_risk": {
+			const level = result.riskLevel ?? "unknown";
+			const factors = (result.riskFactors as string[]) ?? [];
+			const lines = [`🔍 风险等级：**${level}**`];
+			if (factors.length > 0) {
+				lines.push("风险因素：" + factors.slice(0, 3).join("、"));
+			}
+			if (result.predictedOutcome) {
+				lines.push("预期结果：" + String(result.predictedOutcome));
+			}
+			return lines.join("\n");
+		}
+		case "get_timeline_diff": {
+			const lines = [`📊 ${result.summary ?? "时间线变化分析完成"}`];
+			if (result.progressDelta != null) {
+				const delta = Number(result.progressDelta);
+				lines.push(`进度变化：${delta > 0 ? "+" : ""}${delta}%`);
+			}
+			const risks = (result.riskSignals as string[]) ?? [];
+			if (risks.length > 0) {
+				lines.push("⚠️ " + risks.slice(0, 3).join("、"));
+			}
+			if (result.recommendation) {
+				lines.push("建议：" + String(result.recommendation));
+			}
+			return lines.join("\n");
+		}
+		case "add_note":
+			return `✅ 已添加${result.type === "milestone" ? "里程碑" : "备注"}：${result.content ?? ""}`;
+		case "update_entity_status":
+			return `✅ 状态已变更：${result.fromStatus} → ${result.toStatus}`;
+		case "list_pending_approvals": {
+			const count = result.count ?? 0;
+			const items = (result.items as Array<{ title: string; status: string }>) ?? [];
+			if (items.length === 0) {
+				return "📭 目前没有待审批事项";
+			}
+			const itemLines = items.slice(0, 5).map((it) => `• ${it.title}`).join("\n");
+			return `📬 共 ${count} 条待审批事项\n${itemLines}`;
+		}
+		default:
+			return "操作完成";
+	}
 }
 
 /** Tool 结果 → UI 卡片 block */
@@ -137,13 +221,48 @@ function toolResultToBlock(
 // ── 快捷建议 ─────────────────────────────────────────────
 
 function getSuggestions(type: string, status: string): string[] {
-	if (type === "APPROVAL" && status === "pending") {
-		return ["帮我分析这个审批", "有哪些风险？", "批准这个审批", "拒绝，预算超限"];
+	if (type === "APPROVAL") {
+		if (status === "pending") {
+			return ["分析这个审批", "评估风险", "批准", "拒绝"];
+		}
+		return ["查看审批详情", "查看时间线变化"];
 	}
 	if (type === "REPORT") {
-		return ["总结一下项目进展", "分析风险", "查看最近变化"];
+		if (status === "in_progress" || status === "received") {
+			return ["总结项目进展", "分析风险", "查看最近变化", "有什么需要跟进的？"];
+		}
+		return ["查看汇报详情", "分析风险"];
 	}
-	return ["分析这个事项", "有什么风险？", "查看时间线变化"];
+	if (type === "ISSUE") {
+		return ["分析这个问题", "评估风险和影响", "查看处理进展"];
+	}
+	return ["分析这个事项", "评估风险", "查看时间线变化"];
+}
+
+// ── 思考过程 ─────────────────────────────────────────────
+
+function ReasoningToggle({ text }: { text: string }) {
+	const [open, setOpen] = useState(false);
+	return (
+		<div className="rounded-lg border border-violet-200/50 dark:border-violet-800/30 bg-violet-50/30 dark:bg-violet-950/20">
+			<button
+				type="button"
+				onClick={() => setOpen((v) => !v)}
+				className="flex items-center gap-1.5 w-full px-2.5 py-1.5 text-[11px] text-violet-600 dark:text-violet-400 hover:bg-violet-100/40 dark:hover:bg-violet-900/20 transition-colors rounded-lg"
+			>
+				<BrainIcon className="size-3" />
+				<span>思考过程</span>
+				<ChevronDownIcon className={cn("size-3 ml-auto transition-transform", open && "rotate-180")} />
+			</button>
+			{open && (
+				<div className="px-2.5 pb-2 pt-0.5">
+					<p className="text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap">
+						{text.length > 500 ? text.slice(0, 500) + "…" : text}
+					</p>
+				</div>
+			)}
+		</div>
+	);
 }
 
 // ── Block 渲染器 ─────────────────────────────────────────
@@ -230,10 +349,11 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 		[pageContext],
 	);
 
-	const { messages, sendMessage, status, setMessages } = useChat({ transport });
+	const { messages, sendMessage, status, setMessages, error } = useChat({ transport });
 	const { pendingExecution, consumeExecution } = useAgent();
 
 	const isLoading = status === "streaming" || status === "submitted";
+	const hasError = status === "error";
 	const hasMessages = messages.length > 0;
 
 	useEffect(() => {
@@ -388,19 +508,29 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 
 					if (msg.role === "assistant") {
 						const textParts = (msg.parts ?? []).filter(isTextUIPart);
+						const reasoningParts = (msg.parts ?? []).filter(isReasoningUIPart);
 						const toolParts = (msg.parts ?? []).filter(isToolOrDynamicToolUIPart);
+
+						const reasoningText = reasoningParts.map((p) => p.reasoning).join("");
 
 						const rawText = textParts.map((p) => p.text).join("");
 
 						// 从 AI 文本中提取有序 blocks
 						const textBlocks = parseBlocks(rawText);
 
-						// 从 Tool Results 中提取卡片 blocks
+						// 从 Tool Results 中提取卡片 blocks + 自动文本
+						const completedTools: Array<{ name: string; output: Record<string, unknown> }> = [];
 						const toolBlocks: AgentBlock[] = toolParts.flatMap((p) => {
 							const dynP = p as DynamicToolUIPart;
+							if (dynP.state === "error") {
+								completedTools.push({ name: getToolOrDynamicToolName(p), output: { error: "工具执行出错" } });
+								return [];
+							}
 							if (dynP.state !== "output-available") { return []; }
 							const toolName = getToolOrDynamicToolName(p);
-							const card = toolResultToBlock(toolName, dynP.output as Record<string, unknown>, entityCtx);
+							const output = dynP.output as Record<string, unknown>;
+							completedTools.push({ name: toolName, output });
+							const card = toolResultToBlock(toolName, output, entityCtx);
 							return card ? [card] : [];
 						});
 
@@ -419,11 +549,24 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 								allBlocks.push(b);
 							}
 						}
+
+						const hasRealText = allBlocks.some((b) => b.type === "text");
+						if (!hasRealText && completedTools.length > 0) {
+							const autoText = completedTools
+								.map((t) => toolResultToText(t.name, t.output))
+								.join("\n\n");
+							allBlocks.unshift({ type: "text", content: autoText });
+						}
+
 						allBlocks.push(...toolBlocks, ...suggestionBlocks);
 
 						return (
 							<div key={msg.id} className="flex justify-start">
 								<div className="max-w-[92%] space-y-2">
+									{reasoningText && (
+										<ReasoningToggle text={reasoningText} />
+									)}
+
 									{hasPendingTool && (
 										<div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
 											<Spinner className="size-3" />
@@ -450,6 +593,21 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 					<div className="flex items-center gap-2 text-muted-foreground px-1">
 						<Spinner className="size-3.5" />
 						<span className="text-xs">Agent 正在思考...</span>
+					</div>
+				)}
+
+				{hasError && (
+					<div className="mx-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+						<p className="text-xs text-destructive">
+							⚠️ Agent 遇到错误{error?.message ? `：${error.message.slice(0, 80)}` : "，请重试"}
+						</p>
+						<button
+							type="button"
+							onClick={() => setMessages([])}
+							className="mt-1.5 text-[11px] text-destructive/80 hover:text-destructive underline"
+						>
+							清除对话重试
+						</button>
 					</div>
 				)}
 			</div>

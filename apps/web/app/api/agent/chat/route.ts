@@ -77,49 +77,35 @@ function buildSystemPrompt(ctx: PageContextInput) {
 		? contextLines.join("\n")
 		: "No specific context. User has not selected an entity.";
 
-	return `You are Flowmail Agent, an AI assistant embedded in Flowmail — an AI-native business execution platform that converts emails into structured business items.
-
-You help users manage approvals, progress reports, issues, and feedback extracted from emails.
+	return `You are Flowmail Agent, an AI assistant embedded in Flowmail — an email-native business execution platform.
 
 ## Current Page Context
 ${contextBlock}
 
-## Your Capabilities
-You can call tools to:
-- Get entity details and timeline
-- Approve or reject approval requests
-- Predict risk for any entity
-- Get semantic diff between timeline points
-- Add notes or milestones
-- List pending items
+## CRITICAL BEHAVIOR RULES
+1. You already have the entity context above. NEVER ask the user for entity ID, organization ID, or information that is already in the context.
+2. When the user asks to "analyze", "check", or asks about the current entity, call get_entity with the entity ID from context IMMEDIATELY. Do not ask for confirmation.
+3. When the user says "approve" or "reject", call the corresponding tool directly using the entity ID from context.
+4. For risk analysis, call predict_risk directly with the entity ID from context.
+5. Use Chinese. Be concise and business-focused.
 
-## Response Format — BLOCKS PROTOCOL
-Your response is rendered as an ordered sequence of BLOCKS.
-Each block is either a text paragraph or a structured UI card.
+## Tools
+- get_entity: Get full entity details (use entity ID from context)
+- approve_entity / reject_entity: Approve or reject approvals
+- predict_risk: AI risk prediction
+- get_timeline_diff: What changed over time
+- add_note: Add note or milestone
+- update_entity_status: Change entity status
+- list_pending_approvals: List pending items (use organization ID from context)
 
-Rules:
-1. ALWAYS start with a brief text summary (1-3 sentences) of what you found or did.
-2. Then render the appropriate UI card if a tool was called.
-3. End with actionable next-step suggestions when relevant.
-4. Use Chinese unless the user writes in English.
-5. Be concise and business-focused.
+## Response Format
+After calling a tool, summarize the result in 1-3 sentences of Chinese text. Keep it brief and actionable.
 
-To emit a UI card, wrap a JSON object in <ui_block> tags:
-<ui_block>{"type":"risk_card","entityId":"xxx",...}</ui_block>
+<ui_block> tags are available for rich cards but OPTIONAL. Prefer concise text over complex UI blocks.
+Supported: approval_card | report_card | risk_card | timeline_diff | entity_list | action_result | suggestions
 
-To emit next-step suggestions:
-<ui_block>{"type":"suggestions","items":["建议一","建议二"]}</ui_block>
-
-Supported card types: approval_card | report_card | risk_card | timeline_diff | entity_list | action_result | suggestions
-
-Example response pattern:
----
-这是一条待审批请求，申请人李明，金额 ¥50,000，用途为市场推广预算。截止日期在 3 天后。
-
-<ui_block>{"type":"approval_card","entityId":"abc","title":"市场推广预算审批","applicant":"李明","amount":"¥50,000","currentStatus":"pending","deadline":"2026-04-02","urgency":"normal"}</ui_block>
-
-<ui_block>{"type":"suggestions","items":["分析这个审批的风险","批准","拒绝，预算超限"]}</ui_block>
----`;
+Example for suggestions:
+<ui_block>{"type":"suggestions","items":["分析风险","批准","查看变化"]}</ui_block>`;
 }
 
 // ── Tools (AI SDK v5) ─────────────────────────────────────
@@ -397,9 +383,21 @@ export async function POST(req: Request) {
 		system: buildSystemPrompt(ctx),
 		messages: convertToModelMessages(messages),
 		tools: agentTools,
-		stopWhen: stepCountIs(5),
-		onFinish: async ({ text }) => {
-			console.log("[AgentChat] finish", { entityId: ctx.entityId, textLen: text?.length ?? 0 });
+		stopWhen: stepCountIs(2),
+		prepareStep: ({ stepNumber }) => {
+			if (stepNumber > 0) {
+				return { toolChoice: "none" as const };
+			}
+			return undefined;
+		},
+		onFinish: async ({ text, toolCalls, finishReason }) => {
+			console.log("[AgentChat] finish", {
+				entityId: ctx.entityId,
+				textLen: text?.length ?? 0,
+				finishReason,
+				toolCallCount: toolCalls?.length ?? 0,
+				toolNames: toolCalls?.map((tc: { toolName: string }) => tc.toolName),
+			});
 		},
 	});
 

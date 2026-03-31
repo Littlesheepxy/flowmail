@@ -14,8 +14,8 @@ const gateway = createOpenAI({
 	apiKey: gatewayApiKey,
 });
 
-export const textModel = gateway(gatewayModel);
-export const fastModel = gateway(gatewayModel);
+export const textModel = gateway.chat(gatewayModel);
+export const fastModel = gateway.chat(gatewayModel);
 
 export * from "ai";
 export * from "./lib";
