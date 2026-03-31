@@ -16,6 +16,7 @@ import {
 	type DynamicToolUIPart,
 } from "ai";
 import {
+	AlertTriangleIcon,
 	BotIcon,
 	BrainIcon,
 	ChevronDownIcon,
@@ -23,13 +24,14 @@ import {
 	SparklesIcon,
 	XIcon,
 	RefreshCwIcon,
-	LightbulbIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, useMemo, type FormEvent } from "react";
 import { usePathname } from "next/navigation";
-import { AgentCard } from "../agent/AgentCards";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { AgentCard, ToolSkeleton } from "../agent/AgentCards";
 import { buildPageContext } from "../agent/build-page-context";
-import type { AgentBlock, AgentUICard } from "../agent/types";
+import type { AgentUICard } from "../agent/types";
 import { useAgent } from "./AgentProvider";
 
 interface AgentPanelProps {
@@ -39,125 +41,7 @@ interface AgentPanelProps {
 	onClose?: () => void;
 }
 
-// ── Blocks 解析 ──────────────────────────────────────────
-
-/**
- * 从 AI 原始文本中提取有序 blocks。
- * AI 输出格式：普通文本 + <ui_block>{...}</ui_block> 标签穿插。
- * 最终输出一个 AgentBlock[] 数组，前端按顺序渲染。
- */
-function parseBlocks(text: string): AgentBlock[] {
-	const blocks: AgentBlock[] = [];
-	const parts = text.split(/(<ui_block>[\s\S]*?<\/ui_block>)/g);
-
-	for (const part of parts) {
-		const match = part.match(/^<ui_block>([\s\S]*?)<\/ui_block>$/);
-		if (match) {
-			try {
-				const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
-				const blockType = parsed.type as string;
-
-			if (blockType === "suggestions" && Array.isArray(parsed.items)) {
-				blocks.push({ type: "suggestions", items: parsed.items as string[] });
-			} else if (["approval_card", "report_card", "risk_card", "timeline_diff", "entity_list", "action_confirm", "action_result"].includes(blockType)) {
-				const { type: _type, ...rest } = parsed;
-				const cardData = parsed.data ?? rest;
-				blocks.push({ type: blockType, data: cardData } as AgentBlock);
-			}
-			} catch {
-				// ignore malformed JSON
-			}
-		} else {
-			const trimmed = part.trim();
-			if (trimmed) {
-				blocks.push({ type: "text", content: trimmed });
-			}
-		}
-	}
-
-	return blocks;
-}
-
-function toolResultToText(toolName: string, result: Record<string, unknown>): string {
-	if (result.error) {
-		return `⚠️ 操作失败：${result.error}`;
-	}
-	switch (toolName) {
-		case "get_entity": {
-			const title = result.title ?? "未知";
-			const type = result.type ?? "";
-			const status = result.status ?? "";
-			const summary = result.aiSummary ?? "";
-			const fields = result.extractedFields as Record<string, unknown> | undefined;
-			const lines = [`📋 **${title}**（${type} · ${status}）`];
-			if (summary) {
-				lines.push(String(summary));
-			}
-			if (fields && typeof fields === "object") {
-				const fieldParts = Object.entries(fields)
-					.slice(0, 5)
-					.map(([k, v]) => `${k}: ${v}`)
-					.join("  |  ");
-				if (fieldParts) {
-					lines.push(fieldParts);
-				}
-			}
-			const eventCount = result.timelineCount;
-			if (eventCount) {
-				lines.push(`共 ${eventCount} 条时间线事件`);
-			}
-			return lines.join("\n");
-		}
-		case "approve_entity":
-			return `✅ 已批准「${result.title ?? "审批请求"}」`;
-		case "reject_entity":
-			return `❌ 已拒绝「${result.title ?? "审批请求"}」`;
-		case "predict_risk": {
-			const level = result.riskLevel ?? "unknown";
-			const factors = (result.riskFactors as string[]) ?? [];
-			const lines = [`🔍 风险等级：**${level}**`];
-			if (factors.length > 0) {
-				lines.push("风险因素：" + factors.slice(0, 3).join("、"));
-			}
-			if (result.predictedOutcome) {
-				lines.push("预期结果：" + String(result.predictedOutcome));
-			}
-			return lines.join("\n");
-		}
-		case "get_timeline_diff": {
-			const lines = [`📊 ${result.summary ?? "时间线变化分析完成"}`];
-			if (result.progressDelta != null) {
-				const delta = Number(result.progressDelta);
-				lines.push(`进度变化：${delta > 0 ? "+" : ""}${delta}%`);
-			}
-			const risks = (result.riskSignals as string[]) ?? [];
-			if (risks.length > 0) {
-				lines.push("⚠️ " + risks.slice(0, 3).join("、"));
-			}
-			if (result.recommendation) {
-				lines.push("建议：" + String(result.recommendation));
-			}
-			return lines.join("\n");
-		}
-		case "add_note":
-			return `✅ 已添加${result.type === "milestone" ? "里程碑" : "备注"}：${result.content ?? ""}`;
-		case "update_entity_status":
-			return `✅ 状态已变更：${result.fromStatus} → ${result.toStatus}`;
-		case "list_pending_approvals": {
-			const count = result.count ?? 0;
-			const items = (result.items as Array<{ title: string; status: string }>) ?? [];
-			if (items.length === 0) {
-				return "📭 目前没有待审批事项";
-			}
-			const itemLines = items.slice(0, 5).map((it) => `• ${it.title}`).join("\n");
-			return `📬 共 ${count} 条待审批事项\n${itemLines}`;
-		}
-		default:
-			return "操作完成";
-	}
-}
-
-/** Tool 结果 → UI 卡片 block */
+/** Tool 结果 → UI 卡片 */
 function toolResultToBlock(
 	toolName: string,
 	result: Record<string, unknown>,
@@ -218,6 +102,23 @@ function toolResultToBlock(
 	return null;
 }
 
+// ── 工具名称映射 ─────────────────────────────────────────
+
+const TOOL_LABELS: Record<string, string> = {
+	get_entity: "正在获取事项详情...",
+	approve_entity: "正在执行批准...",
+	reject_entity: "正在执行拒绝...",
+	predict_risk: "正在分析风险...",
+	get_timeline_diff: "正在分析时间线变化...",
+	add_note: "正在添加备注...",
+	update_entity_status: "正在更新状态...",
+	list_pending_approvals: "正在查询待审批事项...",
+};
+
+function toolLabel(name: string): string {
+	return TOOL_LABELS[name] ?? `正在执行 ${name}...`;
+}
+
 // ── 快捷建议 ─────────────────────────────────────────────
 
 function getSuggestions(type: string, status: string): string[] {
@@ -237,6 +138,72 @@ function getSuggestions(type: string, status: string): string[] {
 		return ["分析这个问题", "评估风险和影响", "查看处理进展"];
 	}
 	return ["分析这个事项", "评估风险", "查看时间线变化"];
+}
+
+// ── Markdown 渲染 ────────────────────────────────────────
+
+function MarkdownContent({ content }: { content: string }) {
+	return (
+		<ReactMarkdown
+			remarkPlugins={[remarkGfm]}
+			components={{
+				p: ({ children }) => (
+					<p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+				),
+				ul: ({ children }) => (
+					<ul className="mb-2 ml-4 list-disc space-y-1">{children}</ul>
+				),
+				ol: ({ children }) => (
+					<ol className="mb-2 ml-4 list-decimal space-y-1">{children}</ol>
+				),
+				li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+				strong: ({ children }) => (
+					<strong className="font-semibold">{children}</strong>
+				),
+				code: ({ children, className }) => {
+					const isBlock = className?.includes("language-");
+					if (isBlock) {
+						return (
+							<code className="block rounded-lg bg-black/10 dark:bg-white/10 px-3 py-2 text-xs font-mono my-2 overflow-x-auto">
+								{children}
+							</code>
+						);
+					}
+					return (
+						<code className="rounded bg-black/10 dark:bg-white/10 px-1.5 py-0.5 text-xs font-mono">
+							{children}
+						</code>
+					);
+				},
+				h1: ({ children }) => (
+					<h1 className="text-base font-bold mb-2">{children}</h1>
+				),
+				h2: ({ children }) => (
+					<h2 className="text-sm font-bold mb-1.5">{children}</h2>
+				),
+				h3: ({ children }) => (
+					<h3 className="text-sm font-semibold mb-1">{children}</h3>
+				),
+				blockquote: ({ children }) => (
+					<blockquote className="border-l-2 border-current/30 pl-3 italic opacity-80 my-2">
+						{children}
+					</blockquote>
+				),
+				a: ({ href, children }) => (
+					<a
+						href={href}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="underline underline-offset-2 hover:opacity-80 text-primary"
+					>
+						{children}
+					</a>
+				),
+			}}
+		>
+			{content}
+		</ReactMarkdown>
+	);
 }
 
 // ── 思考过程 ─────────────────────────────────────────────
@@ -266,38 +233,6 @@ function ReasoningToggle({ text }: { text: string }) {
 }
 
 // ── Block 渲染器 ─────────────────────────────────────────
-
-function BlockRenderer({ block, onSuggestionClick }: { block: AgentBlock; onSuggestionClick?: (text: string) => void }) {
-	if (block.type === "text") {
-		return (
-			<div className="rounded-2xl rounded-bl-sm bg-muted/60 border px-3.5 py-2.5">
-				<p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-					{block.content}
-				</p>
-			</div>
-		);
-	}
-
-	if (block.type === "suggestions") {
-		return (
-			<div className="flex gap-1.5 flex-wrap">
-				{block.items.map((s) => (
-					<button
-						key={s}
-						type="button"
-						onClick={() => onSuggestionClick?.(s)}
-						className="text-[11px] px-2.5 py-1.5 rounded-full border text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors flex items-center gap-1"
-					>
-						<LightbulbIcon className="size-3 text-amber-500" />
-						{s}
-					</button>
-				))}
-			</div>
-		);
-	}
-
-	return <AgentCard card={block as AgentUICard} />;
-}
 
 // ── 主组件 ───────────────────────────────────────────────
 
@@ -340,13 +275,17 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 		[pathname, organizationId, entity],
 	);
 
+	const pageContextRef = useRef(pageContext);
+	pageContextRef.current = pageContext;
+
 	const transport = useMemo(
 		() =>
 			new DefaultChatTransport({
 				api: "/api/agent/chat",
-				body: { pageContext },
+				body: () => ({ pageContext: pageContextRef.current }),
 			}),
-		[pageContext],
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[],
 	);
 
 	const { messages, sendMessage, status, setMessages, error } = useChat({ transport });
@@ -507,80 +446,76 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 					}
 
 					if (msg.role === "assistant") {
-						const textParts = (msg.parts ?? []).filter(isTextUIPart);
-						const reasoningParts = (msg.parts ?? []).filter(isReasoningUIPart);
-						const toolParts = (msg.parts ?? []).filter(isToolOrDynamicToolUIPart);
+						const parts = msg.parts ?? [];
 
-						const reasoningText = reasoningParts.map((p) => p.reasoning).join("");
-
-						const rawText = textParts.map((p) => p.text).join("");
-
-						// 从 AI 文本中提取有序 blocks
-						const textBlocks = parseBlocks(rawText);
-
-						// 从 Tool Results 中提取卡片 blocks + 自动文本
-						const completedTools: Array<{ name: string; output: Record<string, unknown> }> = [];
-						const toolBlocks: AgentBlock[] = toolParts.flatMap((p) => {
-							const dynP = p as DynamicToolUIPart;
-							if (dynP.state === "error") {
-								completedTools.push({ name: getToolOrDynamicToolName(p), output: { error: "工具执行出错" } });
-								return [];
-							}
-							if (dynP.state !== "output-available") { return []; }
-							const toolName = getToolOrDynamicToolName(p);
-							const output = dynP.output as Record<string, unknown>;
-							completedTools.push({ name: toolName, output });
-							const card = toolResultToBlock(toolName, output, entityCtx);
-							return card ? [card] : [];
-						});
-
-						const hasPendingTool = toolParts.some((p) => {
-							const dynP = p as DynamicToolUIPart;
-							return dynP.state === "input-streaming" || dynP.state === "input-available";
-						});
-
-						// 合并：tool 卡片插在文本 blocks 和 suggestions 之间
-						const allBlocks: AgentBlock[] = [];
-						const suggestionBlocks: AgentBlock[] = [];
-						for (const b of textBlocks) {
-							if (b.type === "suggestions") {
-								suggestionBlocks.push(b);
-							} else {
-								allBlocks.push(b);
+						const completedToolCallIds = new Set<string>();
+						for (const p of parts) {
+							if (isToolOrDynamicToolUIPart(p)) {
+								const tp = p as DynamicToolUIPart;
+								if (tp.state === "output-available" || tp.state === "output-error") {
+									completedToolCallIds.add(tp.toolCallId);
+								}
 							}
 						}
-
-						const hasRealText = allBlocks.some((b) => b.type === "text");
-						if (!hasRealText && completedTools.length > 0) {
-							const autoText = completedTools
-								.map((t) => toolResultToText(t.name, t.output))
-								.join("\n\n");
-							allBlocks.unshift({ type: "text", content: autoText });
-						}
-
-						allBlocks.push(...toolBlocks, ...suggestionBlocks);
 
 						return (
 							<div key={msg.id} className="flex justify-start">
 								<div className="max-w-[92%] space-y-2">
-									{reasoningText && (
-										<ReasoningToggle text={reasoningText} />
-									)}
+									{parts.map((part, i) => {
+										if (isReasoningUIPart(part)) {
+											return part.text ? (
+												<ReasoningToggle key={`${msg.id}-r-${i}`} text={part.text} />
+											) : null;
+										}
 
-									{hasPendingTool && (
-										<div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
-											<Spinner className="size-3" />
-											<span>正在调用工具...</span>
-										</div>
-									)}
+										if (isTextUIPart(part) && part.text) {
+											return (
+												<div key={`${msg.id}-t-${i}`} className="rounded-2xl rounded-bl-sm bg-muted/60 border px-3.5 py-2.5 text-sm text-foreground">
+													<MarkdownContent content={part.text} />
+												</div>
+											);
+										}
 
-									{allBlocks.map((block, i) => (
-										<BlockRenderer
-											key={i}
-											block={block}
-											onSuggestionClick={handleSuggestionClick}
-										/>
-									))}
+										if (isToolOrDynamicToolUIPart(part)) {
+											const dynP = part as DynamicToolUIPart;
+											const toolName = getToolOrDynamicToolName(part);
+
+											if (dynP.state === "input-streaming" || dynP.state === "input-available") {
+												if (completedToolCallIds.has(dynP.toolCallId)) {
+													return null;
+												}
+												return (
+													<div key={`${msg.id}-tool-${i}`} className="animate-in fade-in duration-200">
+														<ToolSkeleton toolName={toolName} />
+													</div>
+												);
+											}
+
+											if (dynP.state === "output-error") {
+												return (
+													<div key={`${msg.id}-tool-${i}`} className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive flex items-center gap-1.5">
+														<AlertTriangleIcon className="size-3 shrink-0" />
+														{toolLabel(toolName)}失败
+													</div>
+												);
+											}
+
+											if (dynP.state === "output-available") {
+												const output = dynP.output as Record<string, unknown>;
+												const card = toolResultToBlock(toolName, output, entityCtx);
+												if (card) {
+													return (
+														<div key={`${msg.id}-tool-${i}`} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+															<AgentCard card={card} />
+														</div>
+													);
+												}
+												return null;
+											}
+										}
+
+										return null;
+									})}
 								</div>
 							</div>
 						);

@@ -1,22 +1,9 @@
 /**
- * Agent 消息协议（Blocks 模型）
+ * Agent UI 卡片数据类型
  *
- * AI 的回复由一系列有序 Block 组成，前端按顺序渲染。
- * Block 可以是文本块（摘要、解释、建议）或结构化卡片块（审批、风险、diff）。
- * 这样既有文字总结，也有可交互的 GUI。
+ * 卡片由工具返回的结构化数据驱动，前端根据 type 路由到对应 UI 组件。
+ * 文本内容由 AI SDK 的 text parts 直接流式渲染为 Markdown，不经过此类型系统。
  */
-
-// ── 文本块类型 ───────────────────────────────────────────
-
-export interface TextBlock {
-	type: "text";
-	content: string;
-}
-
-export interface SuggestionBlock {
-	type: "suggestions";
-	items: string[];
-}
 
 // ── 结构化卡片数据 ───────────────────────────────────────
 
@@ -100,11 +87,9 @@ export interface ActionResultCardData {
 	toStatus?: string;
 }
 
-// ── Block 联合类型（前端渲染的最小单元） ──────────────────
+// ── UI 卡片联合类型（工具结果 → 渲染组件） ───────────────
 
-export type AgentBlock =
-	| TextBlock
-	| SuggestionBlock
+export type AgentUICard =
 	| { type: "approval_card";    data: ApprovalCardData }
 	| { type: "report_card";      data: ReportCardData }
 	| { type: "risk_card";        data: RiskCardData }
@@ -112,9 +97,6 @@ export type AgentBlock =
 	| { type: "entity_list";      data: EntityListCardData }
 	| { type: "action_confirm";   data: ActionConfirmCardData }
 	| { type: "action_result";    data: ActionResultCardData };
-
-/** 向后兼容 — AgentCards.tsx 仍用这个名字做卡片路由 */
-export type AgentUICard = Exclude<AgentBlock, TextBlock | SuggestionBlock>;
 
 // ── 页面上下文（前端发送给后端的当前页面状态） ────────────
 

@@ -485,7 +485,115 @@ export function AgentCard({
 	}
 }
 
+// ── 骨架组件（加载中占位） ─────────────────────────────────
+
+function SkeletonBar({ className }: { className?: string }) {
+	return <div className={cn("h-3 rounded bg-muted animate-pulse", className)} />;
+}
+
+function SkeletonCardShell({ icon, title, color, children }: {
+	icon: React.ReactNode;
+	title: string;
+	color: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="rounded-xl border overflow-hidden bg-card">
+			<div className={`px-3.5 py-2.5 flex items-center gap-2 border-b ${color}`}>
+				{icon}
+				<span className="text-xs font-semibold text-foreground/60">{title}</span>
+			</div>
+			<div className="px-3.5 py-3 space-y-2.5">
+				{children}
+			</div>
+		</div>
+	);
+}
+
+function RiskCardSkeleton() {
+	return (
+		<SkeletonCardShell
+			icon={<ShieldAlertIcon className="size-4 text-amber-400 animate-pulse" />}
+			title="风险分析中…"
+			color="bg-amber-50/40 dark:bg-amber-950/10"
+		>
+			<SkeletonBar className="w-3/4" />
+			<SkeletonBar className="w-1/2" />
+			<SkeletonBar className="w-full" />
+			<SkeletonBar className="w-2/3" />
+		</SkeletonCardShell>
+	);
+}
+
+function TimelineDiffCardSkeleton() {
+	return (
+		<SkeletonCardShell
+			icon={<SparklesIcon className="size-4 text-violet-400 animate-pulse" />}
+			title="变化分析中…"
+			color="bg-violet-50/40 dark:bg-violet-950/10"
+		>
+			<SkeletonBar className="w-full" />
+			<div className="flex gap-2">
+				<SkeletonBar className="w-16" />
+				<SkeletonBar className="flex-1" />
+			</div>
+			<div className="flex gap-2">
+				<SkeletonBar className="w-16" />
+				<SkeletonBar className="flex-1" />
+			</div>
+		</SkeletonCardShell>
+	);
+}
+
+function EntityListCardSkeleton() {
+	return (
+		<SkeletonCardShell
+			icon={<Spinner className="size-3.5" />}
+			title="查询中…"
+			color="bg-muted/30"
+		>
+			{[1, 2, 3].map((i) => (
+				<div key={i} className="flex items-center gap-2">
+					<SkeletonBar className="flex-1" />
+					<SkeletonBar className="w-12" />
+				</div>
+			))}
+		</SkeletonCardShell>
+	);
+}
+
+function GenericToolSkeleton({ label }: { label: string }) {
+	return (
+		<div className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2.5">
+			<Spinner className="size-3.5 text-muted-foreground" />
+			<span className="text-xs text-muted-foreground">{label}</span>
+		</div>
+	);
+}
+
+const TOOL_SKELETON_MAP: Record<string, () => React.ReactNode> = {
+	predict_risk: () => <RiskCardSkeleton />,
+	get_timeline_diff: () => <TimelineDiffCardSkeleton />,
+	list_pending_approvals: () => <EntityListCardSkeleton />,
+	get_entity: () => <GenericToolSkeleton label="读取事项详情…" />,
+	approve_entity: () => <GenericToolSkeleton label="执行审批…" />,
+	add_note: () => <GenericToolSkeleton label="添加笔记…" />,
+	update_entity_status: () => <GenericToolSkeleton label="更新状态…" />,
+};
+
+export function ToolSkeleton({ toolName }: { toolName: string }) {
+	const factory = TOOL_SKELETON_MAP[toolName];
+	if (factory) {
+		return <>{factory()}</>;
+	}
+	return <GenericToolSkeleton label={`${toolName} 执行中…`} />;
+}
+
 // ── 辅助组件 ──────────────────────────────────────────────
+
+function cn(...classes: (string | undefined | false)[]) {
+	return classes.filter(Boolean).join(" ");
+}
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
 	return (

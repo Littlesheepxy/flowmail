@@ -75,37 +75,43 @@ function buildSystemPrompt(ctx: PageContextInput) {
 
 	const contextBlock = contextLines.length > 0
 		? contextLines.join("\n")
-		: "No specific context. User has not selected an entity.";
+		: "当前无特定上下文，用户尚未选择具体事项。";
 
-	return `You are Flowmail Agent, an AI assistant embedded in Flowmail — an email-native business execution platform.
+	return `你是 Flowmail Agent，内嵌在 Flowmail（邮件驱动的业务执行平台）中的 AI 助手。
 
-## Current Page Context
+## 语言要求
+**所有回复必须使用简体中文。** 包括：风险因素、建议操作、摘要、分析结论——全部用中文。禁止输出英文段落。
+
+## 当前页面上下文
 ${contextBlock}
 
-## CRITICAL BEHAVIOR RULES
-1. You already have the entity context above. NEVER ask the user for entity ID, organization ID, or information that is already in the context.
-2. When the user asks to "analyze", "check", or asks about the current entity, call get_entity with the entity ID from context IMMEDIATELY. Do not ask for confirmation.
-3. When the user says "approve" or "reject", call the corresponding tool directly using the entity ID from context.
-4. For risk analysis, call predict_risk directly with the entity ID from context.
-5. Use Chinese. Be concise and business-focused.
+## 关键行为规则
+1. 上下文已包含实体信息，禁止向用户索要 entity ID、organization ID 等已有信息。
+2. 用户说"分析"、"看看"、"查一下"时，直接用上下文中的 entity ID 调用 get_entity，无需确认。
+3. 用户说"批准"或"拒绝"时，直接调用对应工具。
+4. 用户问风险时，直接调用 predict_risk。
+5. 简洁、业务导向、用中文。
 
-## Tools
-- get_entity: Get full entity details (use entity ID from context)
-- approve_entity / reject_entity: Approve or reject approvals
-- predict_risk: AI risk prediction
-- get_timeline_diff: What changed over time
-- add_note: Add note or milestone
-- update_entity_status: Change entity status
-- list_pending_approvals: List pending items (use organization ID from context)
+## 工具列表
+- get_entity: 获取实体详情（用上下文中的 entity ID）
+- approve_entity / reject_entity: 审批操作
+- predict_risk: AI 风险预测
+- get_timeline_diff: 时间线变化分析
+- add_note: 添加备注或里程碑
+- update_entity_status: 变更实体状态
+- list_pending_approvals: 列出待审批项（用上下文中的 organization ID）
 
-## Response Format
-After calling a tool, summarize the result in 1-3 sentences of Chinese text. Keep it brief and actionable.
+## 回复格式
 
-<ui_block> tags are available for rich cards but OPTIONAL. Prefer concise text over complex UI blocks.
-Supported: approval_card | report_card | risk_card | timeline_diff | entity_list | action_result | suggestions
+**你只输出纯文本（Markdown）。禁止输出 <ui_block> 标签、JSON 结构或任何 UI 描述。**
 
-Example for suggestions:
-<ui_block>{"type":"suggestions","items":["分析风险","批准","查看变化"]}</ui_block>`;
+UI 卡片由系统根据工具结果自动渲染，你不需要也不应该手动生成 UI。
+
+你的文本职责：
+- 调用工具前：简短说明你要做什么（如"我来分析一下风险"）
+- 调用工具后：用 2-3 句中文总结关键发现和建议
+- 不要在文本中重复卡片里已展示的结构化数据（风险因素列表、截止日期等已在卡片中展示）
+- 可以补充卡片中没有的洞察和决策建议`;
 }
 
 // ── Tools (AI SDK v5) ─────────────────────────────────────
@@ -113,7 +119,7 @@ Example for suggestions:
 const agentTools = {
 	get_entity: tool({
 		description:
-			"Get full details of a business entity including extracted fields, AI summary, and timeline. Call this first to understand the current entity.",
+			"获取业务事项的完整详情，包括 AI 摘要、抽取字段和时间线。分析事项时首先调用。",
 		inputSchema: z.object({
 			entityId: z.string().describe("Entity ID"),
 		}),
@@ -145,7 +151,7 @@ const agentTools = {
 	}),
 
 	approve_entity: tool({
-		description: "Approve a pending approval request. Only use when user explicitly says to approve.",
+		description: "批准待审批的请求。仅在用户明确要求批准时调用。",
 		inputSchema: z.object({
 			entityId: z.string(),
 			comment: z.string().optional().describe("Optional approval comment"),
@@ -170,7 +176,7 @@ const agentTools = {
 	}),
 
 	reject_entity: tool({
-		description: "Reject a pending approval request. Requires a reason.",
+		description: "拒绝待审批的请求。需要提供拒绝理由。",
 		inputSchema: z.object({
 			entityId: z.string(),
 			reason: z.string().describe("Reason for rejection"),
@@ -196,7 +202,7 @@ const agentTools = {
 
 	predict_risk: tool({
 		description:
-			"AI risk prediction for an entity. Use when user asks about risk, deadline, or if something will be done on time.",
+			"AI 风险预测。当用户询问风险、截止日期、是否能按时完成时调用。",
 		inputSchema: z.object({
 			entityId: z.string(),
 		}),
@@ -230,11 +236,14 @@ const agentTools = {
 					}),
 					confidence: z.number().min(0).max(1),
 				}),
-				prompt: `Analyze risk for "${entity.title}" (${entity.type}, status: ${entity.status}).
-Fields: ${JSON.stringify(fields)}
-Timeline: ${timelineText || "(none)"}
-Today: ${new Date().toISOString().split("T")[0]}
-Assess risk level, factors, outcome, actions, and deadline risk.`,
+				prompt: `请用简体中文分析以下事项的风险。所有文本字段（riskFactors, predictedOutcome, suggestedActions）必须使用中文。
+
+事项："${entity.title}"（类型：${entity.type}，状态：${entity.status}）
+字段：${JSON.stringify(fields)}
+时间线：${timelineText || "（无）"}
+今天：${new Date().toISOString().split("T")[0]}
+
+请评估风险等级、风险因素、预测结果、建议操作和截止日期风险。`,
 			});
 
 			return { ...object, entityId: input.entityId };
@@ -243,7 +252,7 @@ Assess risk level, factors, outcome, actions, and deadline risk.`,
 
 	get_timeline_diff: tool({
 		description:
-			"Get semantic diff of what changed in an entity's timeline. Use when user asks what changed, how it progressed, or what happened recently.",
+			"获取事项时间线的语义变化分析。当用户问发生了什么变化、进展如何时调用。",
 		inputSchema: z.object({
 			entityId: z.string(),
 		}),
@@ -278,9 +287,13 @@ Assess risk level, factors, outcome, actions, and deadline risk.`,
 					progressDelta: z.number().nullable(),
 					recommendation: z.string().nullable(),
 				}),
-				prompt: `Semantic diff for "${entity.title}" (${entity.type}).
-Events:\n${eventsText}
-What changed? Risk signals? Progress delta (-100 to 100)? Recommendation?`,
+				prompt: `请用简体中文分析以下事项的时间线变化。所有文本字段（summary, field, before, after, riskSignals, recommendation）必须使用中文。
+
+事项："${entity.title}"（类型：${entity.type}）
+事件：
+${eventsText}
+
+分析：发生了什么变化？有哪些风险信号？进展变化量（-100到100）？有什么建议？`,
 			});
 
 			return { ...object, entityId: input.entityId };
@@ -288,7 +301,7 @@ What changed? Risk signals? Progress delta (-100 to 100)? Recommendation?`,
 	}),
 
 	add_note: tool({
-		description: "Add a note or milestone to an entity's timeline.",
+		description: "向事项时间线添加备注或里程碑。",
 		inputSchema: z.object({
 			entityId: z.string(),
 			content: z.string().describe("Note content"),
@@ -313,7 +326,7 @@ What changed? Risk signals? Progress delta (-100 to 100)? Recommendation?`,
 	}),
 
 	update_entity_status: tool({
-		description: "Update the status of any entity. Use for status transitions like investigating, in_progress, blocked, etc.",
+		description: "更新事项状态。用于状态变更，如调查中、进行中、已阻塞等。",
 		inputSchema: z.object({
 			entityId: z.string(),
 			status: z.string().describe("New status value"),
@@ -337,7 +350,7 @@ What changed? Risk signals? Progress delta (-100 to 100)? Recommendation?`,
 	}),
 
 	list_pending_approvals: tool({
-		description: "List all pending approvals for the organization.",
+		description: "列出组织内所有待审批的事项。",
 		inputSchema: z.object({
 			organizationId: z.string(),
 		}),
@@ -377,6 +390,13 @@ export async function POST(req: Request) {
 		entityId: body.entityId,
 		organizationId: body.organizationId,
 	};
+
+	console.log("[AgentChat] request context", {
+		entityId: ctx.entityId,
+		hasEntity: !!ctx.entity,
+		organizationId: ctx.organizationId,
+		route: ctx.route,
+	});
 
 	const result = streamText({
 		model: textModel,
