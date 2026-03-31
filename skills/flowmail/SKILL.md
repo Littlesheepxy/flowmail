@@ -1,6 +1,6 @@
 ---
 name: flowmail
-description: Connect to Flowmail to manage email-driven business workflows — approvals, report tracking, and entity management. Use when user wants to check pending approvals, view reports, approve/reject requests, or track business items extracted from emails.
+description: Connect to Flowmail to manage email-driven business workflows — approvals, report tracking, timeline events, AI risk prediction, and entity management. Use when user wants to check pending approvals, view reports, approve/reject requests, track business items, analyze risks, or add timeline events.
 metadata:
   {
     "openclaw":
@@ -15,7 +15,7 @@ metadata:
 
 # Flowmail Skill
 
-Flowmail is an email-native business execution platform. It automatically converts emails into structured business items (approvals, reports, issues) and tracks their progress.
+Flowmail is an email-native business execution platform. It automatically converts emails into structured business items (approvals, reports, issues) and tracks their progress with AI-powered analysis.
 
 ## Configuration
 
@@ -43,29 +43,58 @@ For Cursor / Claude Desktop, add to your `.mcp.json`:
 
 ## Available Tools
 
+### Entity Management
+
+- **`list_entities`** — List structured business entities (approvals, reports, issues, feedback) for an organization. Supports filters by type, status, and limit.
+- **`get_entity`** — Get full details of any entity including timeline of events and related email threads.
+- **`update_entity_status`** — Update the status of a business entity (e.g., mark as completed, in_progress, blocked). Records reason in timeline.
+
 ### Approval Management
 
-- **`list_pending_approvals`** — List all pending approval requests for the organization
-- **`approve_request`** — Approve a request (sends notification email to requester)
-- **`reject_request`** — Reject a request with a required reason
-- **`get_entity`** — Get full details of any entity including timeline
+- **`list_pending_approvals`** — List all pending approval requests for the organization.
+- **`approve_request`** — Approve a pending request. Optionally include a comment. Sends notification and records in timeline.
+- **`reject_request`** — Reject a pending request with a required reason. Sends notification and records in timeline.
 
 ### Report Tracking
 
-- **`list_reports`** — List report entities, filterable by status or reporter
-- **`get_report_summary`** — Get AI-generated summary of a report thread
-- **`flag_report_risk`** — Mark a report as at-risk with description
+- **`list_reports`** — List report entities, filterable by status.
+- **`get_report_summary`** — Get AI-generated summary of a report including extracted fields.
 
-### General Entity Management
+### Timeline Management
 
-- **`list_entities`** — List all entities (approvals/reports/issues), with filters
-- **`update_entity_status`** — Manually update an entity's status
-- **`search_entities`** — Semantic search across all entities
+- **`get_entity_timeline`** — Get the full chronological timeline of events for an entity. Filter by event types (email_received, email_sent, status_changed, action_taken, ai_summary, milestone, note).
+- **`add_timeline_event`** — Add a manual event to an entity's timeline (note, milestone, action_taken, status_changed, ai_summary). Supports arbitrary metadata.
+- **`get_timeline_diff`** — AI-powered semantic diff between two points in a timeline. Shows what changed, risk signals, progress delta, and recommendations.
 
-### Email Connection
+### AI Analysis
 
-- **`list_email_connections`** — List connected email accounts for the org
-- **`process_email_now`** — Manually trigger AI processing of a specific email
+- **`predict_entity_risk`** — AI-powered risk prediction for a business entity. Analyzes timeline history, extracted fields, and current status. Returns risk level, factors, deadline risk, and suggested actions.
+
+### Email Connections
+
+- **`list_email_connections`** — List all connected email accounts for the organization.
+
+## Callback / Results Reporting
+
+When OpenClaw executes complex multi-step tasks on behalf of Flowmail, it can report results back via:
+
+```
+POST {FLOWMAIL_BASE_URL}/api/agent/callback
+Content-Type: application/json
+Authorization: Bearer {FLOWMAIL_API_TOKEN}
+
+{
+  "entityId": "...",
+  "taskId": "...",
+  "status": "success" | "error" | "partial",
+  "summary": "Completed: scheduled meeting with 3 attendees",
+  "actions": [
+    { "tool": "add_calendar_event", "status": "success", "result": {...} }
+  ]
+}
+```
+
+This adds a timeline event to the entity so the user sees the outcome in Flowmail's UI.
 
 ## Usage Examples
 
@@ -91,6 +120,32 @@ User: Summarize this week's team reports
 Agent: [calls list_reports with status filter] →
        [calls get_report_summary for each] →
        [synthesizes summary]
+```
+
+### Track progress changes
+
+```
+User: What changed on the Q3 roadmap since last week?
+Agent: [calls get_entity to find entityId] →
+       [calls get_timeline_diff with date range] →
+       [presents semantic diff with risk signals]
+```
+
+### Risk assessment
+
+```
+User: Is the server migration project at risk?
+Agent: [calls list_entities to find entity] →
+       [calls predict_entity_risk] →
+       [presents risk level, factors, and suggested actions]
+```
+
+### Add a milestone
+
+```
+User: Mark the design phase as complete for Project Alpha
+Agent: [calls list_entities to find entity] →
+       [calls add_timeline_event with type "milestone"]
 ```
 
 ## Integration with OpenClaw Gmail
@@ -123,3 +178,5 @@ incoming emails automatically. Configure in `openclaw.json`:
 - All write operations (approve/reject/update) require user confirmation unless running in autonomous mode
 - Entity IDs are UUIDs — use list/search tools first to find the right ID
 - Approval notifications are sent automatically when approve_request or reject_request succeeds
+- Timeline events from MCP tools are tagged with `via: "mcp"` in metadata for origin tracking
+- AI-powered tools (get_timeline_diff, predict_entity_risk) require an AI provider key configured on the server

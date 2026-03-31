@@ -15,10 +15,6 @@ import {
 	InboxIcon,
 	MailIcon,
 	ClockIcon,
-	AlertCircleIcon,
-	CheckCircle2Icon,
-	BotIcon,
-	UserIcon,
 	ChevronDownIcon,
 	ChevronUpIcon,
 	PaperclipIcon,
@@ -32,6 +28,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
+import { EntityTimeline } from "./EntityTimeline";
 import { ReplyComposer } from "./ReplyComposer";
 
 const Letter = dynamic(() => import("react-letter").then((m) => m.Letter), {
@@ -42,19 +39,6 @@ interface ThreadChatViewProps {
 	entityId: string | null;
 }
 
-const TIMELINE_ICONS: Record<string, typeof MailIcon> = {
-	email_received: MailIcon,
-	status_changed: AlertCircleIcon,
-	action_taken: CheckCircle2Icon,
-	ai_summary: BotIcon,
-};
-
-const TIMELINE_LABELS: Record<string, string> = {
-	email_received: "收到邮件",
-	status_changed: "状态变更",
-	action_taken: "执行操作",
-	ai_summary: "AI 分析",
-};
 
 export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 	const { data: entity, isLoading } = useQuery({
@@ -137,7 +121,20 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 			</TabsContent>
 
 			<TabsContent value="timeline" className="flex-1 overflow-y-auto mt-0 min-h-0 px-5 py-4">
-				<TimelineView timeline={timeline} />
+				<EntityTimeline
+					entityId={entity.id}
+					entityTitle={entity.title}
+					events={timeline.map((e) => ({
+						...e,
+						createdAt: typeof e.createdAt === "string" ? e.createdAt : e.createdAt.toString(),
+						actor: e.actor
+							? { id: e.actor.id, name: e.actor.name ?? "", image: e.actor.image }
+							: null,
+					}))}
+					entityType={entity.type}
+					status={entity.status}
+					extractedFields={entity.extractedFields as string | null}
+				/>
 			</TabsContent>
 		</Tabs>
 
@@ -541,110 +538,6 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 	);
 }
 
-// ─── Timeline ───
-
-interface TimelineEventItem {
-	id: string;
-	type: string;
-	content: string;
-	metadata?: string | null;
-	createdAt: string | Date;
-	actor?: { id: string; name: string | null; image: string | null } | null;
-}
-
-function TimelineView({ timeline }: { timeline: TimelineEventItem[] }) {
-	if (timeline.length === 0) {
-		return (
-			<div className="flex flex-col items-center justify-center py-20 text-muted-foreground/40">
-				<ClockIcon className="size-10 mb-3 stroke-1" />
-				<p className="text-sm font-medium">暂无时间线事件</p>
-				<p className="text-xs mt-1 text-muted-foreground/30">
-					操作和状态变更会自动记录
-				</p>
-			</div>
-		);
-	}
-
-	return (
-		<div className="relative">
-			<div className="absolute left-[15px] top-4 bottom-4 w-px bg-border" />
-
-			<div className="space-y-0">
-				{timeline.map((event, index) => {
-					const Icon = TIMELINE_ICONS[event.type] ?? ClockIcon;
-					const label = TIMELINE_LABELS[event.type] ?? event.type;
-					const isLast = index === timeline.length - 1;
-					const meta = parseMetadata(event.metadata);
-
-					return (
-						<div key={event.id} className="relative flex gap-4 pb-6 last:pb-0">
-							<div className={cn(
-								"relative z-10 flex size-[30px] shrink-0 items-center justify-center rounded-full border",
-								event.type === "status_changed"
-									? "bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30"
-									: event.type === "action_taken"
-										? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30"
-										: event.type === "ai_summary"
-											? "bg-violet-50 border-violet-200 dark:bg-violet-500/10 dark:border-violet-500/30"
-											: "bg-background border-border",
-							)}>
-								<Icon className={cn(
-									"size-3.5",
-									event.type === "status_changed"
-										? "text-amber-600 dark:text-amber-400"
-										: event.type === "action_taken"
-											? "text-emerald-600 dark:text-emerald-400"
-											: event.type === "ai_summary"
-												? "text-violet-600 dark:text-violet-400"
-												: "text-muted-foreground",
-								)} />
-							</div>
-
-							<div className={cn("flex-1 min-w-0", !isLast && "pb-0")}>
-								<div className="flex items-center gap-2 mb-0.5">
-									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-										{label}
-									</span>
-									<span className="text-[10px] text-muted-foreground/60 ml-auto shrink-0">
-										{formatDate(event.createdAt)}
-									</span>
-								</div>
-
-								<p className="text-sm leading-relaxed">{event.content}</p>
-
-								{meta.previousStatus && meta.newStatus && (
-									<div className="mt-1.5 flex items-center gap-1.5 text-xs">
-										<span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-											{meta.previousStatus}
-										</span>
-										<span className="text-muted-foreground">→</span>
-										<span className={cn(
-											"px-1.5 py-0.5 rounded",
-											meta.newStatus === "approved"
-												? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-												: meta.newStatus === "rejected"
-													? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-													: "bg-primary/10 text-primary",
-										)}>
-											{meta.newStatus}
-										</span>
-									</div>
-								)}
-
-								{event.actor?.name && (
-									<div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
-										<UserIcon className="size-3" />
-										<span>{event.actor.name}</span>
-									</div>
-								)}
-							</div>
-						</div>
-					);
-				})}
-			</div>
-		</div>
-	);
-}
 
 // ─── Utilities ───
 
@@ -688,17 +581,6 @@ function parseRecipients(raw?: string | null): EmailRecipient[] {
 		return JSON.parse(raw) as EmailRecipient[];
 	} catch {
 		return [];
-	}
-}
-
-function parseMetadata(raw?: string | null): Record<string, string> {
-	if (!raw) {
-		return {};
-	}
-	try {
-		return JSON.parse(raw);
-	} catch {
-		return {};
 	}
 }
 

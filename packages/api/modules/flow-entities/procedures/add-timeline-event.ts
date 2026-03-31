@@ -5,7 +5,7 @@ import { protectedProcedure } from "../../../orpc/procedures";
 
 export const addTimelineEventSchema = z.object({
 	entityId: z.string(),
-	type: z.enum(["email_received", "status_changed", "action_taken", "ai_summary", "milestone", "note"]),
+	type: z.enum(["email_received", "email_sent", "status_changed", "action_taken", "ai_summary", "milestone", "note"]),
 	content: z.string().min(1).max(2000),
 	metadata: z.record(z.string(), z.unknown()).optional(),
 });

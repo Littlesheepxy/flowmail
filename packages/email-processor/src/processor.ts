@@ -5,6 +5,7 @@ import {
 	type CategoryDefinition,
 } from "./classifier";
 import { extractApprovalFields, extractReportFields } from "./extractor";
+import { generateSuggestions } from "./suggester";
 import { summarizeThread } from "./summarizer";
 
 import type { EmailRecipient, RawEmailAttachment } from "./connectors/types";
@@ -327,6 +328,26 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 		});
 
 		const classLabel = categorySlug ?? entityType;
+
+		let suggestions: unknown[] = [];
+		try {
+			suggestions = await generateSuggestions({
+				entityType,
+				entityStatus: initialStatus,
+				extractedFields,
+				latestEmailContent: input.content.slice(0, 2000),
+				timelineSummary: summary,
+				availableTools: [
+					"add_timeline_event",
+					"approve_entity",
+					"reject_entity",
+					"update_entity_status",
+				],
+			});
+		} catch {
+			// suggestions generation is non-critical
+		}
+
 		await db.timelineEvent.create({
 			data: {
 				entityId: entity.id,
@@ -338,6 +359,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					confidence,
 					reasoning,
 					extractedFields,
+					...(suggestions.length > 0 ? { suggestions } : {}),
 				}),
 			},
 		});

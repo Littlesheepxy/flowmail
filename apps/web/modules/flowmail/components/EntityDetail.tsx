@@ -368,6 +368,7 @@ export function EntityDetail() {
 					<Card className="p-4">
 						<EntityTimeline
 							entityId={entityId}
+							entityTitle={entity.title}
 							events={(entity.timeline ?? []).map((e) => ({
 								...e,
 								createdAt: e.createdAt.toString(),

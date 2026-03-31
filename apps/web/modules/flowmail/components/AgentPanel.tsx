@@ -27,6 +27,7 @@ import { usePathname } from "next/navigation";
 import { AgentCard } from "../agent/AgentCards";
 import { buildPageContext } from "../agent/build-page-context";
 import type { AgentBlock, AgentUICard } from "../agent/types";
+import { useAgent } from "./AgentProvider";
 
 interface AgentPanelProps {
 	entityId: string | null;
@@ -230,6 +231,7 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 	);
 
 	const { messages, sendMessage, status, setMessages } = useChat({ transport });
+	const { pendingExecution, consumeExecution } = useAgent();
 
 	const isLoading = status === "streaming" || status === "submitted";
 	const hasMessages = messages.length > 0;
@@ -242,6 +244,30 @@ export function AgentPanel({ entityId, organizationId, className, onClose }: Age
 	useEffect(() => {
 		scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
 	}, [messages]);
+
+	useEffect(() => {
+		if (!pendingExecution || isLoading) {
+			return;
+		}
+		const exec = consumeExecution();
+		if (!exec) {
+			return;
+		}
+		const instruction = [
+			"请执行以下操作：" + exec.actionLabel,
+			"",
+			"背景：" + exec.suggestionMessage,
+			"事项：\"" + exec.entityTitle + "\" (ID: " + exec.entityId + ")",
+			"建议工具：" + exec.actionTool,
+			exec.actionParams && Object.keys(exec.actionParams).length > 0
+				? "参数：" + JSON.stringify(exec.actionParams)
+				: "",
+			"",
+			"请根据上下文自主判断需要执行哪些操作，不要只是描述，直接调用工具执行。",
+		].filter(Boolean).join("\n");
+
+		sendMessage({ text: instruction });
+	}, [pendingExecution, isLoading, consumeExecution, sendMessage]);
 
 	function handleSubmit(e: FormEvent) {
 		e.preventDefault();

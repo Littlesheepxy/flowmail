@@ -199,6 +199,19 @@ async function main() {
 						purpose: "Q1 全渠道营销投放",
 						deadline: daysAgo(2).toISOString().split("T")[0],
 					},
+					suggestions: [
+						{
+							id: "sug_e1_1",
+							intent: "review_and_approve",
+							message: "检测到 ¥200,000 审批请求，优先级高，截止日期临近。建议尽快审批。",
+							severity: "warning",
+							actions: [
+								{ label: "批准", tool: "approve_entity", params: {}, confirmRequired: true },
+								{ label: "拒绝", tool: "reject_entity", params: {}, confirmRequired: true },
+							],
+							status: "accepted",
+						},
+					],
 				}),
 				createdAt: daysAgo(7, -1),
 			},
@@ -219,9 +232,25 @@ async function main() {
 			},
 			{
 				entityId: e1.id,
+				type: "email_sent",
+				content: "回复张明：已收到补充材料，将于近期审批",
+				metadata: JSON.stringify({ to: "zhangming@company.com", subject: "Re: [审批申请] Q1 营销预算 - 已收到补充材料" }),
+				actorId: user.id,
+				createdAt: daysAgo(4),
+			},
+			{
+				entityId: e1.id,
 				type: "action_taken",
 				content: "已批准：同意 Q1 营销预算 ¥200,000，要求每月提交 ROI 报告",
 				metadata: JSON.stringify({ action: "approved", comment: "同意，请每月提交 ROI 报告" }),
+				actorId: user.id,
+				createdAt: daysAgo(1),
+			},
+			{
+				entityId: e1.id,
+				type: "email_sent",
+				content: "发送审批结果通知：已批准 Q1 营销预算 ¥200,000",
+				metadata: JSON.stringify({ to: "zhangming@company.com", subject: "Re: [审批申请] Q1 营销预算 - 已批准" }),
 				actorId: user.id,
 				createdAt: daysAgo(1),
 			},
@@ -316,8 +345,39 @@ async function main() {
 						monthlyCost: "¥18,400/月",
 						deadline: daysFromNow(2).toISOString().split("T")[0],
 					},
+					suggestions: [
+						{
+							id: "sug_e2_1",
+							intent: "urgent_approval_needed",
+							message: "⚠️ 紧急审批！生产环境 CPU >90%，2 天后截止。建议立即审批以避免服务中断。",
+							severity: "critical",
+							actions: [
+								{ label: "立即批准", tool: "approve_entity", params: {}, confirmRequired: true },
+								{ label: "拒绝并说明", tool: "reject_entity", params: {}, confirmRequired: true },
+							],
+							status: "pending",
+						},
+						{
+							id: "sug_e2_2",
+							intent: "request_more_info",
+							message: "可以要求李工补充近 30 天的完整容量规划报告，以评估长期需求。",
+							severity: "info",
+							actions: [
+								{ label: "发送补充材料请求", tool: "add_timeline_event", params: { type: "note", content: "请补充 30 天容量规划报告" }, confirmRequired: true },
+							],
+							status: "pending",
+						},
+					],
 				}),
 				createdAt: daysAgo(1, -1),
+			},
+			{
+				entityId: e2.id,
+				type: "email_sent",
+				content: "回复李工：收到申请，请补充近 7 天的监控数据以便评估",
+				metadata: JSON.stringify({ to: "ligong@company.com", subject: "Re: 【紧急】扩容申请 - 请补充监控数据" }),
+				actorId: user.id,
+				createdAt: daysAgo(0, 6),
 			},
 			{
 				entityId: e2.id,
@@ -431,6 +491,15 @@ async function main() {
 					categorySlug: "report",
 					extractedFields: { progress: "20%", risk: "无", completed: "数据库迁移" },
 					progressDelta: 20,
+					suggestions: [
+						{
+							id: "sug_e3w1",
+							intent: "progress_normal",
+							message: "项目启动顺利，进度 20%，无风险。",
+							severity: "info",
+							status: "pending",
+						},
+					],
 				}),
 				createdAt: daysAgo(28, -1),
 			},
@@ -450,6 +519,18 @@ async function main() {
 					categorySlug: "report",
 					extractedFields: { progress: "42%", risk: "中", blocker: "SDK兼容性问题" },
 					progressDelta: 22,
+					suggestions: [
+						{
+							id: "sug_e3w2_1",
+							intent: "follow_up_blocker",
+							message: "检测到新阻塞项「SDK 兼容性问题」，建议创建跟进待办并联系第三方支持。",
+							severity: "warning",
+							actions: [
+								{ label: "创建跟进待办", tool: "add_timeline_event", params: { type: "note", content: "待办：跟进 SDK 兼容性问题，联系第三方支持" }, confirmRequired: true },
+							],
+							status: "pending",
+						},
+					],
 				}),
 				createdAt: daysAgo(21, -1),
 			},
@@ -470,8 +551,39 @@ async function main() {
 					extractedFields: { progress: "58%", risk: "高", blocker: "SDK兼容性问题（第2周）" },
 					progressDelta: 16,
 					riskSignals: ["速度明显下降", "阻塞项持续超过1周", "延期预警出现"],
+					suggestions: [
+						{
+							id: "sug_e3w3_1",
+							intent: "escalate_delay_risk",
+							message: "⚠️ 延期风险！阻塞持续 2 周，速度下降明显。建议安排紧急会议讨论调整计划。",
+							severity: "critical",
+							actions: [
+								{ label: "安排紧急会议", tool: "add_timeline_event", params: { type: "note", content: "已安排紧急评审会议，讨论延期风险和 SDK 问题" }, confirmRequired: true },
+								{ label: "发送催促提醒", tool: "add_timeline_event", params: { type: "note", content: "已提醒项目负责人加速解决 SDK 阻塞" }, confirmRequired: true },
+							],
+							status: "pending",
+						},
+						{
+							id: "sug_e3w3_2",
+							intent: "explore_workaround",
+							message: "SDK 兼容问题已阻塞 2 周，可以考虑临时兼容方案或更换 SDK 版本。",
+							severity: "warning",
+							actions: [
+								{ label: "记录备选方案", tool: "add_timeline_event", params: { type: "note", content: "备选方案：1) 临时兼容 polyfill 2) 降级到 SDK v1.x" }, confirmRequired: true },
+							],
+							status: "pending",
+						},
+					],
 				}),
 				createdAt: daysAgo(14, -1),
+			},
+			{
+				entityId: e3.id,
+				type: "email_sent",
+				content: "回复王芳：收到延期预警，请优先考虑临时兼容方案，下周一前给出结论",
+				metadata: JSON.stringify({ to: "wangfang@company.com", subject: "Re: 【周报 #3】后端重构 - 需要行动计划" }),
+				actorId: user.id,
+				createdAt: daysAgo(13, -2),
 			},
 			{
 				entityId: e3.id,
@@ -498,6 +610,18 @@ async function main() {
 					extractedFields: { progress: "62%", risk: "中", velocity: "下降15%" },
 					progressDelta: 4,
 					riskSignals: ["本周进展偏慢"],
+					suggestions: [
+						{
+							id: "sug_e3w4_1",
+							intent: "monitor_sdk_patch",
+							message: "临时方案在运行，等待 SDK 官方补丁。建议下周确认补丁是否发布并验证。",
+							severity: "info",
+							actions: [
+								{ label: "创建验证待办", tool: "add_timeline_event", params: { type: "note", content: "待办：下周三确认 SDK 官方补丁发布情况" }, confirmRequired: true },
+							],
+							status: "pending",
+						},
+					],
 				}),
 				createdAt: daysAgo(7, -1),
 			},
@@ -591,6 +715,19 @@ async function main() {
 					confidence: 0.93,
 					categorySlug: "issue",
 					extractedFields: { severity: "P1", system: "支付接口", symptom: "超时率>40%" },
+					suggestions: [
+						{
+							id: "sug_e4_1",
+							intent: "urgent_incident_response",
+							message: "🚨 P1 生产故障！支付系统超时率 >40%，需立即响应。",
+							severity: "critical",
+							actions: [
+								{ label: "标记为处理中", tool: "update_entity_status", params: { status: "investigating" }, confirmRequired: false },
+								{ label: "通知 SRE 团队", tool: "add_timeline_event", params: { type: "note", content: "已通知 SRE on-call 团队介入处理" }, confirmRequired: true },
+							],
+							status: "pending",
+						},
+					],
 				}),
 				createdAt: daysAgo(4, -1),
 			},
@@ -609,6 +746,14 @@ async function main() {
 				metadata: JSON.stringify({ milestone: "根因确认" }),
 				actorId: user.id,
 				createdAt: daysAgo(4, -3),
+			},
+			{
+				entityId: e4.id,
+				type: "email_sent",
+				content: "回复 SRE 团队：已开始排查，初步怀疑连接池配置问题",
+				metadata: JSON.stringify({ to: "chenlei@company.com, sre-team@company.com", subject: "Re: [P1] 支付接口 - 正在排查" }),
+				actorId: user.id,
+				createdAt: daysAgo(4, -2.5),
 			},
 			{
 				entityId: e4.id,
@@ -644,15 +789,15 @@ async function main() {
 	const eventCount = await db.timelineEvent.count({ where: { entity: { organizationId: org.id } } });
 
 	console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-	console.log(`✅ Seed complete!`);
-	console.log(`   FlowEntity:    ${entityCount}`);
-	console.log(`   EmailThread:   ${threadCount}`);
-	console.log(`   TimelineEvent: ${eventCount}`);
+	console.log("✅ Seed complete!");
+	console.log("   FlowEntity:    " + entityCount);
+	console.log("   EmailThread:   " + threadCount);
+	console.log("   TimelineEvent: " + eventCount);
 	console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 	console.log("\n访问路径：");
-	console.log(`  /[org-slug]/inbox`);
-	console.log(`  /[org-slug]/approvals`);
-	console.log(`  /[org-slug]/reports`);
+	console.log("  /[org-slug]/inbox");
+	console.log("  /[org-slug]/approvals");
+	console.log("  /[org-slug]/reports");
 }
 
 main()

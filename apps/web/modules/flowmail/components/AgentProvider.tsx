@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
 
 /**
  * agentType 含义（产品态，非运行时切换）：
@@ -10,6 +10,16 @@ import { createContext, useContext, useState, type ReactNode } from "react";
  */
 type AgentType = "flowmail" | "openclaw" | "custom";
 
+export interface SuggestionExecution {
+	entityId: string;
+	entityTitle: string;
+	actionLabel: string;
+	actionTool: string;
+	actionParams: Record<string, unknown>;
+	suggestionMessage: string;
+	severity: "info" | "warning" | "critical";
+}
+
 interface AgentState {
 	agentType: AgentType;
 	setAgentType: (type: AgentType) => void;
@@ -18,9 +28,11 @@ interface AgentState {
 	toggleFloating: () => void;
 	contextEntityId: string | null;
 	setContextEntityId: (id: string | null) => void;
-	/** OpenClaw 是否已配置接入（驱动 UI 提示与来源标注） */
 	isOpenClawConnected: boolean;
 	setIsOpenClawConnected: (connected: boolean) => void;
+	executeSuggestion: (exec: SuggestionExecution) => void;
+	pendingExecution: SuggestionExecution | null;
+	consumeExecution: () => SuggestionExecution | null;
 }
 
 const AgentContext = createContext<AgentState | undefined>(undefined);
@@ -30,6 +42,22 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 	const [isFloatingOpen, setIsFloatingOpen] = useState(false);
 	const [contextEntityId, setContextEntityId] = useState<string | null>(null);
 	const [isOpenClawConnected, setIsOpenClawConnected] = useState(false);
+	const [pendingExecution, setPendingExecution] = useState<SuggestionExecution | null>(null);
+	const pendingRef = useRef<SuggestionExecution | null>(null);
+
+	const executeSuggestion = useCallback((exec: SuggestionExecution) => {
+		pendingRef.current = exec;
+		setPendingExecution(exec);
+		setContextEntityId(exec.entityId);
+		setIsFloatingOpen(true);
+	}, []);
+
+	const consumeExecution = useCallback(() => {
+		const exec = pendingRef.current;
+		pendingRef.current = null;
+		setPendingExecution(null);
+		return exec;
+	}, []);
 
 	return (
 		<AgentContext.Provider
@@ -43,6 +71,9 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 				setContextEntityId,
 				isOpenClawConnected,
 				setIsOpenClawConnected,
+				executeSuggestion,
+				pendingExecution,
+				consumeExecution,
 			}}
 		>
 			{children}

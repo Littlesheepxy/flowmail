@@ -362,7 +362,7 @@ model TimelineEvent {
   id        String     @id @default(cuid())
   entityId  String
   entity    FlowEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
-  type      String     // "email_received" | "status_changed" | "action_taken" | "ai_summary"
+  type      String     // "email_received" | "email_sent" | "status_changed" | "action_taken" | "ai_summary"
   content   String     @db.Text
   metadata  String?    @db.Text
   actorId   String?

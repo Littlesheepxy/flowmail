@@ -450,11 +450,11 @@ const handler = createMcpHandler(
 			{
 				title: "Add Timeline Event",
 				description:
-					"Add a manual event to an entity's timeline. Use when recording milestones, notes, decisions, or any significant moment in an entity's lifecycle. Supports types: note, milestone, action_taken, status_changed.",
+					"Add a manual event to an entity's timeline. Use when recording milestones, notes, decisions, sent emails, or any significant moment in an entity's lifecycle.",
 				inputSchema: {
 					entityId: z.string().describe("Entity ID to add event to"),
 					type: z
-						.enum(["note", "milestone", "action_taken", "status_changed", "ai_summary"])
+						.enum(["note", "milestone", "action_taken", "status_changed", "ai_summary", "email_sent"])
 						.describe("Type of timeline event"),
 					content: z.string().min(1).describe("Event content / description"),
 					metadata: z
@@ -713,12 +713,13 @@ Assess risk level, factors, predicted outcome, suggested actions, and deadline r
 					entityId: z.string().describe("Entity ID"),
 					types: z
 						.array(
-							z.enum([
-								"email_received",
-								"status_changed",
-								"action_taken",
-								"ai_summary",
-								"milestone",
+						z.enum([
+							"email_received",
+							"email_sent",
+							"status_changed",
+							"action_taken",
+							"ai_summary",
+							"milestone",
 								"note",
 							]),
 						)

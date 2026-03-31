@@ -326,6 +326,30 @@ What changed? Risk signals? Progress delta (-100 to 100)? Recommendation?`,
 		},
 	}),
 
+	update_entity_status: tool({
+		description: "Update the status of any entity. Use for status transitions like investigating, in_progress, blocked, etc.",
+		inputSchema: z.object({
+			entityId: z.string(),
+			status: z.string().describe("New status value"),
+			reason: z.string().optional().describe("Reason for status change"),
+		}),
+		execute: async (input: { entityId: string; status: string; reason?: string }) => {
+			const entity = await db.flowEntity.findUnique({ where: { id: input.entityId } });
+			if (!entity) { return { error: "Not found" }; }
+			const previousStatus = entity.status;
+			await db.flowEntity.update({ where: { id: input.entityId }, data: { status: input.status } });
+			await db.timelineEvent.create({
+				data: {
+					entityId: input.entityId,
+					type: "status_changed",
+					content: `状态变更：${previousStatus} → ${input.status}${input.reason ? `（${input.reason}）` : ""}`,
+					metadata: JSON.stringify({ previousStatus, newStatus: input.status, reason: input.reason, via: "agent" }),
+				},
+			});
+			return { success: true, fromStatus: previousStatus, toStatus: input.status, title: entity.title };
+		},
+	}),
+
 	list_pending_approvals: tool({
 		description: "List all pending approvals for the organization.",
 		inputSchema: z.object({
