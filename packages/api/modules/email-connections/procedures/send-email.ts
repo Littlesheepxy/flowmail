@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { z } from "zod/v4";
 import { protectedProcedure } from "../../../orpc/procedures";
+import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 
 const sendEmailSchema = z.object({
 	connectionId: z.string(),
@@ -29,12 +30,21 @@ export const sendEmail = protectedProcedure
 		if (!connection) {
 			throw new ORPCError("NOT_FOUND");
 		}
-		if (!connection.accessToken) {
-			throw new ORPCError("BAD_REQUEST", { message: "No access token available" });
+		if (connection.provider === "feishu") {
+			const fresh = await ensureFeishuOAuthAccessToken(connection);
+			if (!fresh.accessToken) {
+				throw new ORPCError("BAD_REQUEST", {
+					message: "飞书邮箱缺少 access token，请重新授权连接",
+				});
+			}
+			return await sendViaFeishu(
+				{ email: fresh.email, accessToken: fresh.accessToken },
+				input,
+			);
 		}
 
-		if (connection.provider === "feishu") {
-			return await sendViaFeishu(connection, input);
+		if (!connection.accessToken) {
+			throw new ORPCError("BAD_REQUEST", { message: "No access token available" });
 		}
 
 		if (connection.provider === "gmail") {

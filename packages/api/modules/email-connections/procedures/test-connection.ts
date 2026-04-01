@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { getConnector } from "@repo/email-processor";
 import { protectedProcedure } from "../../../orpc/procedures";
+import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 import { testConnectionSchema } from "../types";
 
 export const testEmailConnection = protectedProcedure
@@ -17,19 +18,26 @@ export const testEmailConnection = protectedProcedure
 			where: { id: input.connectionId },
 		});
 
-		if (!connection) throw new ORPCError("NOT_FOUND");
+		if (!connection) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
-		const connector = getConnector(connection.provider);
+		const connectionWithToken =
+			connection.provider === "feishu"
+				? await ensureFeishuOAuthAccessToken(connection)
+				: connection;
+
+		const connector = getConnector(connectionWithToken.provider);
 		const ok = await connector.testConnection({
-			provider: connection.provider,
-			email: connection.email,
-			accessToken: connection.accessToken,
-			refreshToken: connection.refreshToken,
-			imapHost: connection.imapHost,
-			imapPort: connection.imapPort,
-			imapPassword: connection.imapPassword,
-			authType: connection.authType,
+			provider: connectionWithToken.provider,
+			email: connectionWithToken.email,
+			accessToken: connectionWithToken.accessToken,
+			refreshToken: connectionWithToken.refreshToken,
+			imapHost: connectionWithToken.imapHost,
+			imapPort: connectionWithToken.imapPort,
+			imapPassword: connectionWithToken.imapPassword,
+			authType: connectionWithToken.authType,
 		});
 
-		return { connectionId: connection.id, working: ok };
+		return { connectionId: connectionWithToken.id, working: ok };
 	});

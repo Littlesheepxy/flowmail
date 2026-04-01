@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { getConnector, processEmail } from "@repo/email-processor";
 import { protectedProcedure } from "../../../orpc/procedures";
+import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 import { syncConnectionSchema } from "../types";
 
 export const syncEmailConnection = protectedProcedure
@@ -24,22 +25,29 @@ export const syncEmailConnection = protectedProcedure
 			throw new ORPCError("BAD_REQUEST", { message: "Connection is inactive" });
 		}
 
-		const connector = getConnector(connection.provider);
+		const connectionWithToken =
+			connection.provider === "feishu"
+				? await ensureFeishuOAuthAccessToken(connection)
+				: connection;
 
-		console.log(`[Sync] Starting sync for ${connection.provider}:${connection.email}, cursor=${connection.syncCursor}`);
+		const connector = getConnector(connectionWithToken.provider);
+
+		console.log(
+			`[Sync] Starting sync for ${connectionWithToken.provider}:${connectionWithToken.email}, cursor=${connectionWithToken.syncCursor}`,
+		);
 
 		const { emails, newCursor } = await connector.fetchNewEmails(
 			{
-				provider: connection.provider,
-				email: connection.email,
-				accessToken: connection.accessToken,
-				refreshToken: connection.refreshToken,
-				imapHost: connection.imapHost,
-				imapPort: connection.imapPort,
-				imapPassword: connection.imapPassword,
-				authType: connection.authType,
+				provider: connectionWithToken.provider,
+				email: connectionWithToken.email,
+				accessToken: connectionWithToken.accessToken,
+				refreshToken: connectionWithToken.refreshToken,
+				imapHost: connectionWithToken.imapHost,
+				imapPort: connectionWithToken.imapPort,
+				imapPassword: connectionWithToken.imapPassword,
+				authType: connectionWithToken.authType,
 			},
-			connection.syncCursor,
+			connectionWithToken.syncCursor,
 		);
 
 		console.log(`[Sync] Fetched ${emails.length} emails, newCursor=${newCursor}`);
@@ -54,7 +62,7 @@ export const syncEmailConnection = protectedProcedure
 			const existing = await db.emailThread.findUnique({
 				where: {
 					connectionId_externalThreadId: {
-						connectionId: connection.id,
+						connectionId: connectionWithToken.id,
 						externalThreadId: email.externalId,
 					},
 				},
@@ -76,8 +84,8 @@ export const syncEmailConnection = protectedProcedure
 				toRecipients: email.toRecipients,
 				ccRecipients: email.ccRecipients,
 				attachments: email.attachments,
-				organizationId: connection.organizationId,
-				connectionId: connection.id,
+				organizationId: connectionWithToken.organizationId,
+				connectionId: connectionWithToken.id,
 				externalThreadId: email.externalId,
 				receivedAt: email.receivedAt,
 			});
@@ -94,7 +102,7 @@ export const syncEmailConnection = protectedProcedure
 		console.log(`[Sync] Done: fetched=${emails.length}, processed=${processed}, errors=${errors}`);
 
 		await db.emailConnection.update({
-			where: { id: connection.id },
+			where: { id: connectionWithToken.id },
 			data: {
 				lastSyncAt: new Date(),
 				...(newCursor ? { syncCursor: newCursor } : {}),

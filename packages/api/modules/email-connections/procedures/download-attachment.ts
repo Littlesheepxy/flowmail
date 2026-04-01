@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { z } from "zod/v4";
 import { protectedProcedure } from "../../../orpc/procedures";
+import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 
 const downloadAttachmentSchema = z.object({
 	attachmentId: z.string(),
@@ -24,8 +25,14 @@ export const downloadAttachment = protectedProcedure
 						connectionId: true,
 						connection: {
 							select: {
+								id: true,
 								provider: true,
+								authType: true,
 								accessToken: true,
+								refreshToken: true,
+								tokenExpiresAt: true,
+								appId: true,
+								appSecret: true,
 								email: true,
 							},
 						},
@@ -38,9 +45,19 @@ export const downloadAttachment = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		const { provider, accessToken, email } = attachment.thread.connection;
+		let conn = attachment.thread.connection;
+		if (conn.provider === "feishu") {
+			conn = await ensureFeishuOAuthAccessToken(conn);
+		}
+
+		const { provider, accessToken, email } = conn;
 
 		if (provider === "feishu") {
+			if (!accessToken) {
+				throw new ORPCError("BAD_REQUEST", {
+					message: "飞书邮箱缺少 access token，请重新授权连接",
+				});
+			}
 			const mailboxId = encodeURIComponent(email || "me");
 			const url = `https://open.feishu.cn/open-apis/mail/v1/user_mailboxes/${mailboxId}/messages/attachment_download`;
 			return {
