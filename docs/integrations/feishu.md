@@ -1,5 +1,7 @@
 # 飞书（Lark）
 
+> **一公司一文档**：飞书仅在本页记录；钉钉 / 企微 / Google 见同目录其它文件。
+
 ## 元数据
 
 - **代码标识**：`feishu`（`EmailConnection.provider`、connector key）

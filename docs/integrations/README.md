@@ -1,6 +1,11 @@
 # 第三方集成（厂商隔离与 CLI / Skills 借鉴）
 
-目标：**每个云厂商一份独立文档**，把「官方 CLI / Skills 仓库」与「Flowmail 内实现」边界划清，方便后续逐个收割能力，而不把参考实现混进业务代码。
+## 一公司一文档（查看方式）
+
+- **每个厂商单独一个 Markdown 文件**，文件名用小写英文标识（如 `feishu.md`、`dingtalk.md`），**禁止**把多个公司的能力混在同一文档里，方便按 Ctrl+P / 目录树直接打开。
+- **本页（README）只做索引与规范**；具体端点、鉴权、代码路径一律写在对应厂商文档里。
+
+目标：把「官方 CLI / Skills 仓库」与「Flowmail 内实现」边界划清，方便后续逐个收割能力，而不把参考实现混进业务代码。
 
 ## 分层（必须遵守）
 
@@ -47,10 +52,13 @@
 - 数据出境 / 租户隔离 / 最小权限：
 ```
 
-## 已有文档索引
+## 厂商文档索引（一厂一页）
 
-| 文档 | 厂商 |
-|------|------|
-| [feishu.md](./feishu.md) | 飞书（Lark）邮箱与开放平台 |
+| 文档 | 公司 / 产品 |
+|------|-------------|
+| [feishu.md](./feishu.md) | 飞书（Lark） |
+| [dingtalk.md](./dingtalk.md) | 钉钉 |
+| [wecom.md](./wecom.md) | 企业微信 |
+| [google.md](./google.md) | Google（Gmail / Workspace 相关） |
 
-后续按优先级追加：`dingtalk.md`、`wecom.md`、`google-workspace.md` 等。
+新增其它厂商（如 Microsoft 365 / Outlook）时：**新建** `microsoft.md`（或 `outlook.md`），并在此表加一行。
