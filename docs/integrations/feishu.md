@@ -38,6 +38,17 @@
 | lark-im / lark-calendar / lark-doc / … | IM、日历、文档等 | **未接**；可后续通过 MCP 扩展独立 tools，须先写 `packages/` 再双轨暴露 |
 | lark-shared | 登录与配置 | **不适用云端**；用户本地 OpenClaw + 官方 Skill |
 
+## CLI 鉴权模式对照
+
+> 2026-04 调研结论，基于 `larksuite/cli` 源码与 README。
+
+| 项目 | 说明 |
+|------|------|
+| **CLI 是否内置 App ID** | **否** — 需先 `lark-cli config init` 创建/绑定开放平台应用，用户提供 `appId` + `appSecret` |
+| **OAuth 流程** | **Device Flow**（`auth login --device-code`）：请求 `/oauth/v1/device_authorization` 获取 `device_code` + `user_code` + 验证链接，用户浏览器授权后 CLI 轮询 `/authen/v2/oauth/token` 换 token |
+| **对 Flowmail 的影响** | 飞书不支持平台级统一 Client ID；用户必须在开放平台自建应用并提供凭证。Flowmail 当前的「用户填 App ID/Secret → Authorization Code → 换 token」模式是正确路径 |
+| **Device Flow 价值** | 对 Flowmail 侧边栏 Agent 价值有限——省掉的只是回调 URL 配置，但填 App ID/Secret 这步不变。**优先级低**，可作为后续体验优化项 |
+
 ## 风险与合规
 
 - 租户数据隔离依赖 **organizationId + EmailConnection**；token 存 DB，需配合现有安全与审计策略

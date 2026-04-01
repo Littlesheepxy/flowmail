@@ -7,6 +7,9 @@ import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
 import { openApiHandler, rpcHandler } from "./orpc/handler";
 
+export { verifyApiToken } from "./modules/api-tokens/lib/token-utils";
+export { triggerNotification } from "./modules/notifications/lib/trigger";
+
 export const app = new Hono()
 	.basePath("/api")
 	// Logger middleware

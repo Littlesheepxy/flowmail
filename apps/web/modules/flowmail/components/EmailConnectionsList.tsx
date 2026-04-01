@@ -13,6 +13,13 @@ import {
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@repo/ui/components/select";
 import { Spinner } from "@repo/ui";
 import {
 	Table,
@@ -61,7 +68,7 @@ const PROVIDERS: ProviderDef[] = [
 		method: "oauth",
 		description: "通过 Google OAuth 安全授权",
 		oauthUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-		scopes: "https://www.googleapis.com/auth/gmail.readonly",
+		scopes: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
 	},
 	{
 		id: "feishu",
@@ -492,7 +499,7 @@ function GmailOAuthForm({
 		authUrl.searchParams.set("client_id", clientId);
 		authUrl.searchParams.set("redirect_uri", redirectUri);
 		authUrl.searchParams.set("response_type", "code");
-		authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/gmail.readonly");
+		authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send");
 		authUrl.searchParams.set("access_type", "offline");
 		authUrl.searchParams.set("prompt", "consent");
 		authUrl.searchParams.set("state", organizationId);
@@ -721,6 +728,7 @@ function ImapConnectForm({
 	const [password, setPassword] = useState("");
 	const [imapHost, setImapHost] = useState("");
 	const [imapPort, setImapPort] = useState("");
+	const [maxSyncCount, setMaxSyncCount] = useState("500");
 
 	const connectMutation = useMutation(
 		orpc.emailConnections.connectImap.mutationOptions({ onSuccess }),
@@ -764,6 +772,7 @@ function ImapConnectForm({
 						password,
 						...(imapHost ? { imapHost } : {}),
 						...(imapPort ? { imapPort: Number.parseInt(imapPort) } : {}),
+						maxSyncCount: Number.parseInt(maxSyncCount),
 					});
 				}}
 			>
@@ -790,6 +799,25 @@ function ImapConnectForm({
 						required
 					/>
 				</div>
+				<div className="space-y-2">
+					<Label>首次同步数量</Label>
+					<Select value={maxSyncCount} onValueChange={setMaxSyncCount}>
+						<SelectTrigger>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="100">最近 100 封</SelectItem>
+							<SelectItem value="500">最近 500 封（推荐）</SelectItem>
+							<SelectItem value="1000">最近 1000 封</SelectItem>
+							<SelectItem value="5000">最近 5000 封</SelectItem>
+							<SelectItem value="10000">全部（最多 10000 封）</SelectItem>
+						</SelectContent>
+					</Select>
+					<p className="text-xs text-muted-foreground">
+						邮件总数低于此值时会全部同步。
+					</p>
+				</div>
+
 				<div className="grid grid-cols-3 gap-3">
 					<div className="col-span-2 space-y-2">
 						<Label>IMAP 服务器</Label>

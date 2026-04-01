@@ -24,7 +24,7 @@ import TiptapUnderline from "@tiptap/extension-underline";
 import TiptapLink from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 
-type ReplyMode = "reply" | "replyAll" | "forward";
+export type ReplyMode = "reply" | "replyAll" | "forward";
 
 interface ReplyComposerProps {
 	senderName?: string;
@@ -32,8 +32,10 @@ interface ReplyComposerProps {
 	subject: string;
 	toRecipients?: Array<{ name?: string; address: string }>;
 	ccRecipients?: Array<{ name?: string; address: string }>;
-	onSend?: (data: { mode: ReplyMode; html: string; text: string }) => void;
+	defaultMode?: ReplyMode;
+	onSend?: (data: { mode: ReplyMode; html: string; text: string }) => void | Promise<void>;
 	onClose?: () => void;
+	isSending?: boolean;
 	className?: string;
 }
 
@@ -43,12 +45,15 @@ export function ReplyComposer({
 	subject,
 	toRecipients,
 	ccRecipients,
+	defaultMode = "reply",
 	onSend,
 	onClose,
+	isSending: externalSending,
 	className,
 }: ReplyComposerProps) {
-	const [mode, setMode] = useState<ReplyMode>("reply");
-	const [isSending, setIsSending] = useState(false);
+	const [mode, setMode] = useState<ReplyMode>(defaultMode);
+	const [internalSending, setInternalSending] = useState(false);
+	const isSending = externalSending ?? internalSending;
 
 	const editor = useEditor({
 		immediatelyRender: false,
@@ -83,15 +88,18 @@ export function ReplyComposer({
 		? subject
 		: `${subjectPrefix}${subject}`;
 
-	const handleSend = useCallback(() => {
+	const handleSend = useCallback(async () => {
 		if (!editor) {
 			return;
 		}
-		setIsSending(true);
-		const html = editor.getHTML();
-		const text = editor.getText();
-		onSend?.({ mode, html, text });
-		setIsSending(false);
+		setInternalSending(true);
+		try {
+			const html = editor.getHTML();
+			const text = editor.getText();
+			await onSend?.({ mode, html, text });
+		} finally {
+			setInternalSending(false);
+		}
 	}, [editor, mode, onSend]);
 
 	const modeIcon = mode === "reply" ? ReplyIcon : mode === "replyAll" ? ReplyAllIcon : ForwardIcon;

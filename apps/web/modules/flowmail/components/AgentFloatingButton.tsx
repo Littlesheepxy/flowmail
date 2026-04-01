@@ -19,7 +19,7 @@ export function AgentFloatingButton() {
 		<>
 			{/* Floating panel */}
 			{isFloatingOpen && (
-				<div className="fixed bottom-20 right-6 z-50 w-[360px] h-[520px] rounded-xl border shadow-2xl bg-background overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+				<div className="fixed bottom-20 right-6 z-50 w-[360px] h-[520px] shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200">
 					<AgentPanel entityId={null} />
 				</div>
 			)}
@@ -29,10 +29,10 @@ export function AgentFloatingButton() {
 				type="button"
 				onClick={toggleFloating}
 				className={cn(
-					"fixed bottom-6 right-6 z-50 flex items-center justify-center size-12 rounded-full shadow-lg transition-all",
+					"fixed bottom-6 right-6 z-50 flex items-center justify-center size-12 rounded-2xl transition-all agent-fab-ring",
 					isFloatingOpen
-						? "bg-muted hover:bg-muted/80"
-						: "bg-primary text-primary-foreground hover:bg-primary/90",
+						? "bg-muted hover:bg-muted/80 text-foreground"
+						: "bg-foreground text-background hover:opacity-85",
 				)}
 			>
 				{isFloatingOpen ? (

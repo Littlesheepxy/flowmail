@@ -97,22 +97,22 @@ const EVENT_ICONS: Record<string, typeof MailIcon> = {
 
 const LAYER_COLORS = {
 	email: {
-		dot: "bg-blue-500",
-		border: "border-blue-200 dark:border-blue-800/60",
-		bg: "bg-blue-50/40 dark:bg-blue-950/20",
-		connector: "bg-blue-200 dark:bg-blue-800/50",
+		dot: "bg-zinc-700 dark:bg-zinc-300",
+		border: "border-border",
+		bg: "bg-muted/30",
+		connector: "bg-border",
 	},
 	action: {
-		dot: "bg-emerald-500",
-		border: "border-emerald-200 dark:border-emerald-800/60",
-		bg: "bg-emerald-50/40 dark:bg-emerald-950/20",
-		connector: "bg-emerald-200 dark:bg-emerald-800/50",
+		dot: "bg-zinc-900 dark:bg-zinc-100",
+		border: "border-border",
+		bg: "bg-muted/30",
+		connector: "bg-border",
 	},
 	system: {
-		dot: "bg-amber-500",
-		border: "border-amber-200 dark:border-amber-800/60",
-		bg: "bg-amber-50/40 dark:bg-amber-950/20",
-		connector: "bg-amber-200 dark:bg-amber-800/50",
+		dot: "bg-zinc-500",
+		border: "border-border",
+		bg: "bg-muted/30",
+		connector: "bg-border",
 	},
 };
 
@@ -146,7 +146,7 @@ function detectSeverity(aiMeta?: Record<string, unknown>): Severity {
 }
 
 const SEVERITY_ACCENT: Record<Severity, string> = {
-	info: "border-l-blue-400 dark:border-l-blue-500",
+	info: "border-l-zinc-400 dark:border-l-zinc-500",
 	warning: "border-l-amber-400 dark:border-l-amber-500",
 	critical: "border-l-red-400 dark:border-l-red-500",
 };
@@ -281,7 +281,7 @@ function AiSummaryLine({ aiEvent }: { aiEvent: TimelineEvent }) {
 
 	return (
 		<div className="flex items-center gap-2 flex-wrap text-[11px] leading-5">
-			<span className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 font-medium">
+			<span className="inline-flex items-center gap-1 text-foreground/60 font-medium">
 				<SparklesIcon className="size-3 shrink-0" />
 				<span>AI</span>
 			</span>
@@ -298,7 +298,7 @@ function AiSummaryLine({ aiEvent }: { aiEvent: TimelineEvent }) {
 				</span>
 			)}
 			{categorySlug && (
-				<span className="inline-flex items-center rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-violet-100 text-violet-600 border border-violet-200/60 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800 uppercase">
+				<span className="inline-flex items-center rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-muted text-muted-foreground border uppercase">
 					{categorySlug}
 				</span>
 			)}
@@ -329,7 +329,7 @@ function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
 			)}
 
 			{hasFields && (
-				<div className="rounded-md border border-violet-200/50 dark:border-violet-800/40 overflow-hidden">
+				<div className="rounded-md border overflow-hidden">
 					<table className="w-full text-xs table-fixed">
 						<tbody>
 							{Object.entries(extractedFields).map(([k, v], i) => (
@@ -337,7 +337,7 @@ function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
 									key={k}
 									className={i % 2 === 0
 										? "bg-white/60 dark:bg-white/5"
-										: "bg-violet-50/30 dark:bg-violet-900/10"}
+										: "bg-muted/40"}
 								>
 									<td className="px-2.5 py-1.5 text-muted-foreground font-medium whitespace-nowrap w-[35%] align-middle">
 										{fieldLabel(k)}
@@ -368,11 +368,11 @@ function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
 
 			{reasoning && (
 				<details className="group">
-					<summary className="cursor-pointer text-[11px] text-violet-500 dark:text-violet-400 select-none list-none flex items-center gap-1">
+					<summary className="cursor-pointer text-[11px] text-muted-foreground select-none list-none flex items-center gap-1 hover:text-foreground transition-colors">
 						<ChevronDownIcon className="size-3 transition-transform group-open:rotate-180" />
 						查看推理过程
 					</summary>
-					<p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground pl-4 border-l border-violet-200 dark:border-violet-800">
+					<p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground pl-4 border-l border-border">
 						{reasoning}
 					</p>
 				</details>
@@ -410,13 +410,13 @@ function SuggestionBar({
 	const Icon = ICON_MAP[suggestion.severity];
 
 	const COLORS: Record<Severity, string> = {
-		info: "border-l-blue-400 bg-blue-50/50 dark:bg-blue-950/20",
-		warning: "border-l-amber-400 bg-amber-50/50 dark:bg-amber-950/20",
-		critical: "border-l-red-400 bg-red-50/50 dark:bg-red-950/20",
+		info: "border-l-zinc-400 bg-muted/40",
+		warning: "border-l-amber-400 bg-amber-50/30 dark:bg-amber-950/10",
+		critical: "border-l-red-400 bg-red-50/30 dark:bg-red-950/10",
 	};
 
 	const ICON_COLORS: Record<Severity, string> = {
-		info: "text-blue-500 dark:text-blue-400",
+		info: "text-muted-foreground",
 		warning: "text-amber-500 dark:text-amber-400",
 		critical: "text-red-500 dark:text-red-400",
 	};
@@ -544,7 +544,7 @@ function OriginBadge({ metadata }: { metadata?: string | null }) {
 
 	if (via === "openclaw" || via === "mcp") {
 		return (
-			<span className="inline-flex items-center gap-0.5 rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800">
+			<span className="inline-flex items-center gap-0.5 rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-muted text-muted-foreground border">
 				<PlugIcon className="size-2.5" />
 				{via === "openclaw" ? "OpenClaw" : "MCP"}
 			</span>
@@ -553,7 +553,7 @@ function OriginBadge({ metadata }: { metadata?: string | null }) {
 
 	if (via === "agent") {
 		return (
-			<span className="inline-flex items-center gap-0.5 rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+			<span className="inline-flex items-center gap-0.5 rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-muted text-muted-foreground border">
 				<BotIcon className="size-2.5" />
 				Agent
 			</span>
@@ -711,7 +711,7 @@ export function EntityTimeline({
 					const colors = LAYER_COLORS[layer];
 					const Icon = EVENT_ICONS[event.type] ?? ClockIcon;
 					const isSent = event.type === "email_sent";
-					const dotColor = isSent ? "bg-teal-500" : colors.dot;
+					const dotColor = isSent ? "bg-zinc-800 dark:bg-zinc-200" : colors.dot;
 					const isLast = idx === visible.length - 1;
 					const aiSummary = event.type === "email_received" ? emailAiMap.get(event.id) : undefined;
 					const aiMeta = aiSummary ? parseMeta(aiSummary.metadata) : undefined;
@@ -800,17 +800,17 @@ export function EntityTimeline({
 
 									{/* AI section (only for email nodes with ai_summary) */}
 									{aiSummary && (
-										<div className="mt-2 pt-2 border-t border-violet-200/40 dark:border-violet-800/30">
+										<div className="mt-2 pt-2 border-t border-border/60">
 											<button
 												type="button"
 												onClick={() => toggleAiDetail(event.id)}
-												className="w-full text-left hover:bg-violet-50/50 dark:hover:bg-violet-900/10 -mx-1 px-1 rounded transition-colors"
+												className="w-full text-left hover:bg-muted/50 -mx-1 px-1 rounded transition-colors"
 											>
 												<div className="flex items-center justify-between">
 													<AiSummaryLine aiEvent={aiSummary} />
 													{isAiExpanded
-														? <ChevronUpIcon className="size-3.5 text-violet-400 shrink-0" />
-														: <ChevronDownIcon className="size-3.5 text-violet-400 shrink-0" />}
+														? <ChevronUpIcon className="size-3.5 text-muted-foreground shrink-0" />
+														: <ChevronDownIcon className="size-3.5 text-muted-foreground shrink-0" />}
 												</div>
 											</button>
 

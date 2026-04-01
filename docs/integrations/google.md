@@ -34,6 +34,18 @@
 | gws / Workspace CLI Skills | 日历、Drive、Chat 等 | MVP 以邮件为主；扩展时单列子章节或新开「能力子页」仍归属 Google 公司文档 |
 | Domain-wide delegation | 企业域管理员场景 | 未接 |
 
+## CLI 鉴权模式对照
+
+> 2026-04 调研结论，基于 `gcloud` CLI 官方文档。
+
+| 项目 | 说明 |
+|------|------|
+| **CLI 是否内置 App ID** | **是** — `gcloud auth login` 使用 Google 为 Cloud SDK 内置的 OAuth Client ID，用户只需登录 Google 账号 |
+| **OAuth 流程** | 浏览器 OAuth 2.0（默认）；无浏览器可用 `--no-browser` / `--no-launch-browser` 复制 URL 方式 |
+| **自有 Client 可选** | `gcloud auth application-default login --client-id-file=...` 支持使用自有 OAuth Client |
+| **对 Flowmail 的影响** | **体验最好的厂商**。Flowmail 可使用自有 Google Cloud 项目的 OAuth Client ID（`GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET`），用户在连接页点击「登录 Google」即可完成授权，无需填任何凭证 |
+| **当前状态** | Gmail OAuth 连接框架已在 `connect-gmail.ts` 中实现。需确保 Google Cloud 控制台的 OAuth consent screen 已配置好 scope（`gmail.readonly`, `gmail.send` 等）并通过审核 |
+
 ## 风险与合规
 
 - Google Cloud 项目 OAuth 审核、scope 最小化；Workspace 管理员策略可能限制第三方应用

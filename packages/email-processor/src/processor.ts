@@ -25,6 +25,7 @@ interface EmailInput {
 	connectionId: string;
 	externalThreadId: string;
 	receivedAt: Date;
+	messageId?: string;
 }
 
 interface ProcessResult {
@@ -188,6 +189,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 						snippet: input.content.slice(0, 200),
 						bodyHtml: input.bodyHtml ?? null,
 						bodyText: input.bodyText ?? null,
+						messageId: input.messageId ?? null,
 						entityId: existingEntityId,
 						receivedAt: input.receivedAt,
 						processedAt: new Date(),
@@ -292,6 +294,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					snippet: input.content.slice(0, 200),
 					bodyHtml: input.bodyHtml ?? null,
 					bodyText: input.bodyText ?? null,
+					messageId: input.messageId ?? null,
 					entityId: entity.id,
 					receivedAt: input.receivedAt,
 					processedAt: new Date(),

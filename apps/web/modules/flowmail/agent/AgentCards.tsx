@@ -33,6 +33,10 @@ import type {
 	TimelineDiffCardData,
 	EntityListCardData,
 	ActionResultCardData,
+	ConnectionListCardData,
+	SyncResultCardData,
+	SendResultCardData,
+	EmailSearchCardData,
 	AgentUICard,
 } from "./types";
 
@@ -93,7 +97,7 @@ export function ApprovalCard({
 		<div className="rounded-xl border overflow-hidden bg-card">
 			{/* 标题行 */}
 			<div className={`px-3.5 py-2.5 flex items-center gap-2 border-b ${isUrgent ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/30"}`}>
-				<ShieldCheckIcon className={`size-4 shrink-0 ${isUrgent ? "text-red-500" : "text-violet-500"}`} />
+				<ShieldCheckIcon className={`size-4 shrink-0 ${isUrgent ? "text-red-500" : "text-foreground/60"}`} />
 				<span className="text-xs font-semibold text-foreground flex-1 truncate">
 					{data.title}
 				</span>
@@ -314,8 +318,8 @@ export function TimelineDiffCard({ data }: { data: TimelineDiffCardData }) {
 
 	return (
 		<div className="rounded-xl border overflow-hidden bg-card">
-			<div className="px-3.5 py-2.5 flex items-center gap-2 border-b bg-violet-50/60 dark:bg-violet-950/20">
-				<SparklesIcon className="size-4 text-violet-500 shrink-0" />
+			<div className="px-3.5 py-2.5 flex items-center gap-2 border-b bg-muted/40">
+				<SparklesIcon className="size-4 text-foreground/60 shrink-0" />
 				<span className="text-xs font-semibold text-foreground flex-1">变化分析</span>
 				{data.progressDelta != null && (
 					<span className={`flex items-center gap-0.5 text-xs font-bold ${deltaColor}`}>
@@ -365,7 +369,7 @@ export function TimelineDiffCard({ data }: { data: TimelineDiffCardData }) {
 
 				{/* 建议 */}
 				{data.recommendation && (
-					<p className="text-xs text-muted-foreground italic border-l-2 border-violet-300 dark:border-violet-700 pl-2">
+					<p className="text-xs text-muted-foreground italic border-l-2 border-foreground/20 pl-2">
 						{data.recommendation}
 					</p>
 				)}
@@ -452,6 +456,166 @@ export function ActionResultCard({ data }: { data: ActionResultCardData }) {
 	);
 }
 
+// ── 邮箱连接列表卡片 ──────────────────────────────────────
+
+export function ConnectionListCard({ data }: { data: ConnectionListCardData }) {
+	const providerLabels: Record<string, string> = {
+		gmail: "Gmail",
+		feishu: "飞书邮箱",
+		dingtalk: "钉钉邮箱",
+		wecom: "企微邮箱",
+		imap: "IMAP",
+	};
+
+	return (
+		<div className="rounded-xl border overflow-hidden bg-card">
+			<div className="px-3.5 py-2.5 border-b bg-muted/30 flex items-center justify-between">
+				<span className="text-xs font-semibold">邮箱连接</span>
+				<span className="text-[10px] text-muted-foreground">{data.totalCount} 个</span>
+			</div>
+			<ul className="divide-y">
+				{data.connections.map((c) => (
+					<li key={c.id} className="px-3.5 py-2 flex items-center gap-2">
+						<div className="flex-1 min-w-0">
+							<p className="text-xs font-medium truncate">{c.email}</p>
+							<p className="text-[10px] text-muted-foreground">
+								{providerLabels[c.provider] ?? c.provider} · {c.authType}
+								{c.lastSyncAt ? ` · 最近同步 ${new Date(c.lastSyncAt).toLocaleDateString("zh-CN")}` : ""}
+							</p>
+						</div>
+						<Badge
+							status={c.isActive ? "success" : "error"}
+							className="h-4 rounded-sm px-1.5 text-[10px] shrink-0"
+						>
+							{c.isActive ? "已连接" : "已断开"}
+						</Badge>
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+// ── 同步结果卡片 ──────────────────────────────────────────
+
+export function SyncResultCard({ data }: { data: SyncResultCardData }) {
+	const hasErrors = data.errors > 0;
+
+	return (
+		<div className={cn(
+			"rounded-xl border px-3.5 py-3 flex items-start gap-3",
+			hasErrors
+				? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
+				: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900",
+		)}>
+			<div className={cn(
+				"flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5",
+				hasErrors ? "bg-amber-500" : "bg-emerald-500",
+			)}>
+				<CheckIcon className="size-3.5 text-white" />
+			</div>
+			<div className="flex-1 min-w-0">
+				<p className={cn(
+					"text-xs font-semibold",
+					hasErrors ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400",
+				)}>
+					{data.email} 同步完成
+				</p>
+				<p className="text-[10px] text-muted-foreground mt-0.5">
+					拉取 {data.fetched} 封 · 处理 {data.processed} 封
+					{hasErrors && ` · ${data.errors} 封失败`}
+				</p>
+			</div>
+		</div>
+	);
+}
+
+// ── 发信结果卡片 ──────────────────────────────────────────
+
+export function SendResultCard({ data }: { data: SendResultCardData }) {
+	return (
+		<div className={cn(
+			"rounded-xl border px-3.5 py-3 flex items-start gap-3",
+			data.success
+				? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900"
+				: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900",
+		)}>
+			<div className={cn(
+				"flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5",
+				data.success ? "bg-emerald-500" : "bg-red-500",
+			)}>
+				{data.success
+					? <CheckIcon className="size-3.5 text-white" />
+					: <XIcon className="size-3.5 text-white" />
+				}
+			</div>
+			<div className="flex-1 min-w-0">
+				<p className={cn(
+					"text-xs font-semibold",
+					data.success ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400",
+				)}>
+					{data.success ? "邮件已发送" : `发送失败：${data.error ?? "未知错误"}`}
+				</p>
+				{data.success && (
+					<div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
+						<p>主题：{data.subject}</p>
+						<p>收件人：{data.to.join(", ")}</p>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+// ── 邮件搜索结果卡片 ──────────────────────────────────────
+
+export function EmailSearchCard({ data }: { data: EmailSearchCardData }) {
+	return (
+		<div className="rounded-xl border overflow-hidden bg-card">
+			<div className="px-3.5 py-2.5 border-b bg-muted/30 flex items-center justify-between">
+				<span className="text-xs font-semibold">搜索结果</span>
+				<span className="text-[10px] text-muted-foreground">{data.totalCount} 封</span>
+			</div>
+			{data.emails.length === 0 ? (
+				<div className="px-3.5 py-4 text-center text-xs text-muted-foreground">
+					未找到匹配的邮件
+				</div>
+			) : (
+				<ul className="divide-y">
+					{data.emails.map((email) => (
+						<li key={email.id} className="px-3.5 py-2">
+							<div className="flex items-center gap-2">
+								<div className="flex-1 min-w-0">
+									<p className="text-xs font-medium truncate">{email.subject}</p>
+									<p className="text-[10px] text-muted-foreground truncate">
+										{email.sender} · {new Date(email.receivedAt).toLocaleDateString("zh-CN")}
+									</p>
+								</div>
+								{email.entity && (
+									<Badge
+										status={
+											email.entity.status === "approved" || email.entity.status === "completed" ? "success"
+											: email.entity.status === "rejected" ? "error"
+											: email.entity.status === "pending" ? "warning"
+											: "info"
+										}
+										className="h-4 rounded-sm px-1.5 text-[10px] shrink-0"
+									>
+										{email.entity.type}
+									</Badge>
+								)}
+							</div>
+							{email.snippet && (
+								<p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{email.snippet}</p>
+							)}
+						</li>
+					))}
+				</ul>
+			)}
+		</div>
+	);
+}
+
 // ── 里程碑图标 ────────────────────────────────────────────
 
 export function MilestoneIcon() {
@@ -480,6 +644,14 @@ export function AgentCard({
 			return <EntityListCard data={card.data} />;
 		case "action_result":
 			return <ActionResultCard data={card.data} />;
+		case "connection_list":
+			return <ConnectionListCard data={card.data} />;
+		case "sync_result":
+			return <SyncResultCard data={card.data} />;
+		case "send_result":
+			return <SendResultCard data={card.data} />;
+		case "email_search":
+			return <EmailSearchCard data={card.data} />;
 		default:
 			return null;
 	}
@@ -528,9 +700,9 @@ function RiskCardSkeleton() {
 function TimelineDiffCardSkeleton() {
 	return (
 		<SkeletonCardShell
-			icon={<SparklesIcon className="size-4 text-violet-400 animate-pulse" />}
+			icon={<SparklesIcon className="size-4 text-muted-foreground animate-pulse" />}
 			title="变化分析中…"
-			color="bg-violet-50/40 dark:bg-violet-950/10"
+			color="bg-muted/40"
 		>
 			<SkeletonBar className="w-full" />
 			<div className="flex gap-2">
@@ -579,6 +751,10 @@ const TOOL_SKELETON_MAP: Record<string, () => React.ReactNode> = {
 	approve_entity: () => <GenericToolSkeleton label="执行审批…" />,
 	add_note: () => <GenericToolSkeleton label="添加笔记…" />,
 	update_entity_status: () => <GenericToolSkeleton label="更新状态…" />,
+	list_connections: () => <EntityListCardSkeleton />,
+	sync_emails: () => <GenericToolSkeleton label="同步邮件中…" />,
+	send_email: () => <GenericToolSkeleton label="发送邮件中…" />,
+	search_emails: () => <EntityListCardSkeleton />,
 };
 
 export function ToolSkeleton({ toolName }: { toolName: string }) {

@@ -47,51 +47,55 @@
 
 @layer base {
 	:root {
-		--border: #e4e4e4;
-		--input: #d8d8d8;
-		--ring: #111111;
-		--background: #f9f9f9;
-		--foreground: #111111;
-		--primary: #111111;
-		--primary-foreground: #ffffff;
-		--secondary: #ebebeb;
-		--secondary-foreground: #111111;
+		--border: #e4e4e7;
+		--input: #d4d4d8;
+		--ring: #18181b;
+		--background: #fafafa;
+		--foreground: #18181b;
+		--primary: #18181b;
+		--primary-foreground: #fafafa;
+		--secondary: #f4f4f5;
+		--secondary-foreground: #18181b;
 		--destructive: #dc2626;
 		--destructive-foreground: #ffffff;
-		--success: #16a34a;
+		--success: #15803d;
 		--success-foreground: #ffffff;
-		--muted: #f0f0f0;
-		--muted-foreground: #6b6b6b;
-		--accent: #e8e8e8;
-		--accent-foreground: #111111;
+		--muted: #f4f4f5;
+		--muted-foreground: #71717a;
+		--accent: #e4e4e7;
+		--accent-foreground: #18181b;
 		--popover: #ffffff;
-		--popover-foreground: #111111;
+		--popover-foreground: #18181b;
 		--card: #ffffff;
-		--card-foreground: #111111;
+		--card-foreground: #18181b;
 		--radius: 0.625rem;
+		--agent-accent: #0d9488;
+		--agent-accent-foreground: #ffffff;
 	}
 
 	.dark {
-		--border: #2a2a2a;
-		--input: #333333;
-		--ring: #ffffff;
-		--background: #111111;
-		--foreground: #f5f5f5;
-		--primary: #f5f5f5;
-		--primary-foreground: #111111;
-		--secondary: #1e1e1e;
-		--secondary-foreground: #f5f5f5;
+		--border: #27272a;
+		--input: #3f3f46;
+		--ring: #fafafa;
+		--background: #09090b;
+		--foreground: #fafafa;
+		--primary: #fafafa;
+		--primary-foreground: #09090b;
+		--secondary: #18181b;
+		--secondary-foreground: #fafafa;
 		--destructive: #dc2626;
 		--destructive-foreground: #ffffff;
 		--success: #16a34a;
 		--success-foreground: #ffffff;
-		--muted: #1a1a1a;
-		--muted-foreground: #888888;
-		--accent: #222222;
-		--accent-foreground: #f5f5f5;
-		--popover: #1a1a1a;
-		--popover-foreground: #f5f5f5;
-		--card: #1a1a1a;
-		--card-foreground: #f5f5f5;
+		--muted: #18181b;
+		--muted-foreground: #a1a1aa;
+		--accent: #27272a;
+		--accent-foreground: #fafafa;
+		--popover: #18181b;
+		--popover-foreground: #fafafa;
+		--card: #18181b;
+		--card-foreground: #fafafa;
+		--agent-accent: #14b8a6;
+		--agent-accent-foreground: #ffffff;
 	}
 }

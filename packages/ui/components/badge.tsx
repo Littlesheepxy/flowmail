@@ -5,14 +5,15 @@ import { cn } from "../lib";
 
 export const badge = cva(
 	[
-		"inline-block",
+		"inline-flex",
+		"items-center",
 		"rounded-full",
 		"px-3",
 		"py-1",
 		"text-xs",
 		"uppercase",
 		"font-semibold",
-		"leading-tight",
+		"leading-none",
 	],
 	{
 		variants: {

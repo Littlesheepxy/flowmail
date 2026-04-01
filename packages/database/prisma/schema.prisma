@@ -41,6 +41,7 @@ model User {
   twofactors         TwoFactor[]
   assignedEntities   FlowEntity[]    @relation("AssignedEntities")
   timelineActions    TimelineEvent[] @relation("TimelineActor")
+  notifications      Notification[]  @relation("UserNotifications")
 
   @@unique([email])
   @@unique([username])
@@ -149,6 +150,8 @@ model Organization {
   emailThreads       EmailThread[]
   flowEntities       FlowEntity[]
   categories         Category[]
+  apiTokens          ApiToken[]
+  notifications      Notification[]
 
   @@unique([slug])
   @@map("organization")
@@ -237,6 +240,7 @@ model EmailConnection {
   imapPassword   String?      @db.Text
   appId          String?
   appSecret      String?      @db.Text
+  maxSyncCount   Int          @default(500)
   isActive       Boolean      @default(true)
   lastSyncAt     DateTime?
   syncCursor     String?      @db.Text
@@ -268,6 +272,7 @@ model EmailThread {
   bodyHtml         String?           @db.Text
   bodyText         String?           @db.Text
   rawPayload       String?           @db.Text
+  messageId        String?           // RFC Message-ID header, for threading replies
   entityId         String?
   entity           FlowEntity?       @relation(fields: [entityId], references: [id])
   attachments      EmailAttachment[]
@@ -346,6 +351,7 @@ model FlowEntity {
   assignee        User?           @relation("AssignedEntities", fields: [assigneeId], references: [id])
   threads         EmailThread[]
   timeline        TimelineEvent[]
+  notifications   Notification[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -371,4 +377,56 @@ model TimelineEvent {
 
   @@index([entityId])
   @@map("timeline_event")
+}
+
+// ─── Flowmail: Notification ───
+
+enum NotificationType {
+  DEADLINE_WARNING
+  DEADLINE_OVERDUE
+  APPROVAL_TIMEOUT
+  NEW_ENTITY
+  STATUS_CHANGED
+  DAILY_DIGEST
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type           NotificationType
+  title          String
+  body           String           @db.Text
+  entityId       String?
+  entity         FlowEntity?      @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  isRead         Boolean          @default(false)
+  sentViaEmail   Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([organizationId])
+  @@index([entityId])
+  @@map("notification")
+}
+
+// ─── Flowmail: API Token (MCP / Agent 鉴权) ───
+
+model ApiToken {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  tokenHash      String       @unique
+  tokenPrefix    String
+  scopes         String       @default("mcp:full")
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([tokenHash])
+  @@map("api_token")
 }

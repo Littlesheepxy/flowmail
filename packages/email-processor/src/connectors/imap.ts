@@ -55,24 +55,31 @@ export const imapConnector: EmailConnector = {
 		const config = buildImapConfig(credentials);
 		const client = new ImapFlow(config);
 		const emails: RawEmail[] = [];
+		const maxCount = credentials.maxSyncCount ?? 500;
 
 		try {
 			await client.connect();
 			const lock = await client.getMailboxLock("INBOX");
 
 			try {
-				const since = cursor
-					? new Date(cursor)
-					: new Date(Date.now() - 24 * 60 * 60 * 1000);
+				let searchResult: number[];
 
-				const searchResult = await client.search({ since }, { uid: true });
+				if (cursor) {
+					const since = new Date(cursor);
+					searchResult = await client.search({ since }, { uid: true }) as number[];
+				} else {
+					searchResult = await client.search({ all: true }, { uid: true }) as number[];
+				}
+
 				const uidList = Array.isArray(searchResult) ? searchResult : [];
 
 				if (uidList.length === 0) {
 					return { emails: [], newCursor: new Date().toISOString() };
 				}
 
-				const uids = uidList.slice(-50);
+				const uids = uidList.length <= maxCount
+					? uidList
+					: uidList.slice(-maxCount);
 
 				for (const uid of uids) {
 					try {
@@ -112,8 +119,9 @@ export const imapConnector: EmailConnector = {
 						.filter((a) => a.address)
 						.map((a) => ({ name: a.name, address: a.address as string }));
 
+					const rfcMessageId = env.messageId as string | undefined;
 					emails.push({
-						externalId: (env.messageId as string) ?? `uid-${uid}`,
+						externalId: rfcMessageId ?? `uid-${uid}`,
 						subject: (env.subject as string) ?? "(no subject)",
 						sender: from.name,
 						senderEmail: from.email,
@@ -125,6 +133,7 @@ export const imapConnector: EmailConnector = {
 						bodyHtml: bodyHtml || undefined,
 						bodyText: bodyText || undefined,
 						receivedAt: env.date ? new Date(env.date as string) : new Date(),
+						messageId: rfcMessageId || undefined,
 					});
 					} catch {
 						// skip individual message errors

@@ -105,3 +105,73 @@
 	border-color: var(--border);
 	margin: 1rem 0;
 }
+
+/* ── Agent Panel Visual Layer ── */
+
+@keyframes agent-border-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.agent-panel-border {
+	position: relative;
+	border-radius: 16px;
+	padding: 1.5px;
+	overflow: hidden;
+}
+
+.agent-panel-border::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 200vmax;
+	height: 200vmax;
+	margin-left: -100vmax;
+	margin-top: -100vmax;
+	background: conic-gradient(
+		rgb(131, 179, 32),
+		rgb(47, 195, 106),
+		rgb(42, 169, 210),
+		rgb(4, 112, 202),
+		rgb(107, 10, 255),
+		rgb(183, 0, 218),
+		rgb(230, 64, 92),
+		rgb(249, 129, 47),
+		rgb(131, 179, 32)
+	);
+	animation: agent-border-spin 4s linear infinite;
+	animation-play-state: paused;
+}
+
+.agent-panel-border:hover::before {
+	animation-play-state: running;
+}
+
+.agent-panel-border > .agent-panel-inner {
+	position: relative;
+	background: var(--background);
+	border-radius: 14.5px;
+	overflow: hidden;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.agent-header-gradient {
+	background: linear-gradient(
+		135deg,
+		var(--muted) 0%,
+		color-mix(in srgb, var(--muted) 60%, var(--background)) 100%
+	);
+}
+
+.agent-input-focus:focus-within {
+	border-color: var(--foreground);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.agent-fab-ring {
+	box-shadow: 0 4px 20px color-mix(in srgb, var(--foreground) 20%, transparent);
+}

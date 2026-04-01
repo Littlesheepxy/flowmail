@@ -154,6 +154,7 @@ export const gmailConnector: EmailConnector = {
 			const to = getHeader(headers, "To");
 			const cc = getHeader(headers, "Cc");
 			const date = getHeader(headers, "Date");
+			const rfcMessageId = getHeader(headers, "Message-ID") || getHeader(headers, "Message-Id");
 
 			const { name, email } = parseSenderName(from);
 			const { text: bodyText, html: bodyHtml } = extractEmailParts(
@@ -184,6 +185,7 @@ export const gmailConnector: EmailConnector = {
 				attachments: attachments.length > 0 ? attachments : undefined,
 				receivedAt: date ? new Date(date) : new Date(),
 				threadId: detail.data.threadId ?? undefined,
+				messageId: rfcMessageId || undefined,
 			});
 		}
 

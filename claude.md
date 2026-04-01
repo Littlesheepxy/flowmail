@@ -18,6 +18,7 @@ pnpm dev
 ## 重要文档
 
 - `docs/integrations/README.md` — 第三方厂商隔离、CLI/Skills 借鉴流程与文档模板
+- `docs/architecture/subagent-design.md` — Subagent 架构设计（厂商能力扩展方案）
 - `.cursor/rules/product.mdc` — 产品定义、MVP 范围、业务边界
 - `.cursor/rules/tech-stack.mdc` — 技术栈规范与架构决策（含双轨 API 设计）
 - `.cursor/rules/mcp-tools.mdc` — MCP Tool 完整清单与实现规范（Agent 调用层）

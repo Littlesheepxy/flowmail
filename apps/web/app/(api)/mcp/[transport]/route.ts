@@ -1,9 +1,21 @@
 import { db } from "@repo/database";
-import { createMcpHandler } from "mcp-handler";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { generateObject, textModel as mcpTextModel } from "@repo/ai";
+import { verifyApiToken } from "@repo/api";
 import { z } from "zod";
 
-const handler = createMcpHandler(
+function getOrgId(extra: { authInfo?: AuthInfo }): string {
+	const orgId = extra.authInfo?.extra?.organizationId as string | undefined;
+	if (!orgId) {
+		throw new Error("Missing organizationId in auth context");
+	}
+	return orgId;
+}
+
+const TEXT = "text" as const;
+
+const rawHandler = createMcpHandler(
 	(server) => {
 		// ── Entity tools ──
 		server.registerTool(
@@ -11,9 +23,8 @@ const handler = createMcpHandler(
 			{
 				title: "List Entities",
 				description:
-					"List structured business entities (approvals, reports, issues, feedback) for an organization. Use when the user asks to see their inbox, pending items, or recent activity.",
+					"List structured business entities (approvals, reports, issues, feedback) for an organization.",
 				inputSchema: {
-					organizationId: z.string().describe("Organization ID"),
 					type: z
 						.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"])
 						.optional()
@@ -22,7 +33,8 @@ const handler = createMcpHandler(
 					limit: z.number().optional().default(20).describe("Max results"),
 				},
 			},
-			async ({ organizationId, type, status, limit }) => {
+			async ({ type, status, limit }, extra) => {
+				const organizationId = getOrgId(extra);
 				const where: Record<string, unknown> = { organizationId };
 				if (type) { where.type = type; }
 				if (status) { where.status = status; }
@@ -35,9 +47,7 @@ const handler = createMcpHandler(
 				});
 
 				return {
-					content: [
-						{ type: "text" as const, text: JSON.stringify(entities, null, 2) },
-					],
+					content: [{ type: TEXT, text: JSON.stringify(entities, null, 2) }],
 				};
 			},
 		);
@@ -58,12 +68,7 @@ const handler = createMcpHandler(
 					include: {
 						assignee: { select: { name: true, email: true } },
 						threads: {
-							select: {
-								subject: true,
-								sender: true,
-								snippet: true,
-								receivedAt: true,
-							},
+							select: { subject: true, sender: true, snippet: true, receivedAt: true },
 						},
 						timeline: {
 							orderBy: { createdAt: "asc" },
@@ -73,22 +78,10 @@ const handler = createMcpHandler(
 				});
 
 				if (!entity) {
-					return {
-						content: [
-							{ type: "text" as const, text: "Entity not found" },
-						],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 
-				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(entity, null, 2),
-						},
-					],
-				};
+				return { content: [{ type: TEXT, text: JSON.stringify(entity, null, 2) }] };
 			},
 		);
 
@@ -105,16 +98,9 @@ const handler = createMcpHandler(
 				},
 			},
 			async ({ entityId, status, reason }) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: entityId },
-				});
+				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
 				if (!entity) {
-					return {
-						content: [
-							{ type: "text" as const, text: "Entity not found" },
-						],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 
 				const updated = await db.flowEntity.update({
@@ -128,22 +114,12 @@ const handler = createMcpHandler(
 						type: "status_changed",
 						content: `Status changed from ${entity.status} to ${status}${reason ? `: ${reason}` : ""}`,
 						metadata: JSON.stringify({
-							previousStatus: entity.status,
-							newStatus: status,
-							reason,
-							via: "mcp",
+							previousStatus: entity.status, newStatus: status, reason, via: "mcp",
 						}),
 					},
 				});
 
-				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify({ success: true, entity: updated }),
-						},
-					],
-				};
+				return { content: [{ type: TEXT, text: JSON.stringify({ success: true, entity: updated }) }] };
 			},
 		);
 
@@ -153,34 +129,19 @@ const handler = createMcpHandler(
 			{
 				title: "List Pending Approvals",
 				description:
-					"List all pending approval requests for an organization. Use when the user says 'what needs my approval' or 'pending approvals'.",
-				inputSchema: {
-					organizationId: z.string().describe("Organization ID"),
-				},
+					"List all pending approval requests for the organization.",
+				inputSchema: {},
 			},
-			async ({ organizationId }) => {
+			async (_args, extra) => {
+				const organizationId = getOrgId(extra);
 				const approvals = await db.flowEntity.findMany({
-					where: {
-						organizationId,
-						type: "APPROVAL",
-						status: "pending",
-					},
-					include: {
-						assignee: { select: { name: true, email: true } },
-					},
+					where: { organizationId, type: "APPROVAL", status: "pending" },
+					include: { assignee: { select: { name: true, email: true } } },
 					orderBy: { createdAt: "desc" },
 				});
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify({
-								count: approvals.length,
-								approvals,
-							}),
-						},
-					],
+					content: [{ type: TEXT, text: JSON.stringify({ count: approvals.length, approvals }) }],
 				};
 			},
 		);
@@ -190,37 +151,19 @@ const handler = createMcpHandler(
 			{
 				title: "Approve Request",
 				description:
-					'Approve a pending approval request. When the user says "approve", "agree", "pass" for an approval item. Use list_pending_approvals first to get the entityId.',
+					'Approve a pending approval request. Use list_pending_approvals first to get the entityId.',
 				inputSchema: {
 					entityId: z.string().describe("Approval entity ID"),
-					comment: z
-						.string()
-						.optional()
-						.describe("Optional approval comment"),
+					comment: z.string().optional().describe("Optional approval comment"),
 				},
 			},
 			async ({ entityId, comment }) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: entityId },
-				});
+				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
 				if (!entity) {
-					return {
-						content: [
-							{ type: "text" as const, text: "Entity not found" },
-						],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: "Entity is not a pending approval",
-							},
-						],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity is not a pending approval" }], isError: true };
 				}
 
 				const updated = await db.flowEntity.update({
@@ -238,16 +181,7 @@ const handler = createMcpHandler(
 				});
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify({
-								success: true,
-								message: `Approval "${updated.title}" has been approved`,
-								entity: updated,
-							}),
-						},
-					],
+					content: [{ type: TEXT, text: JSON.stringify({ success: true, message: `Approval "${updated.title}" has been approved`, entity: updated }) }],
 				};
 			},
 		);
@@ -256,35 +190,19 @@ const handler = createMcpHandler(
 			"reject_request",
 			{
 				title: "Reject Request",
-				description:
-					'Reject a pending approval request with a required reason. When the user says "reject", "deny", or "refuse".',
+				description: 'Reject a pending approval request with a required reason.',
 				inputSchema: {
 					entityId: z.string().describe("Approval entity ID"),
 					reason: z.string().describe("Required reason for rejection"),
 				},
 			},
 			async ({ entityId, reason }) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: entityId },
-				});
+				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
 				if (!entity) {
-					return {
-						content: [
-							{ type: "text" as const, text: "Entity not found" },
-						],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: "Entity is not a pending approval",
-							},
-						],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity is not a pending approval" }], isError: true };
 				}
 
 				const updated = await db.flowEntity.update({
@@ -302,16 +220,7 @@ const handler = createMcpHandler(
 				});
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify({
-								success: true,
-								message: `Approval "${updated.title}" has been rejected`,
-								entity: updated,
-							}),
-						},
-					],
+					content: [{ type: TEXT, text: JSON.stringify({ success: true, message: `Approval "${updated.title}" has been rejected`, entity: updated }) }],
 				};
 			},
 		);
@@ -321,39 +230,23 @@ const handler = createMcpHandler(
 			"list_reports",
 			{
 				title: "List Reports",
-				description:
-					"List report entities for an organization. Use when the user asks about progress reports, status updates, or team summaries.",
+				description: "List report entities for the organization.",
 				inputSchema: {
-					organizationId: z.string().describe("Organization ID"),
-					status: z
-						.string()
-						.optional()
-						.describe("Filter by status"),
+					status: z.string().optional().describe("Filter by status"),
 				},
 			},
-			async ({ organizationId, status }) => {
-				const where: Record<string, unknown> = {
-					organizationId,
-					type: "REPORT",
-				};
+			async ({ status }, extra) => {
+				const organizationId = getOrgId(extra);
+				const where: Record<string, unknown> = { organizationId, type: "REPORT" };
 				if (status) { where.status = status; }
 
 				const reports = await db.flowEntity.findMany({
 					where,
-					include: {
-						assignee: { select: { name: true, email: true } },
-					},
+					include: { assignee: { select: { name: true, email: true } } },
 					orderBy: { updatedAt: "desc" },
 				});
 
-				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(reports, null, 2),
-						},
-					],
-				};
+				return { content: [{ type: TEXT, text: JSON.stringify(reports, null, 2) }] };
 			},
 		);
 
@@ -361,8 +254,7 @@ const handler = createMcpHandler(
 			"get_report_summary",
 			{
 				title: "Get Report Summary",
-				description:
-					"Get AI-generated summary of a report entity. Use when the user asks for a summary of a specific report.",
+				description: "Get AI-generated summary of a report entity.",
 				inputSchema: {
 					entityId: z.string().describe("Report entity ID"),
 				},
@@ -370,42 +262,23 @@ const handler = createMcpHandler(
 			async ({ entityId }) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: {
-						id: true,
-						title: true,
-						aiSummary: true,
-						extractedFields: true,
-						status: true,
-					},
+					select: { id: true, title: true, aiSummary: true, extractedFields: true, status: true },
 				});
 
 				if (!entity) {
-					return {
-						content: [
-							{ type: "text" as const, text: "Report not found" },
-						],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Report not found" }], isError: true };
 				}
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(
-								{
-									title: entity.title,
-									status: entity.status,
-									summary: entity.aiSummary,
-									fields: entity.extractedFields
-										? JSON.parse(entity.extractedFields)
-										: {},
-								},
-								null,
-								2,
-							),
-						},
-					],
+					content: [{
+						type: TEXT,
+						text: JSON.stringify({
+							title: entity.title,
+							status: entity.status,
+							summary: entity.aiSummary,
+							fields: entity.extractedFields ? JSON.parse(entity.extractedFields) : {},
+						}, null, 2),
+					}],
 				};
 			},
 		);
@@ -415,31 +288,76 @@ const handler = createMcpHandler(
 			"list_email_connections",
 			{
 				title: "List Email Connections",
-				description:
-					"List all connected email accounts for an organization.",
-				inputSchema: {
-					organizationId: z.string().describe("Organization ID"),
-				},
+				description: "List all connected email accounts for the organization.",
+				inputSchema: {},
 			},
-			async ({ organizationId }) => {
+			async (_args, extra) => {
+				const organizationId = getOrgId(extra);
 				const connections = await db.emailConnection.findMany({
 					where: { organizationId },
+					select: { id: true, provider: true, email: true, isActive: true, lastSyncAt: true },
+				});
+
+				return { content: [{ type: TEXT, text: JSON.stringify(connections, null, 2) }] };
+			},
+		);
+
+		server.registerTool(
+			"search_emails",
+			{
+				title: "Search Emails",
+				description: "Search emails by keyword, sender, or subject. Returns matching email threads with their associated entities.",
+				inputSchema: {
+					query: z.string().optional().describe("Keyword to search in subject and body"),
+					sender: z.string().optional().describe("Filter by sender email or name"),
+					limit: z.number().optional().default(10).describe("Max results"),
+				},
+			},
+			async ({ query, sender, limit }, extra) => {
+				const organizationId = getOrgId(extra);
+				const where: Record<string, unknown> = { organizationId };
+				if (query) {
+					where.OR = [
+						{ subject: { contains: query, mode: "insensitive" } },
+						{ bodyText: { contains: query, mode: "insensitive" } },
+						{ snippet: { contains: query, mode: "insensitive" } },
+					];
+				}
+				if (sender) {
+					where.AND = [
+						...(Array.isArray(where.AND) ? (where.AND as unknown[]) : []),
+						{
+							OR: [
+								{ sender: { contains: sender, mode: "insensitive" } },
+								{ senderName: { contains: sender, mode: "insensitive" } },
+							],
+						},
+					];
+				}
+
+				const threads = await db.emailThread.findMany({
+					where,
 					select: {
-						id: true,
-						provider: true,
-						email: true,
-						isActive: true,
-						lastSyncAt: true,
+						id: true, subject: true, sender: true, senderName: true,
+						snippet: true, receivedAt: true, entityId: true,
+						entity: { select: { id: true, title: true, type: true, status: true } },
 					},
+					orderBy: { receivedAt: "desc" },
+					take: limit,
 				});
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(connections, null, 2),
-						},
-					],
+					content: [{
+						type: TEXT,
+						text: JSON.stringify({
+							count: threads.length,
+							emails: threads.map((t) => ({
+								id: t.id, subject: t.subject, sender: t.senderName ?? t.sender,
+								senderEmail: t.sender, snippet: t.snippet,
+								receivedAt: t.receivedAt.toISOString(), entity: t.entity,
+							})),
+						}, null, 2),
+					}],
 				};
 			},
 		);
@@ -450,7 +368,7 @@ const handler = createMcpHandler(
 			{
 				title: "Add Timeline Event",
 				description:
-					"Add a manual event to an entity's timeline. Use when recording milestones, notes, decisions, sent emails, or any significant moment in an entity's lifecycle.",
+					"Add a manual event to an entity's timeline. Use when recording milestones, notes, decisions, or any significant moment.",
 				inputSchema: {
 					entityId: z.string().describe("Entity ID to add event to"),
 					type: z
@@ -460,7 +378,7 @@ const handler = createMcpHandler(
 					metadata: z
 						.record(z.string(), z.unknown())
 						.optional()
-						.describe("Optional structured metadata (e.g. { deadline, assignee, version })"),
+						.describe("Optional structured metadata"),
 				},
 			},
 			async ({ entityId, type, content, metadata }) => {
@@ -469,33 +387,16 @@ const handler = createMcpHandler(
 					select: { id: true, title: true },
 				});
 				if (!entity) {
-					return {
-						content: [{ type: "text" as const, text: "Entity not found" }],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 
 				const enrichedMetadata = { ...(metadata ?? {}), via: "mcp" };
 				const event = await db.timelineEvent.create({
-					data: {
-						entityId,
-						type,
-						content,
-						metadata: JSON.stringify(enrichedMetadata),
-					},
+					data: { entityId, type, content, metadata: JSON.stringify(enrichedMetadata) },
 				});
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify({
-								success: true,
-								message: `Timeline event added to "${entity.title}"`,
-								event,
-							}),
-						},
-					],
+					content: [{ type: TEXT, text: JSON.stringify({ success: true, message: `Timeline event added to "${entity.title}"`, event }) }],
 				};
 			},
 		);
@@ -505,17 +406,11 @@ const handler = createMcpHandler(
 			{
 				title: "Get Timeline Semantic Diff",
 				description:
-					"Get an AI-powered semantic diff between two points in an entity's timeline. Shows what changed, risk signals, and progress delta. Use when the user asks 'what changed since last week', 'how has this progressed', or 'what's different from before'.",
+					"Get an AI-powered semantic diff between two points in an entity's timeline.",
 				inputSchema: {
 					entityId: z.string().describe("Entity ID"),
-					fromEventId: z
-						.string()
-						.optional()
-						.describe("Starting timeline event ID (defaults to first event)"),
-					toEventId: z
-						.string()
-						.optional()
-						.describe("Ending timeline event ID (defaults to latest event)"),
+					fromEventId: z.string().optional().describe("Starting timeline event ID (defaults to first event)"),
+					toEventId: z.string().optional().describe("Ending timeline event ID (defaults to latest event)"),
 				},
 			},
 			async ({ entityId, fromEventId, toEventId }) => {
@@ -524,10 +419,7 @@ const handler = createMcpHandler(
 					select: { id: true, type: true, title: true },
 				});
 				if (!entity) {
-					return {
-						content: [{ type: "text" as const, text: "Entity not found" }],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 
 				const allEvents = await db.timelineEvent.findMany({
@@ -537,60 +429,27 @@ const handler = createMcpHandler(
 
 				if (allEvents.length < 2) {
 					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									summary: "Not enough timeline events for a diff",
-									events: allEvents,
-								}),
-							},
-						],
+						content: [{ type: TEXT, text: JSON.stringify({ summary: "Not enough timeline events for a diff", events: allEvents }) }],
 					};
 				}
 
-				const fromIdx = fromEventId
-					? allEvents.findIndex((e) => e.id === fromEventId)
-					: 0;
-				const toIdx = toEventId
-					? allEvents.findIndex((e) => e.id === toEventId)
-					: allEvents.length - 1;
+				const fromIdx = fromEventId ? allEvents.findIndex((e) => e.id === fromEventId) : 0;
+				const toIdx = toEventId ? allEvents.findIndex((e) => e.id === toEventId) : allEvents.length - 1;
+				const rangeEvents = allEvents.slice(Math.max(0, fromIdx), Math.min(allEvents.length, toIdx + 1));
+				const eventsText = rangeEvents.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`).join("\n");
 
-				const rangeEvents = allEvents.slice(
-					Math.max(0, fromIdx),
-					Math.min(allEvents.length, toIdx + 1),
-				);
-
-				const eventsText = rangeEvents
-					.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`)
-					.join("\n");
-
-				const hasAiKey = !!process.env.OPENAI_API_KEY;
-
-				if (!hasAiKey) {
+				if (!process.env.OPENAI_API_KEY) {
 					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									summary: `${rangeEvents.length} events in selected range`,
-									events: rangeEvents,
-								}),
-							},
-						],
+						content: [{ type: TEXT, text: JSON.stringify({ summary: `${rangeEvents.length} events in selected range`, events: rangeEvents }) }],
 					};
 				}
 
 				const diffSchema = z.object({
 					summary: z.string(),
-					changes: z.array(
-						z.object({
-							field: z.string(),
-							before: z.string().nullable(),
-							after: z.string().nullable(),
-							significance: z.enum(["low", "medium", "high", "critical"]),
-						}),
-					),
+					changes: z.array(z.object({
+						field: z.string(), before: z.string().nullable(),
+						after: z.string().nullable(), significance: z.enum(["low", "medium", "high", "critical"]),
+					})),
 					riskSignals: z.array(z.string()),
 					progressDelta: z.number().nullable(),
 					recommendation: z.string().nullable(),
@@ -599,21 +458,11 @@ const handler = createMcpHandler(
 				const { object: diff } = await generateObject({
 					model: mcpTextModel,
 					schema: diffSchema,
-					prompt: `Analyze these timeline events for entity "${entity.title}" (type: ${entity.type}).
-
-Events:
-${eventsText}
-
-Produce a semantic diff: what changed, risk signals, progress delta (-100 to 100), and recommendation.`,
+					prompt: `Analyze these timeline events for entity "${entity.title}" (type: ${entity.type}).\n\nEvents:\n${eventsText}\n\nProduce a semantic diff: what changed, risk signals, progress delta (-100 to 100), and recommendation.`,
 				});
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify({ ...diff, fromEvent: allEvents[fromIdx], toEvent: allEvents[toIdx] }, null, 2),
-						},
-					],
+					content: [{ type: TEXT, text: JSON.stringify({ ...diff, fromEvent: allEvents[fromIdx], toEvent: allEvents[toIdx] }, null, 2) }],
 				};
 			},
 		);
@@ -623,7 +472,7 @@ Produce a semantic diff: what changed, risk signals, progress delta (-100 to 100
 			{
 				title: "Predict Entity Risk",
 				description:
-					"AI-powered risk prediction for a business entity. Analyzes timeline history, extracted fields, and current status to predict risk level, deadline risk, and suggest actions. Use when the user asks 'is this at risk', 'will this be done on time', or 'what should I worry about'.",
+					"AI-powered risk prediction for a business entity. Analyzes timeline history, extracted fields, and current status.",
 				inputSchema: {
 					entityId: z.string().describe("Entity ID to analyze"),
 				},
@@ -631,40 +480,21 @@ Produce a semantic diff: what changed, risk signals, progress delta (-100 to 100
 			async ({ entityId }) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					include: {
-						timeline: { orderBy: { createdAt: "asc" } },
-					},
+					include: { timeline: { orderBy: { createdAt: "asc" } } },
 				});
 
 				if (!entity) {
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+				}
+
+				if (!process.env.OPENAI_API_KEY) {
 					return {
-						content: [{ type: "text" as const, text: "Entity not found" }],
-						isError: true,
+						content: [{ type: TEXT, text: JSON.stringify({ riskLevel: "unknown", message: "AI prediction requires OPENAI_API_KEY" }) }],
 					};
 				}
 
-				const hasAiKey = !!process.env.OPENAI_API_KEY;
-
-				if (!hasAiKey) {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									riskLevel: "unknown",
-									message: "AI prediction requires OPENAI_API_KEY",
-								}),
-							},
-						],
-					};
-				}
-
-				const fields = entity.extractedFields
-					? JSON.parse(entity.extractedFields)
-					: {};
-				const timelineText = entity.timeline
-					.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`)
-					.join("\n");
+				const fields = entity.extractedFields ? JSON.parse(entity.extractedFields) : {};
+				const timelineText = entity.timeline.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`).join("\n");
 
 				const riskSchema = z.object({
 					riskLevel: z.enum(["low", "medium", "high", "critical"]),
@@ -672,10 +502,8 @@ Produce a semantic diff: what changed, risk signals, progress delta (-100 to 100
 					predictedOutcome: z.string(),
 					suggestedActions: z.array(z.string()),
 					deadlineRisk: z.object({
-						hasDeadline: z.boolean(),
-						deadline: z.string().nullable(),
-						daysRemaining: z.number().nullable(),
-						isAtRisk: z.boolean(),
+						hasDeadline: z.boolean(), deadline: z.string().nullable(),
+						daysRemaining: z.number().nullable(), isAtRisk: z.boolean(),
 					}),
 					confidence: z.number().min(0).max(1),
 				});
@@ -683,23 +511,10 @@ Produce a semantic diff: what changed, risk signals, progress delta (-100 to 100
 				const { object: prediction } = await generateObject({
 					model: mcpTextModel,
 					schema: riskSchema,
-					prompt: `Analyze risk for entity "${entity.title}" (${entity.type}, status: ${entity.status}).
-
-Fields: ${JSON.stringify(fields, null, 2)}
-Timeline: ${timelineText || "(none)"}
-Today: ${new Date().toISOString().split("T")[0]}
-
-Assess risk level, factors, predicted outcome, suggested actions, and deadline risk.`,
+					prompt: `Analyze risk for entity "${entity.title}" (${entity.type}, status: ${entity.status}).\n\nFields: ${JSON.stringify(fields, null, 2)}\nTimeline: ${timelineText || "(none)"}\nToday: ${new Date().toISOString().split("T")[0]}\n\nAssess risk level, factors, predicted outcome, suggested actions, and deadline risk.`,
 				});
 
-				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(prediction, null, 2),
-						},
-					],
-				};
+				return { content: [{ type: TEXT, text: JSON.stringify(prediction, null, 2) }] };
 			},
 		);
 
@@ -708,21 +523,14 @@ Assess risk level, factors, predicted outcome, suggested actions, and deadline r
 			{
 				title: "Get Entity Timeline",
 				description:
-					"Get the full timeline of events for a business entity, ordered chronologically. Shows all email events, AI analysis, status changes, and manual actions. Use when the user asks to see the history or progress of a specific item.",
+					"Get the full timeline of events for a business entity, ordered chronologically.",
 				inputSchema: {
 					entityId: z.string().describe("Entity ID"),
 					types: z
-						.array(
-						z.enum([
-							"email_received",
-							"email_sent",
-							"status_changed",
-							"action_taken",
-							"ai_summary",
-							"milestone",
-								"note",
-							]),
-						)
+						.array(z.enum([
+							"email_received", "email_sent", "status_changed",
+							"action_taken", "ai_summary", "milestone", "note",
+						]))
 						.optional()
 						.describe("Filter by event types"),
 				},
@@ -734,10 +542,7 @@ Assess risk level, factors, predicted outcome, suggested actions, and deadline r
 				});
 
 				if (!entity) {
-					return {
-						content: [{ type: "text" as const, text: "Entity not found" }],
-						isError: true,
-					};
+					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 
 				const where: Record<string, unknown> = { entityId };
@@ -748,31 +553,18 @@ Assess risk level, factors, predicted outcome, suggested actions, and deadline r
 				const timeline = await db.timelineEvent.findMany({
 					where,
 					orderBy: { createdAt: "asc" },
-					include: {
-						actor: { select: { name: true, email: true } },
-					},
+					include: { actor: { select: { name: true, email: true } } },
 				});
 
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text: JSON.stringify(
-								{
-									entity: {
-										id: entity.id,
-										title: entity.title,
-										type: entity.type,
-										status: entity.status,
-									},
-									totalEvents: timeline.length,
-									timeline,
-								},
-								null,
-								2,
-							),
-						},
-					],
+					content: [{
+						type: TEXT,
+						text: JSON.stringify({
+							entity: { id: entity.id, title: entity.title, type: entity.type, status: entity.status },
+							totalEvents: timeline.length,
+							timeline,
+						}, null, 2),
+					}],
 				};
 			},
 		);
@@ -783,5 +575,32 @@ Assess risk level, factors, predicted outcome, suggested actions, and deadline r
 		maxDuration: 60,
 	},
 );
+
+async function mcpVerifyToken(
+	_req: Request,
+	bearerToken?: string,
+): Promise<AuthInfo | undefined> {
+	if (!bearerToken) {
+		return undefined;
+	}
+
+	const result = await verifyApiToken(bearerToken);
+	if (!result) {
+		return undefined;
+	}
+
+	return {
+		token: bearerToken,
+		clientId: result.tokenId,
+		scopes: result.scopes,
+		extra: {
+			organizationId: result.organizationId,
+		},
+	};
+}
+
+const handler = withMcpAuth(rawHandler, mcpVerifyToken, {
+	required: true,
+});
 
 export { handler as GET, handler as POST, handler as DELETE };

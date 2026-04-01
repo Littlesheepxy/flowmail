@@ -78,13 +78,13 @@ export type WaitlistEntryScalarFieldEnum = z.infer<typeof WaitlistEntryScalarFie
 
 // File: EmailConnectionScalarFieldEnum.schema.ts
 
-export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'authType', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'imapHost', 'imapPort', 'smtpHost', 'smtpPort', 'imapPassword', 'appId', 'appSecret', 'isActive', 'lastSyncAt', 'syncCursor', 'createdAt', 'updatedAt'])
+export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'authType', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'imapHost', 'imapPort', 'smtpHost', 'smtpPort', 'imapPassword', 'appId', 'appSecret', 'maxSyncCount', 'isActive', 'lastSyncAt', 'syncCursor', 'createdAt', 'updatedAt'])
 
 export type EmailConnectionScalarFieldEnum = z.infer<typeof EmailConnectionScalarFieldEnumSchema>;
 
 // File: EmailThreadScalarFieldEnum.schema.ts
 
-export const EmailThreadScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'connectionId', 'externalThreadId', 'subject', 'sender', 'senderName', 'participants', 'toRecipients', 'ccRecipients', 'snippet', 'bodyHtml', 'bodyText', 'rawPayload', 'entityId', 'receivedAt', 'processedAt', 'createdAt'])
+export const EmailThreadScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'connectionId', 'externalThreadId', 'subject', 'sender', 'senderName', 'participants', 'toRecipients', 'ccRecipients', 'snippet', 'bodyHtml', 'bodyText', 'rawPayload', 'messageId', 'entityId', 'receivedAt', 'processedAt', 'createdAt'])
 
 export type EmailThreadScalarFieldEnum = z.infer<typeof EmailThreadScalarFieldEnumSchema>;
 
@@ -111,6 +111,18 @@ export type FlowEntityScalarFieldEnum = z.infer<typeof FlowEntityScalarFieldEnum
 export const TimelineEventScalarFieldEnumSchema = z.enum(['id', 'entityId', 'type', 'content', 'metadata', 'actorId', 'createdAt'])
 
 export type TimelineEventScalarFieldEnum = z.infer<typeof TimelineEventScalarFieldEnumSchema>;
+
+// File: NotificationScalarFieldEnum.schema.ts
+
+export const NotificationScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'userId', 'type', 'title', 'body', 'entityId', 'isRead', 'sentViaEmail', 'createdAt'])
+
+export type NotificationScalarFieldEnum = z.infer<typeof NotificationScalarFieldEnumSchema>;
+
+// File: ApiTokenScalarFieldEnum.schema.ts
+
+export const ApiTokenScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'name', 'tokenHash', 'tokenPrefix', 'scopes', 'lastUsedAt', 'expiresAt', 'isActive', 'createdAt'])
+
+export type ApiTokenScalarFieldEnum = z.infer<typeof ApiTokenScalarFieldEnumSchema>;
 
 // File: SortOrder.schema.ts
 
@@ -141,6 +153,12 @@ export type PurchaseType = z.infer<typeof PurchaseTypeSchema>;
 export const EntityTypeSchema = z.enum(['APPROVAL', 'REPORT', 'ISSUE', 'FEEDBACK'])
 
 export type EntityType = z.infer<typeof EntityTypeSchema>;
+
+// File: NotificationType.schema.ts
+
+export const NotificationTypeSchema = z.enum(['DEADLINE_WARNING', 'DEADLINE_OVERDUE', 'APPROVAL_TIMEOUT', 'NEW_ENTITY', 'STATUS_CHANGED', 'DAILY_DIGEST'])
+
+export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
 // File: User.schema.ts
 
@@ -342,6 +360,7 @@ export const EmailConnectionSchema = z.object({
   imapPassword: z.string().nullish(),
   appId: z.string().nullish(),
   appSecret: z.string().nullish(),
+  maxSyncCount: z.number().int().default(500),
   isActive: z.boolean().default(true),
   lastSyncAt: z.date().nullish(),
   syncCursor: z.string().nullish(),
@@ -369,6 +388,7 @@ export const EmailThreadSchema = z.object({
   bodyHtml: z.string().nullish(),
   bodyText: z.string().nullish(),
   rawPayload: z.string().nullish(),
+  messageId: z.string().nullish(),
   entityId: z.string().nullish(),
   receivedAt: z.date(),
   processedAt: z.date().nullish(),
@@ -447,4 +467,39 @@ export const TimelineEventSchema = z.object({
 });
 
 export type TimelineEventType = z.infer<typeof TimelineEventSchema>;
+
+
+// File: Notification.schema.ts
+
+export const NotificationSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  userId: z.string(),
+  type: NotificationTypeSchema,
+  title: z.string(),
+  body: z.string(),
+  entityId: z.string().nullish(),
+  isRead: z.boolean(),
+  sentViaEmail: z.boolean(),
+  createdAt: z.date(),
+});
+
+export type NotificationModel = z.infer<typeof NotificationSchema>;
+
+// File: ApiToken.schema.ts
+
+export const ApiTokenSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  name: z.string(),
+  tokenHash: z.string(),
+  tokenPrefix: z.string(),
+  scopes: z.string().default("mcp:full"),
+  lastUsedAt: z.date().nullish(),
+  expiresAt: z.date().nullish(),
+  isActive: z.boolean().default(true),
+  createdAt: z.date(),
+});
+
+export type ApiTokenType = z.infer<typeof ApiTokenSchema>;
 

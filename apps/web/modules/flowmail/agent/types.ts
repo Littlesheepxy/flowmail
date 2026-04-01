@@ -87,6 +87,48 @@ export interface ActionResultCardData {
 	toStatus?: string;
 }
 
+export interface ConnectionListCardData {
+	connections: Array<{
+		id: string;
+		provider: string;
+		email: string;
+		isActive: boolean;
+		lastSyncAt: string | null;
+		authType: string;
+	}>;
+	totalCount: number;
+}
+
+export interface SyncResultCardData {
+	email: string;
+	provider: string;
+	fetched: number;
+	processed: number;
+	errors: number;
+}
+
+export interface SendResultCardData {
+	success: boolean;
+	provider: string;
+	from: string;
+	to: string[];
+	subject: string;
+	error?: string;
+}
+
+export interface EmailSearchCardData {
+	emails: Array<{
+		id: string;
+		subject: string;
+		sender: string;
+		senderEmail: string;
+		snippet: string | null;
+		receivedAt: string;
+		entity: { id: string; title: string; type: string; status: string } | null;
+	}>;
+	totalCount: number;
+}
+
 // ── UI 卡片联合类型（工具结果 → 渲染组件） ───────────────
 
 export type AgentUICard =
@@ -96,7 +138,11 @@ export type AgentUICard =
 	| { type: "timeline_diff";    data: TimelineDiffCardData }
 	| { type: "entity_list";      data: EntityListCardData }
 	| { type: "action_confirm";   data: ActionConfirmCardData }
-	| { type: "action_result";    data: ActionResultCardData };
+	| { type: "action_result";    data: ActionResultCardData }
+	| { type: "connection_list";  data: ConnectionListCardData }
+	| { type: "sync_result";      data: SyncResultCardData }
+	| { type: "send_result";      data: SendResultCardData }
+	| { type: "email_search";     data: EmailSearchCardData };
 
 // ── 页面上下文（前端发送给后端的当前页面状态） ────────────
 

@@ -20,11 +20,16 @@ import {
 	ShieldAlertIcon,
 	ChevronDownIcon,
 	ChevronUpIcon,
+	Reply as ReplyIcon,
+	ForwardIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { EntityTimeline } from "./EntityTimeline";
+import type { ReplyMode } from "./ReplyComposer";
+import { ReplyComposer } from "./ReplyComposer";
 
 const statusConfig: Record<
 	string,
@@ -224,6 +229,101 @@ export function EntityDetail() {
 		}),
 	);
 
+	const sendMutation = useMutation(
+		orpc.emailConnections.sendEmail.mutationOptions(),
+	);
+
+	const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
+	const [replyMode, setReplyMode] = useState<ReplyMode>("reply");
+
+	const openReply = useCallback((threadId: string, mode: ReplyMode) => {
+		setReplyThreadId(threadId);
+		setReplyMode(mode);
+	}, []);
+
+	const handleSend = useCallback(
+		async (data: { mode: ReplyMode; html: string; text: string }) => {
+			if (!entity) {
+				return;
+			}
+			const thread = entity.threads?.find((t) => t.id === replyThreadId);
+			if (!thread) {
+				return;
+			}
+
+			const connectionId = (thread as { connectionId?: string }).connectionId;
+			if (!connectionId) {
+				toast.error("找不到邮箱连接，无法发送");
+				return;
+			}
+
+			const senderEmail = thread.sender ?? "";
+			let to: string[];
+			let cc: string[] | undefined;
+
+			const parseRecips = (raw?: string | null): Array<{ name?: string; address: string }> => {
+				if (!raw) {
+					return [];
+				}
+				try {
+					return JSON.parse(raw) as Array<{ name?: string; address: string }>;
+				} catch {
+					return [];
+				}
+			};
+
+			const toRecipients = parseRecips(thread.toRecipients);
+			const ccRecipients = parseRecips(thread.ccRecipients);
+
+			if (data.mode === "reply") {
+				to = [senderEmail];
+			} else if (data.mode === "replyAll") {
+				to = [senderEmail, ...toRecipients.map((r) => r.address)];
+				cc = ccRecipients.map((r) => r.address);
+			} else {
+				to = [];
+			}
+
+			to = [...new Set(to.filter(Boolean))];
+			if (cc) {
+				cc = [...new Set(cc.filter(Boolean))];
+			}
+
+			const subjectPrefix = data.mode === "forward" ? "Fwd: " : "Re: ";
+			const rawSubject = thread.subject ?? "";
+			const subject =
+				rawSubject.startsWith("Re:") || rawSubject.startsWith("Fwd:")
+					? rawSubject
+					: `${subjectPrefix}${rawSubject}`;
+
+			const messageId = (thread as { messageId?: string | null }).messageId;
+
+			try {
+				await sendMutation.mutateAsync({
+					connectionId,
+					to,
+					cc,
+					subject,
+					htmlBody: data.html,
+					textBody: data.text,
+					inReplyTo: messageId ?? undefined,
+				});
+
+				toast.success("邮件已发送");
+				setReplyThreadId(null);
+
+				await queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+				});
+			} catch (err) {
+				toast.error(
+					`发送失败: ${err instanceof Error ? err.message : "未知错误"}`,
+				);
+			}
+		},
+		[entity, replyThreadId, sendMutation, queryClient, entityId],
+	);
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center py-20">
@@ -336,23 +436,56 @@ export function EntityDetail() {
 							</h3>
 							<div className="space-y-3">
 								{entity.threads.map((thread) => (
-									<div
-										key={thread.id}
-										className="flex items-start gap-3 rounded-md border p-3"
-									>
-										<MailIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-										<div className="flex-1 min-w-0">
-											<p className="text-sm font-medium truncate">{thread.subject}</p>
-											<p className="text-xs text-muted-foreground">
-												From: {thread.sender} &middot;{" "}
-												{new Date(thread.receivedAt).toLocaleString("zh-CN")}
-											</p>
-											{thread.snippet && (
-												<p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-													{thread.snippet}
+									<div key={thread.id}>
+										<div className="flex items-start gap-3 rounded-md border p-3">
+											<MailIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+											<div className="flex-1 min-w-0">
+												<p className="text-sm font-medium truncate">{thread.subject}</p>
+												<p className="text-xs text-muted-foreground">
+													From: {thread.sender} &middot;{" "}
+													{new Date(thread.receivedAt).toLocaleString("zh-CN")}
 												</p>
-											)}
+												{thread.snippet && (
+													<p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+														{thread.snippet}
+													</p>
+												)}
+												<div className="mt-2 flex items-center gap-1.5">
+													<Button
+														variant="secondary"
+														size="sm"
+														className="h-6 px-2 gap-1 text-xs"
+														onClick={() => openReply(thread.id, "reply")}
+													>
+														<ReplyIcon className="size-3" />
+														回复
+													</Button>
+													<Button
+														variant="secondary"
+														size="sm"
+														className="h-6 px-2 gap-1 text-xs"
+														onClick={() => openReply(thread.id, "forward")}
+													>
+														<ForwardIcon className="size-3" />
+														转发
+													</Button>
+												</div>
+											</div>
 										</div>
+
+										{replyThreadId === thread.id && (
+											<div className="mt-2 rounded-md border overflow-hidden">
+												<ReplyComposer
+													senderName={thread.senderName ?? undefined}
+													senderEmail={thread.sender ?? ""}
+													subject={thread.subject ?? ""}
+													defaultMode={replyMode}
+													onSend={handleSend}
+													onClose={() => setReplyThreadId(null)}
+													isSending={sendMutation.isPending}
+												/>
+											</div>
+										)}
 									</div>
 								))}
 							</div>

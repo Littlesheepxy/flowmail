@@ -21,6 +21,8 @@ export const getEntity = protectedProcedure
 					orderBy: { receivedAt: "desc" },
 					select: {
 						id: true,
+						connectionId: true,
+						messageId: true,
 						subject: true,
 						sender: true,
 						senderName: true,

@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { getConnector, processEmail } from "@repo/email-processor";
 import { protectedProcedure } from "../../../orpc/procedures";
+import { triggerNotification } from "../../notifications/lib/trigger";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 import { syncConnectionSchema } from "../types";
 
@@ -46,6 +47,7 @@ export const syncEmailConnection = protectedProcedure
 				imapPort: connectionWithToken.imapPort,
 				imapPassword: connectionWithToken.imapPassword,
 				authType: connectionWithToken.authType,
+				maxSyncCount: connectionWithToken.maxSyncCount,
 			},
 			connectionWithToken.syncCursor,
 		);
@@ -88,11 +90,24 @@ export const syncEmailConnection = protectedProcedure
 				connectionId: connectionWithToken.id,
 				externalThreadId: email.externalId,
 				receivedAt: email.receivedAt,
+				messageId: email.messageId,
 			});
 
 			if (result.success) {
 				processed++;
 				console.log(`[Sync] Processed: "${email.subject}" → ${result.categorySlug ?? result.classification}`);
+
+				if (result.entityId) {
+					triggerNotification({
+						organizationId: connectionWithToken.organizationId,
+						type: "NEW_ENTITY",
+						entityId: result.entityId,
+						title: `新事项：${email.subject}`,
+						body: `来自 ${email.senderEmail} 的邮件已创建新事项（${result.classification ?? "未分类"}）`,
+					}).catch((err) => {
+						console.error("[Sync] Notification trigger failed:", err);
+					});
+				}
 			} else {
 				errors++;
 				console.error(`[Sync] Failed: "${email.subject}" → ${result.error}`);

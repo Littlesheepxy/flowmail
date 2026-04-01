@@ -58,6 +58,8 @@ export const connectImap = protectedProcedure
 			);
 		}
 
+		const maxSyncCount = input.maxSyncCount ?? 500;
+
 		const connection = await db.emailConnection.upsert({
 			where: {
 				organizationId_email: {
@@ -75,6 +77,7 @@ export const connectImap = protectedProcedure
 				smtpHost,
 				smtpPort,
 				imapPassword: input.password,
+				maxSyncCount,
 				isActive: true,
 			},
 			update: {
@@ -85,6 +88,7 @@ export const connectImap = protectedProcedure
 				smtpHost,
 				smtpPort,
 				imapPassword: input.password,
+				maxSyncCount,
 				isActive: true,
 			},
 		});

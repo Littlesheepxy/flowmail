@@ -19,6 +19,7 @@ export const connectImapSchema = z.object({
 	imapPort: z.number().optional(),
 	smtpHost: z.string().optional(),
 	smtpPort: z.number().optional(),
+	maxSyncCount: z.number().min(10).max(10000).optional(),
 });
 
 export const disconnectSchema = z.object({

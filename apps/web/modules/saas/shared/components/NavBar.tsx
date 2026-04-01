@@ -32,6 +32,7 @@ import React, { useMemo, useState } from "react";
 import { config as webConfig } from "@/config";
 import { OrganzationSelect } from "../../organizations/components/OrganizationSelect";
 import { OrgSettingsModal, type OrgTab } from "./OrgSettingsModal";
+import { NotificationBell } from "@/modules/flowmail/components/NotificationCenter";
 import { useSidebar } from "../lib/sidebar-context";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -518,6 +519,15 @@ export function NavBar() {
 								background: `radial-gradient(circle 100px at ${spotlight.x}px ${spotlight.y}px, hsl(var(--primary) / 0.12), transparent)`,
 							}}
 						/>
+					)}
+					{activeOrganization && (
+						<div className={cn("flex items-center", isCollapsed && useSidebarLayout ? "justify-center mb-2" : "px-3 mb-2")}>
+							<NotificationBell
+								organizationId={activeOrganization.id}
+								basePath={basePath}
+								collapsed={isCollapsed && useSidebarLayout}
+							/>
+						</div>
 					)}
 					{isCollapsed && useSidebarLayout ? (
 						<TooltipProvider delayDuration={0}>

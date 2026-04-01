@@ -26,6 +26,7 @@ export interface RawEmail {
 	attachments?: RawEmailAttachment[];
 	receivedAt: Date;
 	threadId?: string;
+	messageId?: string;
 }
 
 export interface ConnectionCredentials {
@@ -37,6 +38,7 @@ export interface ConnectionCredentials {
 	imapPort?: number | null;
 	imapPassword?: string | null;
 	authType: string;
+	maxSyncCount?: number | null;
 }
 
 export interface SyncResult {

@@ -10,7 +10,7 @@ import {
 } from "@repo/ui/components/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/components/tabs";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	InboxIcon,
 	MailIcon,
@@ -27,8 +27,10 @@ import {
 	ForwardIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { toast } from "sonner";
 import { EntityTimeline } from "./EntityTimeline";
+import type { ReplyMode } from "./ReplyComposer";
 import { ReplyComposer } from "./ReplyComposer";
 
 const Letter = dynamic(() => import("react-letter").then((m) => m.Letter), {
@@ -41,6 +43,7 @@ interface ThreadChatViewProps {
 
 
 export function ThreadChatView({ entityId }: ThreadChatViewProps) {
+	const queryClient = useQueryClient();
 	const { data: entity, isLoading } = useQuery({
 		...orpc.flowEntities.get.queryOptions({
 			input: { entityId: entityId ?? "" },
@@ -48,6 +51,91 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 		enabled: !!entityId,
 	});
 	const [showComposer, setShowComposer] = useState(false);
+	const [composerMode, setComposerMode] = useState<ReplyMode>("reply");
+
+	const sendMutation = useMutation(
+		orpc.emailConnections.sendEmail.mutationOptions(),
+	);
+
+	const handleSend = useCallback(
+		async (data: { mode: ReplyMode; html: string; text: string }) => {
+			if (!entity) {
+				return;
+			}
+			const threads = entity.threads ?? [];
+			const latestThread = threads[0];
+			if (!latestThread) {
+				return;
+			}
+
+			const connectionId = (latestThread as { connectionId?: string }).connectionId;
+			if (!connectionId) {
+				toast.error("找不到邮箱连接，无法发送");
+				return;
+			}
+
+			const toRecipients = parseRecipients(latestThread.toRecipients);
+			const ccRecipients = parseRecipients(latestThread.ccRecipients);
+			const senderEmail = latestThread.sender ?? "";
+
+			let to: string[];
+			let cc: string[] | undefined;
+
+			if (data.mode === "reply") {
+				to = [senderEmail];
+			} else if (data.mode === "replyAll") {
+				to = [senderEmail, ...toRecipients.map((r) => r.address)];
+				cc = ccRecipients.map((r) => r.address);
+			} else {
+				to = [];
+			}
+
+			to = [...new Set(to.filter(Boolean))];
+			if (cc) {
+				cc = [...new Set(cc.filter(Boolean))];
+			}
+
+			const subjectPrefix = data.mode === "forward" ? "Fwd: " : "Re: ";
+			const rawSubject = latestThread.subject ?? "";
+			const subject =
+				rawSubject.startsWith("Re:") || rawSubject.startsWith("Fwd:")
+					? rawSubject
+					: `${subjectPrefix}${rawSubject}`;
+
+			const messageId = (latestThread as { messageId?: string | null }).messageId;
+
+			try {
+				await sendMutation.mutateAsync({
+					connectionId,
+					to,
+					cc,
+					subject,
+					htmlBody: data.html,
+					textBody: data.text,
+					inReplyTo: messageId ?? undefined,
+				});
+
+				toast.success("邮件已发送");
+				setShowComposer(false);
+
+				await queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.queryOptions({
+						input: { entityId: entityId ?? "" },
+					}).queryKey,
+				});
+			} catch (err) {
+				toast.error(
+					`发送失败: ${err instanceof Error ? err.message : "未知错误"}`,
+				);
+			}
+		},
+		[entity, entityId, sendMutation, queryClient],
+	);
+
+	const openComposer = useCallback((mode: ReplyMode) => {
+		setComposerMode(mode);
+		setShowComposer(true);
+	}, []);
 
 	if (!entityId) {
 		return (
@@ -117,7 +205,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 			</div>
 
 			<TabsContent value="emails" className="flex-1 overflow-y-auto mt-0 min-h-0">
-				<EmailListView threads={threads} onReply={() => setShowComposer(true)} />
+				<EmailListView threads={threads} onReply={openComposer} />
 			</TabsContent>
 
 			<TabsContent value="timeline" className="flex-1 overflow-y-auto mt-0 min-h-0 px-5 py-4">
@@ -146,7 +234,10 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 				subject={latestThread.subject ?? ""}
 				toRecipients={parseRecipients(latestThread.toRecipients)}
 				ccRecipients={parseRecipients(latestThread.ccRecipients)}
+				defaultMode={composerMode}
+				onSend={handleSend}
 				onClose={() => setShowComposer(false)}
+				isSending={sendMutation.isPending}
 			/>
 		)}
 
@@ -156,7 +247,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 				<Button
 					variant="secondary"
 					className="gap-2"
-					onClick={() => setShowComposer(true)}
+					onClick={() => openComposer("reply")}
 				>
 					<ReplyIcon className="size-4" />
 					回复
@@ -164,7 +255,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 				<Button
 					variant="secondary"
 					className="gap-2"
-					onClick={() => setShowComposer(true)}
+					onClick={() => openComposer("forward")}
 				>
 					<ForwardIcon className="size-4" />
 					转发
@@ -207,7 +298,7 @@ interface EmailRecipient {
 
 // ─── Email List ───
 
-function EmailListView({ threads, onReply }: { threads: ThreadItem[]; onReply?: () => void }) {
+function EmailListView({ threads, onReply }: { threads: ThreadItem[]; onReply?: (mode: ReplyMode) => void }) {
 	const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
 		if (threads.length > 0) {
 			return new Set([threads[0].id]);
@@ -268,7 +359,7 @@ function EmailMessage({
 	thread: ThreadItem;
 	isExpanded: boolean;
 	onToggle: () => void;
-	onReply?: () => void;
+	onReply?: (mode: ReplyMode) => void;
 }) {
 	const displayName = thread.senderName || thread.sender || "Unknown";
 	const emailAddress = thread.sender || "";
@@ -344,7 +435,7 @@ function EmailMessage({
 						<TooltipProvider delayDuration={300}>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.(); }}>
+									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.("reply"); }}>
 										<ReplyIcon className="size-3.5" />
 										回复
 									</Button>
@@ -353,7 +444,7 @@ function EmailMessage({
 							</Tooltip>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.(); }}>
+									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.("replyAll"); }}>
 										<ReplyAllIcon className="size-3.5" />
 										全部回复
 									</Button>
@@ -362,7 +453,7 @@ function EmailMessage({
 							</Tooltip>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.(); }}>
+									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.("forward"); }}>
 										<ForwardIcon className="size-3.5" />
 										转发
 									</Button>
