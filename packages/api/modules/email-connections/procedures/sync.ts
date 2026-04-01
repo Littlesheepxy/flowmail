@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { getConnector, processEmail } from "@repo/email-processor";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { triggerNotification } from "../../notifications/lib/trigger";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
@@ -14,7 +15,7 @@ export const syncEmailConnection = protectedProcedure
 		summary: "Sync new emails from a connection and process them",
 	})
 	.input(syncConnectionSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const connection = await db.emailConnection.findUnique({
 			where: { id: input.connectionId },
 		});
@@ -22,6 +23,9 @@ export const syncEmailConnection = protectedProcedure
 		if (!connection) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
+
 		if (!connection.isActive) {
 			throw new ORPCError("BAD_REQUEST", { message: "Connection is inactive" });
 		}
@@ -32,10 +36,6 @@ export const syncEmailConnection = protectedProcedure
 				: connection;
 
 		const connector = getConnector(connectionWithToken.provider);
-
-		console.log(
-			`[Sync] Starting sync for ${connectionWithToken.provider}:${connectionWithToken.email}, cursor=${connectionWithToken.syncCursor}`,
-		);
 
 		const { emails, newCursor } = await connector.fetchNewEmails(
 			{
@@ -52,11 +52,6 @@ export const syncEmailConnection = protectedProcedure
 			connectionWithToken.syncCursor,
 		);
 
-		console.log(`[Sync] Fetched ${emails.length} emails, newCursor=${newCursor}`);
-		if (emails.length > 0) {
-			console.log(`[Sync] First email: "${emails[0].subject}" from ${emails[0].senderEmail}`);
-		}
-
 		let processed = 0;
 		let errors = 0;
 
@@ -71,7 +66,6 @@ export const syncEmailConnection = protectedProcedure
 			});
 
 			if (existing) {
-				console.log(`[Sync] Skip existing: "${email.subject}"`);
 				continue;
 			}
 
@@ -95,7 +89,6 @@ export const syncEmailConnection = protectedProcedure
 
 			if (result.success) {
 				processed++;
-				console.log(`[Sync] Processed: "${email.subject}" → ${result.categorySlug ?? result.classification}`);
 
 				if (result.entityId) {
 					triggerNotification({
@@ -104,17 +97,13 @@ export const syncEmailConnection = protectedProcedure
 						entityId: result.entityId,
 						title: `新事项：${email.subject}`,
 						body: `来自 ${email.senderEmail} 的邮件已创建新事项（${result.classification ?? "未分类"}）`,
-					}).catch((err) => {
-						console.error("[Sync] Notification trigger failed:", err);
-					});
+					}).catch(() => {});
 				}
 			} else {
 				errors++;
-				console.error(`[Sync] Failed: "${email.subject}" → ${result.error}`);
+				console.error("[Sync] Processing failed", { connectionId: connectionWithToken.id, error: result.error });
 			}
 		}
-
-		console.log(`[Sync] Done: fetched=${emails.length}, processed=${processed}, errors=${errors}`);
 
 		await db.emailConnection.update({
 			where: { id: connectionWithToken.id },

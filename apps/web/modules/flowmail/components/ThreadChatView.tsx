@@ -33,6 +33,8 @@ import { EntityTimeline } from "./EntityTimeline";
 import type { ReplyMode } from "./ReplyComposer";
 import { ReplyComposer } from "./ReplyComposer";
 
+import DOMPurify from "isomorphic-dompurify";
+
 const Letter = dynamic(() => import("react-letter").then((m) => m.Letter), {
 	ssr: false,
 });
@@ -534,12 +536,13 @@ function EmailBody({ thread }: { thread: ThreadItem }) {
 	const [showQuoted, setShowQuoted] = useState(false);
 
 	if (thread.bodyHtml) {
+		const sanitizedHtml = DOMPurify.sanitize(thread.bodyHtml);
 		return (
 			<div className="email-body-wrapper">
 				<div className={cn("email-body", !showQuoted && "hide-quoted")}>
-					<Letter html={thread.bodyHtml} />
+					<Letter html={sanitizedHtml} />
 				</div>
-				{thread.bodyHtml.includes("blockquote") && !showQuoted && (
+				{sanitizedHtml.includes("blockquote") && !showQuoted && (
 					<button
 						type="button"
 						onClick={() => setShowQuoted(true)}

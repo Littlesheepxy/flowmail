@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { textModel, generateObject } from "@repo/ai";
 import { z } from "zod";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 
 const predictRiskSchema = z.object({
@@ -30,7 +31,7 @@ export const predictEntityRisk = protectedProcedure
 		summary: "AI prediction of entity risk and outcome",
 	})
 	.input(predictRiskSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const entity = await db.flowEntity.findUnique({
 			where: { id: input.entityId },
 			include: {
@@ -43,6 +44,8 @@ export const predictEntityRisk = protectedProcedure
 		if (!entity) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
 		const hasAiKey = !!process.env.OPENAI_API_KEY;
 

@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { listPendingApprovalsSchema } from "../types";
 
@@ -10,7 +11,8 @@ export const listPendingApprovals = protectedProcedure
 		summary: "List pending approval requests",
 	})
 	.input(listPendingApprovalsSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const where: Record<string, unknown> = {
 			organizationId: input.organizationId,
 			type: "APPROVAL",

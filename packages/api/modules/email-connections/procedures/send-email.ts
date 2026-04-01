@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { z } from "zod/v4";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 
@@ -22,7 +23,7 @@ export const sendEmail = protectedProcedure
 		summary: "Send an email via the connected account",
 	})
 	.input(sendEmailSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const connection = await db.emailConnection.findUnique({
 			where: { id: input.connectionId },
 		});
@@ -30,6 +31,9 @@ export const sendEmail = protectedProcedure
 		if (!connection) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
+
 		if (connection.provider === "feishu") {
 			const fresh = await ensureFeishuOAuthAccessToken(connection);
 			if (!fresh.accessToken) {

@@ -13,6 +13,12 @@ function getOrgId(extra: { authInfo?: AuthInfo }): string {
 	return orgId;
 }
 
+function assertOrgOwns(entity: { organizationId: string } | null, extra: { authInfo?: AuthInfo }) {
+	if (!entity || entity.organizationId !== getOrgId(extra)) {
+		throw new Error("Entity not found");
+	}
+}
+
 const TEXT = "text" as const;
 
 const rawHandler = createMcpHandler(
@@ -62,7 +68,7 @@ const rawHandler = createMcpHandler(
 					entityId: z.string().describe("Entity ID"),
 				},
 			},
-			async ({ entityId }) => {
+			async ({ entityId }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
 					include: {
@@ -81,6 +87,8 @@ const rawHandler = createMcpHandler(
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
 
+				assertOrgOwns(entity, extra);
+
 				return { content: [{ type: TEXT, text: JSON.stringify(entity, null, 2) }] };
 			},
 		);
@@ -97,11 +105,13 @@ const rawHandler = createMcpHandler(
 					reason: z.string().optional().describe("Reason for change"),
 				},
 			},
-			async ({ entityId, status, reason }) => {
+			async ({ entityId, status, reason }, extra) => {
 				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
 
 				const updated = await db.flowEntity.update({
 					where: { id: entityId },
@@ -157,11 +167,14 @@ const rawHandler = createMcpHandler(
 					comment: z.string().optional().describe("Optional approval comment"),
 				},
 			},
-			async ({ entityId, comment }) => {
+			async ({ entityId, comment }, extra) => {
 				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
+
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
 					return { content: [{ type: TEXT, text: "Entity is not a pending approval" }], isError: true };
 				}
@@ -196,11 +209,14 @@ const rawHandler = createMcpHandler(
 					reason: z.string().describe("Required reason for rejection"),
 				},
 			},
-			async ({ entityId, reason }) => {
+			async ({ entityId, reason }, extra) => {
 				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
+
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
 					return { content: [{ type: TEXT, text: "Entity is not a pending approval" }], isError: true };
 				}
@@ -259,15 +275,17 @@ const rawHandler = createMcpHandler(
 					entityId: z.string().describe("Report entity ID"),
 				},
 			},
-			async ({ entityId }) => {
+			async ({ entityId }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: { id: true, title: true, aiSummary: true, extractedFields: true, status: true },
+					select: { id: true, organizationId: true, title: true, aiSummary: true, extractedFields: true, status: true },
 				});
 
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Report not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
 
 				return {
 					content: [{
@@ -381,14 +399,16 @@ const rawHandler = createMcpHandler(
 						.describe("Optional structured metadata"),
 				},
 			},
-			async ({ entityId, type, content, metadata }) => {
+			async ({ entityId, type, content, metadata }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: { id: true, title: true },
+					select: { id: true, organizationId: true, title: true },
 				});
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
 
 				const enrichedMetadata = { ...(metadata ?? {}), via: "mcp" };
 				const event = await db.timelineEvent.create({
@@ -413,14 +433,16 @@ const rawHandler = createMcpHandler(
 					toEventId: z.string().optional().describe("Ending timeline event ID (defaults to latest event)"),
 				},
 			},
-			async ({ entityId, fromEventId, toEventId }) => {
+			async ({ entityId, fromEventId, toEventId }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: { id: true, type: true, title: true },
+					select: { id: true, organizationId: true, type: true, title: true },
 				});
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
 
 				const allEvents = await db.timelineEvent.findMany({
 					where: { entityId },
@@ -477,7 +499,7 @@ const rawHandler = createMcpHandler(
 					entityId: z.string().describe("Entity ID to analyze"),
 				},
 			},
-			async ({ entityId }) => {
+			async ({ entityId }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
 					include: { timeline: { orderBy: { createdAt: "asc" } } },
@@ -486,6 +508,8 @@ const rawHandler = createMcpHandler(
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
 
 				if (!process.env.OPENAI_API_KEY) {
 					return {
@@ -535,15 +559,17 @@ const rawHandler = createMcpHandler(
 						.describe("Filter by event types"),
 				},
 			},
-			async ({ entityId, types }) => {
+			async ({ entityId, types }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: { id: true, title: true, type: true, status: true },
+					select: { id: true, organizationId: true, title: true, type: true, status: true },
 				});
 
 				if (!entity) {
 					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
 				}
+
+				assertOrgOwns(entity, extra);
 
 				const where: Record<string, unknown> = { entityId };
 				if (types && types.length > 0) {

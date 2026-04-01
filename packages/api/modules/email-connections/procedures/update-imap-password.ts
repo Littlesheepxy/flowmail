@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { updateImapPasswordSchema } from "../types";
 
@@ -11,7 +12,7 @@ export const updateImapPassword = protectedProcedure
 		summary: "Set or update the IMAP password for an existing connection",
 	})
 	.input(updateImapPasswordSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const connection = await db.emailConnection.findUnique({
 			where: { id: input.connectionId },
 		});
@@ -19,6 +20,8 @@ export const updateImapPassword = protectedProcedure
 		if (!connection) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
 
 		const updated = await db.emailConnection.update({
 			where: { id: input.connectionId },

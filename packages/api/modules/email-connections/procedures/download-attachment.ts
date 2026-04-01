@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { z } from "zod/v4";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 
@@ -16,7 +17,7 @@ export const downloadAttachment = protectedProcedure
 		summary: "Get download URL for an email attachment",
 	})
 	.input(downloadAttachmentSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const attachment = await db.emailAttachment.findUnique({
 			where: { id: input.attachmentId },
 			include: {
@@ -26,6 +27,7 @@ export const downloadAttachment = protectedProcedure
 						connection: {
 							select: {
 								id: true,
+								organizationId: true,
 								provider: true,
 								authType: true,
 								accessToken: true,
@@ -44,6 +46,8 @@ export const downloadAttachment = protectedProcedure
 		if (!attachment) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(attachment.thread.connection.organizationId, context.user.id);
 
 		let conn = attachment.thread.connection;
 		if (conn.provider === "feishu") {

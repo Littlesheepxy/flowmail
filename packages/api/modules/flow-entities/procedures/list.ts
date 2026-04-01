@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { listEntitiesSchema } from "../types";
 
@@ -10,7 +11,8 @@ export const listEntities = protectedProcedure
 		summary: "List flow entities for an organization",
 	})
 	.input(listEntitiesSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const where: Record<string, unknown> = {
 			organizationId: input.organizationId,
 		};

@@ -1,5 +1,6 @@
 import { db } from "@repo/database";
 import { google } from "googleapis";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectGmailSchema } from "../types";
 
@@ -11,7 +12,8 @@ export const connectGmail = protectedProcedure
 		summary: "Connect a Gmail account via OAuth",
 	})
 	.input(connectGmailSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const oauth2Client = new google.auth.OAuth2(
 			process.env.GMAIL_CLIENT_ID,
 			process.env.GMAIL_CLIENT_SECRET,

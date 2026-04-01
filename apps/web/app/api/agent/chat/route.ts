@@ -1,5 +1,6 @@
 import { triggerNotification } from "@repo/api";
-import { db } from "@repo/database";
+import { auth } from "@repo/auth";
+import { db, getOrganizationMembership } from "@repo/database";
 import {
 	convertToModelMessages,
 	generateObject,
@@ -978,12 +979,29 @@ ${itemsText || "（无低置信度事项）"}
 // ── Route Handler ─────────────────────────────────────────
 
 export async function POST(req: Request) {
-	const body = await req.json() as {
+	const session = await auth.api.getSession({ headers: req.headers });
+	if (!session) {
+		return new Response(JSON.stringify({ error: "Unauthorized" }), {
+			status: 401,
+			headers: { "Content-Type": "application/json" },
+		});
+	}
+
+	let body: {
 		messages: UIMessage[];
 		pageContext?: PageContextInput;
 		entityId?: string;
 		organizationId?: string;
 	};
+	try {
+		body = await req.json();
+	} catch {
+		return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+			status: 400,
+			headers: { "Content-Type": "application/json" },
+		});
+	}
+
 	const { messages, pageContext } = body;
 
 	const ctx: PageContextInput = pageContext ?? {
@@ -991,12 +1009,15 @@ export async function POST(req: Request) {
 		organizationId: body.organizationId,
 	};
 
-	console.log("[AgentChat] request context", {
-		entityId: ctx.entityId,
-		hasEntity: !!ctx.entity,
-		organizationId: ctx.organizationId,
-		route: ctx.route,
-	});
+	if (ctx.organizationId) {
+		const membership = await getOrganizationMembership(ctx.organizationId, session.user.id);
+		if (!membership) {
+			return new Response(JSON.stringify({ error: "Forbidden" }), {
+				status: 403,
+				headers: { "Content-Type": "application/json" },
+			});
+		}
+	}
 
 	const result = streamText({
 		model: textModel,
@@ -1009,15 +1030,6 @@ export async function POST(req: Request) {
 				return { toolChoice: "none" as const };
 			}
 			return undefined;
-		},
-		onFinish: async ({ text, toolCalls, finishReason }) => {
-			console.log("[AgentChat] finish", {
-				entityId: ctx.entityId,
-				textLen: text?.length ?? 0,
-				finishReason,
-				toolCallCount: toolCalls?.length ?? 0,
-				toolNames: toolCalls?.map((tc: { toolName: string }) => tc.toolName),
-			});
 		},
 	});
 

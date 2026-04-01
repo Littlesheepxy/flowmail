@@ -43,6 +43,7 @@
 		"es-toolkit": "^1.41.0",
 		"hono": "^4.11.7",
 		"input-otp": "^1.4.2",
+		"isomorphic-dompurify": "^3.7.1",
 		"js-cookie": "^3.0.5",
 		"lucide-react": "^0.553.0",
 		"mcp-handler": "^1.1.0",

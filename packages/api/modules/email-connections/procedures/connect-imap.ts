@@ -1,5 +1,6 @@
 import { db } from "@repo/database";
 import { getConnector } from "@repo/email-processor";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectImapSchema } from "../types";
 
@@ -35,7 +36,9 @@ export const connectImap = protectedProcedure
 		summary: "Connect an email account via IMAP (Feishu, DingTalk, WeCom, generic)",
 	})
 	.input(connectImapSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+
 		const defaults = PROVIDER_DEFAULTS[input.provider];
 		const imapHost = input.imapHost ?? defaults?.imapHost ?? "";
 		const imapPort = input.imapPort ?? defaults?.imapPort ?? 993;

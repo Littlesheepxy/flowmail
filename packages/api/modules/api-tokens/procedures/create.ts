@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { generateRawToken, hashToken, extractPrefix } from "../lib/token-utils";
 import { createApiTokenSchema } from "../types";
@@ -11,7 +12,8 @@ export const createApiToken = protectedProcedure
 		summary: "Create a new API token for MCP / Agent access",
 	})
 	.input(createApiTokenSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const rawToken = generateRawToken();
 		const tokenHash = hashToken(rawToken);
 		const tokenPrefix = extractPrefix(rawToken);

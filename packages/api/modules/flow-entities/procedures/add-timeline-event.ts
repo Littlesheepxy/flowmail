@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { z } from "zod";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 
 export const addTimelineEventSchema = z.object({
@@ -27,6 +28,8 @@ export const addTimelineEvent = protectedProcedure
 		if (!entity) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
 		const event = await db.timelineEvent.create({
 			data: {

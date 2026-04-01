@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectOAuthSchema } from "../types";
 
@@ -122,7 +123,8 @@ export const connectOAuth = protectedProcedure
 		summary: "Connect an email account via OAuth (Feishu, DingTalk, WeCom)",
 	})
 	.input(connectOAuthSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const config = PROVIDER_CONFIG[input.provider];
 		if (!config) {
 			throw new Error(`Unsupported OAuth provider: ${input.provider}`);
@@ -164,23 +166,14 @@ export const connectOAuth = protectedProcedure
 		}
 
 		const tokenData = await tokenRes.json();
-		console.log("[OAuth] Token response:", JSON.stringify(tokenData, null, 2));
 
 		const tokens = config.extractTokens(tokenData);
-		console.log("[OAuth] Extracted tokens:", {
-			hasAccessToken: !!tokens.accessToken,
-			hasRefreshToken: !!tokens.refreshToken,
-			expiresIn: tokens.expiresIn,
-		});
 
 		if (!tokens.accessToken) {
-			throw new Error(
-				`No access token returned: ${JSON.stringify(tokenData)}`,
-			);
+			throw new Error("No access token returned from OAuth provider");
 		}
 
 		let email = config.extractEmail(tokenData);
-		console.log("[OAuth] Email from token data:", email);
 
 		if (!email && config.userInfoUrl) {
 			let userInfoUrl = config.userInfoUrl;
@@ -188,7 +181,6 @@ export const connectOAuth = protectedProcedure
 				userInfoUrl = `${userInfoUrl}?access_token=${tokens.accessToken}&code=${input.authCode}`;
 			}
 
-			console.log("[OAuth] Fetching user info from:", userInfoUrl);
 			const userRes = await fetch(userInfoUrl, {
 				headers:
 					input.provider === "wecom"
@@ -196,15 +188,9 @@ export const connectOAuth = protectedProcedure
 						: { Authorization: `Bearer ${tokens.accessToken}` },
 			});
 
-			console.log("[OAuth] User info response status:", userRes.status);
 			if (userRes.ok) {
 				const userData = await userRes.json();
-				console.log("[OAuth] User info data:", JSON.stringify(userData, null, 2));
 				email = config.extractEmail(userData);
-				console.log("[OAuth] Email from user info:", email);
-			} else {
-				const errText = await userRes.text();
-				console.error("[OAuth] User info fetch failed:", errText);
 			}
 		}
 

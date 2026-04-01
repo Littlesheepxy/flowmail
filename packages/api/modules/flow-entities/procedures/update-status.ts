@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { updateEntityStatusSchema } from "../types";
 
@@ -19,6 +20,8 @@ export const updateEntityStatus = protectedProcedure
 		if (!entity) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
 		const previousStatus = entity.status;
 

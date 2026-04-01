@@ -1,6 +1,8 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
+import { triggerNotification } from "../../notifications/lib/trigger";
 import { approveRequestSchema } from "../types";
 
 export const approveRequest = protectedProcedure
@@ -17,6 +19,9 @@ export const approveRequest = protectedProcedure
 		});
 
 		if (!entity) throw new ORPCError("NOT_FOUND");
+
+		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
+
 		if (entity.type !== "APPROVAL") throw new ORPCError("BAD_REQUEST");
 		if (entity.status !== "pending") throw new ORPCError("BAD_REQUEST");
 
@@ -38,5 +43,13 @@ export const approveRequest = protectedProcedure
 			},
 		});
 
-		return { entity: updated, notificationSent: false };
+		triggerNotification({
+			organizationId: entity.organizationId,
+			type: "STATUS_CHANGED",
+			entityId: input.entityId,
+			title: `审批通过：${entity.title}`,
+			body: `事项「${entity.title}」已被${context.user.name ?? "用户"}审批通过${input.comment ? `，批注：${input.comment}` : ""}`,
+		}).catch(() => {});
+
+		return { entity: updated, notificationSent: true };
 	});

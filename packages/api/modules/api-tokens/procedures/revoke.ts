@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { revokeApiTokenSchema } from "../types";
 
@@ -11,7 +12,7 @@ export const revokeApiToken = protectedProcedure
 		summary: "Revoke an API token",
 	})
 	.input(revokeApiTokenSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const token = await db.apiToken.findUnique({
 			where: { id: input.tokenId },
 		});
@@ -19,6 +20,8 @@ export const revokeApiToken = protectedProcedure
 		if (!token) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(token.organizationId, context.user.id);
 
 		await db.apiToken.update({
 			where: { id: input.tokenId },
