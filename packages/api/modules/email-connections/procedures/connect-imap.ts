@@ -1,4 +1,4 @@
-import { db } from "@repo/database";
+import { db, encryptSensitiveFields } from "@repo/database";
 import { getConnector } from "@repo/email-processor";
 import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -63,6 +63,8 @@ export const connectImap = protectedProcedure
 
 		const maxSyncCount = input.maxSyncCount ?? 500;
 
+		const encrypted = encryptSensitiveFields({ imapPassword: input.password });
+
 		const connection = await db.emailConnection.upsert({
 			where: {
 				organizationId_email: {
@@ -79,7 +81,7 @@ export const connectImap = protectedProcedure
 				imapPort,
 				smtpHost,
 				smtpPort,
-				imapPassword: input.password,
+				imapPassword: encrypted.imapPassword,
 				maxSyncCount,
 				isActive: true,
 			},
@@ -90,7 +92,7 @@ export const connectImap = protectedProcedure
 				imapPort,
 				smtpHost,
 				smtpPort,
-				imapPassword: input.password,
+				imapPassword: encrypted.imapPassword,
 				maxSyncCount,
 				isActive: true,
 			},

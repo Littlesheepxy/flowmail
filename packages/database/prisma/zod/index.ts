@@ -118,6 +118,12 @@ export const NotificationScalarFieldEnumSchema = z.enum(['id', 'organizationId',
 
 export type NotificationScalarFieldEnum = z.infer<typeof NotificationScalarFieldEnumSchema>;
 
+// File: AuditLogScalarFieldEnum.schema.ts
+
+export const AuditLogScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'userId', 'action', 'targetType', 'targetId', 'metadata', 'ipAddress', 'userAgent', 'createdAt'])
+
+export type AuditLogScalarFieldEnum = z.infer<typeof AuditLogScalarFieldEnumSchema>;
+
 // File: ApiTokenScalarFieldEnum.schema.ts
 
 export const ApiTokenScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'name', 'tokenHash', 'tokenPrefix', 'scopes', 'lastUsedAt', 'expiresAt', 'isActive', 'createdAt'])
@@ -159,6 +165,12 @@ export type EntityType = z.infer<typeof EntityTypeSchema>;
 export const NotificationTypeSchema = z.enum(['DEADLINE_WARNING', 'DEADLINE_OVERDUE', 'APPROVAL_TIMEOUT', 'NEW_ENTITY', 'STATUS_CHANGED', 'DAILY_DIGEST'])
 
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
+
+// File: AuditAction.schema.ts
+
+export const AuditActionSchema = z.enum(['LOGIN', 'LOGOUT', 'SIGNUP', 'OTP_REQUEST', 'OTP_VERIFY', 'PASSWORD_RESET', 'EMAIL_CONNECTION_CREATE', 'EMAIL_CONNECTION_DELETE', 'EMAIL_SYNC', 'EMAIL_SEND', 'ENTITY_STATUS_CHANGE', 'ENTITY_APPROVE', 'ENTITY_REJECT', 'API_TOKEN_CREATE', 'API_TOKEN_REVOKE', 'MEMBER_INVITE', 'MEMBER_REMOVE', 'ORGANIZATION_CREATE', 'ORGANIZATION_DELETE', 'SETTINGS_CHANGE', 'DATA_EXPORT'])
+
+export type AuditAction = z.infer<typeof AuditActionSchema>;
 
 // File: User.schema.ts
 
@@ -485,6 +497,24 @@ export const NotificationSchema = z.object({
 });
 
 export type NotificationModel = z.infer<typeof NotificationSchema>;
+
+// File: AuditLog.schema.ts
+
+export const AuditLogSchema = z.object({
+  id: z.string(),
+  organizationId: z.string().nullish(),
+  userId: z.string().nullish(),
+  action: AuditActionSchema,
+  targetType: z.string().nullish(),
+  targetId: z.string().nullish(),
+  metadata: z.string().nullish(),
+  ipAddress: z.string().nullish(),
+  userAgent: z.string().nullish(),
+  createdAt: z.date(),
+});
+
+export type AuditLogType = z.infer<typeof AuditLogSchema>;
+
 
 // File: ApiToken.schema.ts
 

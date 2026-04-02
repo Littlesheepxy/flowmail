@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import { db } from "@repo/database";
+import { db, decryptSensitiveFields } from "@repo/database";
 import { getConnector, processEmail } from "@repo/email-processor";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -30,10 +30,11 @@ export const syncEmailConnection = protectedProcedure
 			throw new ORPCError("BAD_REQUEST", { message: "Connection is inactive" });
 		}
 
+		const decryptedConnection = decryptSensitiveFields(connection);
 		const connectionWithToken =
-			connection.provider === "feishu"
-				? await ensureFeishuOAuthAccessToken(connection)
-				: connection;
+			decryptedConnection.provider === "feishu"
+				? await ensureFeishuOAuthAccessToken(decryptedConnection)
+				: decryptedConnection;
 
 		const connector = getConnector(connectionWithToken.provider);
 

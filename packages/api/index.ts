@@ -6,9 +6,12 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
 import { openApiHandler, rpcHandler } from "./orpc/handler";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
 
 export { verifyApiToken } from "./modules/api-tokens/lib/token-utils";
 export { triggerNotification } from "./modules/notifications/lib/trigger";
+export { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
+export { writeAuditLog, extractRequestMeta } from "./lib/audit-log";
 
 export const app = new Hono()
 	.basePath("/api")
@@ -25,6 +28,26 @@ export const app = new Hono()
 			credentials: true,
 		}),
 	)
+	// Rate limit on auth endpoints
+	.use("/auth/*", async (c, next) => {
+		const ip = getClientIp(c.req.raw);
+		const path = c.req.path;
+
+		const isOtp = path.includes("otp") || path.includes("verify");
+		const isSignup = path.includes("sign-up");
+		const limit = isOtp ? RATE_LIMITS.otp : isSignup ? RATE_LIMITS.signup : RATE_LIMITS.auth;
+		const key = `auth:${ip}:${isOtp ? "otp" : isSignup ? "signup" : "login"}`;
+
+		const result = checkRateLimit(key, limit);
+		c.header("X-RateLimit-Remaining", String(result.remaining));
+		c.header("X-RateLimit-Reset", String(Math.ceil(result.resetAt / 1000)));
+
+		if (!result.allowed) {
+			return c.json({ error: "Too many requests. Please try again later." }, 429);
+		}
+
+		await next();
+	})
 	// Auth handler
 	.on(["POST", "GET"], "/auth/**", (c) => auth.handler(c.req.raw))
 	// Payments webhook handler

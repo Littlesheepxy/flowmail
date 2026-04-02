@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import { db } from "@repo/database";
+import { db, encryptSensitiveFields } from "@repo/database";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { updateImapPasswordSchema } from "../types";
@@ -23,10 +23,11 @@ export const updateImapPassword = protectedProcedure
 
 		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
 
+		const encrypted = encryptSensitiveFields({ imapPassword: input.imapPassword });
 		const updated = await db.emailConnection.update({
 			where: { id: input.connectionId },
 			data: {
-				imapPassword: input.imapPassword,
+				imapPassword: encrypted.imapPassword,
 				authType: "password",
 			},
 		});

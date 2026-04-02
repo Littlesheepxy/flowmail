@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
+import { writeAuditLog } from "../../../lib/audit-log";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { disconnectSchema } from "../types";
 
@@ -26,6 +27,14 @@ export const disconnectEmailConnection = protectedProcedure
 
 		await db.emailConnection.delete({
 			where: { id: input.connectionId },
+		});
+
+		writeAuditLog({
+			organizationId: connection.organizationId,
+			userId: context.user.id,
+			action: "EMAIL_CONNECTION_DELETE",
+			targetType: "EmailConnection",
+			targetId: input.connectionId,
 		});
 
 		return { success: true };

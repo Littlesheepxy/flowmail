@@ -1,4 +1,4 @@
-import { triggerNotification } from "@repo/api";
+import { triggerNotification, checkRateLimit, getClientIp, RATE_LIMITS } from "@repo/api";
 import { auth } from "@repo/auth";
 import { db, getOrganizationMembership } from "@repo/database";
 import {
@@ -979,6 +979,19 @@ ${itemsText || "（无低置信度事项）"}
 // ── Route Handler ─────────────────────────────────────────
 
 export async function POST(req: Request) {
+	const ip = getClientIp(req);
+	const rl = checkRateLimit(`agent-chat:${ip}`, RATE_LIMITS.agentChat);
+	if (!rl.allowed) {
+		return new Response(JSON.stringify({ error: "Too many requests" }), {
+			status: 429,
+			headers: {
+				"Content-Type": "application/json",
+				"X-RateLimit-Remaining": "0",
+				"X-RateLimit-Reset": String(Math.ceil(rl.resetAt / 1000)),
+			},
+		});
+	}
+
 	const session = await auth.api.getSession({ headers: req.headers });
 	if (!session) {
 		return new Response(JSON.stringify({ error: "Unauthorized" }), {

@@ -144,21 +144,17 @@
 			"dontHaveAnAccount": "Don't have an account yet?",
 			"forgotPassword": "Forgot password?",
 			"hints": {
-				"invalidCredentials": "The email or password you entered are invalid. Please try again.",
-				"linkSent": {
-					"message": "We have sent you a link to continue. Please check your inbox.",
-					"title": "Link sent"
-				}
+				"invalidCredentials": "The email or password you entered are invalid. Please try again."
 			},
 			"loginWithPasskey": "Login with passkey",
 			"modes": {
-				"magicLink": "Magic link",
+				"emailOtp": "Verification code",
 				"password": "Password"
 			},
 			"submit": "Sign in",
 			"subtitle": "Please enter your credentials to sign in.",
 			"title": "Welcome back",
-			"sendMagicLink": "Send magic link"
+			"sendOtp": "Send verification code"
 		},
 		"resetPassword": {
 			"backToSignin": "Back to signin",
@@ -191,6 +187,15 @@
 			"submit": "Verify",
 			"backToSignin": "Back to login",
 			"message": "Enter the one-time password from your authenticator app to continue."
+		},
+		"verifyOtp": {
+			"title": "Enter verification code",
+			"code": "Verification code",
+			"submit": "Verify & Sign in",
+			"backToSignin": "Back to login",
+			"message": "We've sent a 6-digit verification code to {email}.",
+			"resend": "Resend code",
+			"resendCountdown": "Resend in {seconds}s"
 		}
 	},
 	"blog": {
@@ -214,8 +219,10 @@
 			"dashboard": "Dashboard",
 			"docs": "Docs",
 			"faq": "FAQ",
+			"features": "Features",
 			"login": "Login",
-			"pricing": "Pricing"
+			"pricing": "Pricing",
+			"security": "Security"
 		},
 		"tableOfContents": {
 			"title": "On this page"
@@ -234,6 +241,7 @@
 			"features": "Features",
 			"pricing": "Pricing",
 			"privacy": "Privacy policy",
+			"security": "Security",
 			"terms": "Terms and conditions"
 		}
 	},
@@ -287,10 +295,42 @@
 		"waitlist_error": "Something went wrong. Please try again.",
 		"waitlist_submitting": "Submitting..."
 	},
+	"howItWorks": {
+		"label": "How it works",
+		"title": "Three steps from email to action",
+		"description": "Connect your inbox and let AI handle the rest.",
+		"step1": {
+			"title": "Connect",
+			"description": "Link your Gmail, Outlook, Feishu, or any IMAP inbox in one click."
+		},
+		"step2": {
+			"title": "Understand",
+			"description": "AI classifies emails, extracts key fields, and creates structured items."
+		},
+		"step3": {
+			"title": "Execute",
+			"description": "Approve requests, track reports, and trigger actions — all from one place."
+		}
+	},
+	"metrics": {
+		"speed": "Processing Time",
+		"speedValue": "< 3s",
+		"accuracy": "Classification Accuracy",
+		"accuracyValue": "98.5%",
+		"platforms": "Email Platforms",
+		"platformsValue": "6+",
+		"encryption": "Encryption Standard",
+		"encryptionValue": "AES-256"
+	},
+	"bottomCta": {
+		"title": "Turn email into execution",
+		"subtitle": "Connect your inbox in 30 seconds. Let AI handle the rest.",
+		"waitlistTitle": "Get early access"
+	},
 	"features": {
-		"label": "What Flowmail does",
-		"title": "From inbox to execution, automatically",
-		"description": "Flowmail watches your email, classifies what matters, extracts structured data, and triggers actions — calendar events, task creation, IM notifications, and auto-replies.",
+		"label": "Core scenarios",
+		"title": "Two workflows that matter most",
+		"description": "Flowmail focuses on the two workflows that consume the most email time: approvals and report tracking.",
 		"inbox": {
 			"title": "Auto-triage your inbox",
 			"subtitle": "AI classifies emails into actionable categories.",
@@ -405,10 +445,14 @@
 			"resetPassword": "Reset password",
 			"subject": "Reset your password"
 		},
-		"magicLink": {
-			"body": "Hey,\nyou requested a login email from Flowmail.\n\nClick the link below to login.",
-			"login": "Login",
-			"subject": "Login to Flowmail"
+		"otpCode": {
+			"body": {
+				"sign-in": "Your Flowmail verification code is below. Enter it to sign in to your account.",
+				"email-verification": "Your Flowmail verification code is below. Enter it to verify your email address.",
+				"forget-password": "Your Flowmail verification code is below. Enter it to reset your password."
+			},
+			"expiry": "This code expires in 5 minutes. If you didn't request this, you can safely ignore this email.",
+			"subject": "Your Flowmail verification code"
 		},
 		"newUser": {
 			"body": "Hey,\nthanks for signing up for Flowmail.\n\nTo start using our app, please confirm your email address by clicking the link below.",
@@ -425,6 +469,41 @@
 			"join": "Join the organization",
 			"subject": "You have been invited to join an organization"
 		}
+	},
+	"security": {
+		"label": "Enterprise-grade Security",
+		"title": "Your data is safe with us",
+		"description": "Flowmail is built with security-first architecture. We protect your email data with industry-standard encryption, strict access controls, and comprehensive audit logging.",
+		"features": {
+			"encryption": {
+				"title": "AES-256 Encryption",
+				"description": "All sensitive credentials — OAuth tokens, IMAP passwords, and API secrets — are encrypted at rest using AES-256-GCM."
+			},
+			"accessControl": {
+				"title": "Role-based Access",
+				"description": "Organization-level isolation with role-based permissions. Every API request is authenticated and authorized."
+			},
+			"auditLog": {
+				"title": "Full Audit Trail",
+				"description": "Every sensitive operation — approvals, status changes, token usage — is logged with timestamps, actor, and IP address."
+			},
+			"rateLimiting": {
+				"title": "Rate Limiting",
+				"description": "Built-in protection against brute-force attacks with intelligent rate limiting on all authentication endpoints."
+			},
+			"headers": {
+				"title": "Security Headers",
+				"description": "HSTS, CSP, X-Frame-Options, and strict referrer policies protect against XSS, clickjacking, and injection attacks."
+			},
+			"mfa": {
+				"title": "Multi-factor Auth",
+				"description": "Passkeys, TOTP two-factor authentication, and email OTP verification keep your accounts secure."
+			}
+		},
+		"badge1": "SOC 2 Ready",
+		"badge2": "GDPR Compliant",
+		"badge3": "End-to-End Encrypted",
+		"badge4": "Zero Data Training"
 	},
 	"newsletter": {
 		"email": "Email",

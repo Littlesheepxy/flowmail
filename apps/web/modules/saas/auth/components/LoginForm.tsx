@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@repo/auth/client";
 import { config as authConfig } from "@repo/auth/config";
-import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import { Alert, AlertTitle } from "@repo/ui/components/alert";
 import { Button } from "@repo/ui/components/button";
 import {
 	Form,
@@ -24,7 +24,6 @@ import {
 	EyeIcon,
 	EyeOffIcon,
 	KeyIcon,
-	MailboxIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -44,7 +43,7 @@ import { SocialSigninButton } from "./SocialSigninButton";
 
 const formSchema = z.union([
 	z.object({
-		mode: z.literal("magic-link"),
+		mode: z.literal("email-otp"),
 		email: z.email(),
 	}),
 	z.object({
@@ -72,7 +71,9 @@ export function LoginForm() {
 		defaultValues: {
 			email: email ?? "",
 			password: "",
-			mode: authConfig.enablePasswordLogin ? "password" : "magic-link",
+			mode: authConfig.enablePasswordLogin
+				? "password"
+				: ("email-otp" as const),
 		},
 	});
 
@@ -113,14 +114,23 @@ export function LoginForm() {
 
 				router.replace(redirectPath);
 			} else {
-				const { error } = await authClient.signIn.magicLink({
-					...values,
-					callbackURL: redirectPath,
-				});
+				const { error } = await authClient.emailOtp.sendVerificationOtp(
+					{
+						email: values.email,
+						type: "sign-in",
+					},
+				);
 
 				if (error) {
 					throw error;
 				}
+
+				router.push(
+					withQuery("/auth/verify-otp", {
+						email: values.email,
+						...Object.fromEntries(searchParams.entries()),
+					}),
+				);
 			}
 		} catch (e) {
 			form.setError("root", {
@@ -160,192 +170,172 @@ export function LoginForm() {
 				{t("auth.login.subtitle")}
 			</p>
 
-			{form.formState.isSubmitSuccessful &&
-			signinMode === "magic-link" ? (
-				<Alert variant="success">
-					<MailboxIcon />
-					<AlertTitle>
-						{t("auth.login.hints.linkSent.title")}
-					</AlertTitle>
-					<AlertDescription>
-						{t("auth.login.hints.linkSent.message")}
-					</AlertDescription>
-				</Alert>
-			) : (
-				<>
-					{invitationId && (
-						<OrganizationInvitationAlert className="mb-6" />
-					)}
+			{invitationId && (
+				<OrganizationInvitationAlert className="mb-6" />
+			)}
 
-					<Form {...form}>
-						<form className="space-y-4" onSubmit={onSubmit}>
-							{authConfig.enableMagicLink &&
-								authConfig.enablePasswordLogin && (
-									<LoginModeSwitch
-										activeMode={signinMode}
-										onChange={(mode) =>
-											form.setValue(
-												"mode",
-												mode as typeof signinMode,
-											)
-										}
+			<Form {...form}>
+				<form className="space-y-4" onSubmit={onSubmit}>
+					{authConfig.enableEmailOtp &&
+						authConfig.enablePasswordLogin && (
+							<LoginModeSwitch
+								activeMode={signinMode}
+								onChange={(mode) =>
+									form.setValue(
+										"mode",
+										mode as typeof signinMode,
+									)
+								}
+							/>
+						)}
+
+					{form.formState.isSubmitted &&
+						form.formState.errors.root?.message && (
+							<Alert variant="error">
+								<AlertTriangleIcon />
+								<AlertTitle>
+									{form.formState.errors.root.message}
+								</AlertTitle>
+							</Alert>
+						)}
+
+					<FormField
+						control={form.control}
+						name="email"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>{t("auth.signup.email")}</FormLabel>
+								<FormControl>
+									<Input
+										{...field}
+										autoComplete="email"
 									/>
-								)}
+								</FormControl>
+							</FormItem>
+						)}
+					/>
 
-							{form.formState.isSubmitted &&
-								form.formState.errors.root?.message && (
-									<Alert variant="error">
-										<AlertTriangleIcon />
-										<AlertTitle>
-											{form.formState.errors.root.message}
-										</AlertTitle>
-									</Alert>
-								)}
-
+					{authConfig.enablePasswordLogin &&
+						signinMode === "password" && (
 							<FormField
 								control={form.control}
-								name="email"
+								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											{t("auth.signup.email")}
-										</FormLabel>
+										<div className="flex justify-between gap-4">
+											<FormLabel>
+												{t("auth.signup.password")}
+											</FormLabel>
+											<Link
+												href="/auth/forgot-password"
+												className="text-foreground/60 text-xs"
+											>
+												{t(
+													"auth.login.forgotPassword",
+												)}
+											</Link>
+										</div>
 										<FormControl>
-											<Input
-												{...field}
-												autoComplete="email"
-											/>
+											<div className="relative">
+												<Input
+													type={
+														showPassword
+															? "text"
+															: "password"
+													}
+													className="pr-10"
+													{...field}
+													autoComplete="current-password"
+												/>
+												<button
+													type="button"
+													onClick={() =>
+														setShowPassword(
+															!showPassword,
+														)
+													}
+													className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary text-xl"
+												>
+													{showPassword ? (
+														<EyeOffIcon className="size-4" />
+													) : (
+														<EyeIcon className="size-4" />
+													)}
+												</button>
+											</div>
 										</FormControl>
 									</FormItem>
 								)}
 							/>
+						)}
 
-							{authConfig.enablePasswordLogin &&
-								signinMode === "password" && (
-									<FormField
-										control={form.control}
-										name="password"
-										render={({ field }) => (
-											<FormItem>
-												<div className="flex justify-between gap-4">
-													<FormLabel>
-														{t(
-															"auth.signup.password",
-														)}
-													</FormLabel>
+					<Button
+						className="w-full"
+						type="submit"
+						variant="primary"
+						loading={form.formState.isSubmitting}
+					>
+						{signinMode === "email-otp"
+							? t("auth.login.sendOtp")
+							: t("auth.login.submit")}
+					</Button>
+				</form>
+			</Form>
 
-													<Link
-														href="/auth/forgot-password"
-														className="text-foreground/60 text-xs"
-													>
-														{t(
-															"auth.login.forgotPassword",
-														)}
-													</Link>
-												</div>
-												<FormControl>
-													<div className="relative">
-														<Input
-															type={
-																showPassword
-																	? "text"
-																	: "password"
-															}
-															className="pr-10"
-															{...field}
-															autoComplete="current-password"
-														/>
-														<button
-															type="button"
-															onClick={() =>
-																setShowPassword(
-																	!showPassword,
-																)
-															}
-															className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary text-xl"
-														>
-															{showPassword ? (
-																<EyeOffIcon className="size-4" />
-															) : (
-																<EyeIcon className="size-4" />
-															)}
-														</button>
-													</div>
-												</FormControl>
-											</FormItem>
-										)}
+			{(authConfig.enablePasskeys ||
+				(authConfig.enableSignup &&
+					authConfig.enableSocialLogin)) && (
+				<>
+					<div className="relative my-6 h-4">
+						<hr className="relative top-2" />
+						<p className="-translate-x-1/2 absolute top-0 left-1/2 mx-auto inline-block h-4 bg-card px-2 text-center font-medium text-foreground/60 text-sm leading-tight">
+							{t("auth.login.continueWith")}
+						</p>
+					</div>
+
+					<div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
+						{authConfig.enableSignup &&
+							authConfig.enableSocialLogin &&
+							Object.keys(oAuthProviders).map(
+								(providerId) => (
+									<SocialSigninButton
+										key={providerId}
+										provider={
+											providerId as OAuthProvider
+										}
 									/>
-								)}
+								),
+							)}
 
+						{authConfig.enablePasskeys && (
 							<Button
-								className="w-full"
-								type="submit"
-								variant="primary"
-								loading={form.formState.isSubmitting}
+								variant="secondary"
+								className="w-full sm:col-span-2"
+								onClick={() => signInWithPasskey()}
 							>
-								{signinMode === "magic-link"
-									? t("auth.login.sendMagicLink")
-									: t("auth.login.submit")}
+								<KeyIcon className="mr-1.5 size-4 text-primary" />
+								{t("auth.login.loginWithPasskey")}
 							</Button>
-						</form>
-					</Form>
-
-					{(authConfig.enablePasskeys ||
-						(authConfig.enableSignup &&
-							authConfig.enableSocialLogin)) && (
-						<>
-							<div className="relative my-6 h-4">
-								<hr className="relative top-2" />
-								<p className="-translate-x-1/2 absolute top-0 left-1/2 mx-auto inline-block h-4 bg-card px-2 text-center font-medium text-foreground/60 text-sm leading-tight">
-									{t("auth.login.continueWith")}
-								</p>
-							</div>
-
-							<div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
-								{authConfig.enableSignup &&
-									authConfig.enableSocialLogin &&
-									Object.keys(oAuthProviders).map(
-										(providerId) => (
-											<SocialSigninButton
-												key={providerId}
-												provider={
-													providerId as OAuthProvider
-												}
-											/>
-										),
-									)}
-
-								{authConfig.enablePasskeys && (
-									<Button
-										variant="secondary"
-										className="w-full sm:col-span-2"
-										onClick={() => signInWithPasskey()}
-									>
-										<KeyIcon className="mr-1.5 size-4 text-primary" />
-										{t("auth.login.loginWithPasskey")}
-									</Button>
-								)}
-							</div>
-						</>
-					)}
-
-					{authConfig.enableSignup && (
-						<div className="mt-6 text-center text-sm">
-							<span className="text-foreground/60">
-								{t("auth.login.dontHaveAnAccount")}{" "}
-							</span>
-							<Link
-								href={withQuery(
-									"/auth/signup",
-									Object.fromEntries(searchParams.entries()),
-								)}
-							>
-								{t("auth.login.createAnAccount")}
-								<ArrowRightIcon className="ml-1 inline size-4 align-middle" />
-							</Link>
-						</div>
-					)}
+						)}
+					</div>
 				</>
+			)}
+
+			{authConfig.enableSignup && (
+				<div className="mt-6 text-center text-sm">
+					<span className="text-foreground/60">
+						{t("auth.login.dontHaveAnAccount")}{" "}
+					</span>
+					<Link
+						href={withQuery(
+							"/auth/signup",
+							Object.fromEntries(searchParams.entries()),
+						)}
+					>
+						{t("auth.login.createAnAccount")}
+						<ArrowRightIcon className="ml-1 inline size-4 align-middle" />
+					</Link>
+				</div>
 			)}
 		</div>
 	);

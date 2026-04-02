@@ -1,8 +1,11 @@
+import { BottomCTA } from "@marketing/home/components/BottomCTA";
 import { FaqSection } from "@marketing/home/components/FaqSection";
 import { Features } from "@marketing/home/components/Features";
 import { Hero } from "@marketing/home/components/Hero";
-import { Newsletter } from "@marketing/home/components/Newsletter";
-import { PricingSection } from "@marketing/home/components/PricingSection";
+import { HowItWorks } from "@marketing/home/components/HowItWorks";
+import { MetricsSection } from "@marketing/home/components/MetricsSection";
+import { SecuritySection } from "@marketing/home/components/SecuritySection";
+import { TrustBar } from "@marketing/home/components/TrustBar";
 import { setRequestLocale } from "next-intl/server";
 
 export default async function Home({
@@ -16,10 +19,13 @@ export default async function Home({
 	return (
 		<>
 			<Hero />
+			<TrustBar />
+			<HowItWorks />
 			<Features />
-			<PricingSection />
+			<MetricsSection />
+			<SecuritySection />
 			<FaqSection />
-			<Newsletter />
+			<BottomCTA />
 		</>
 	);
 }

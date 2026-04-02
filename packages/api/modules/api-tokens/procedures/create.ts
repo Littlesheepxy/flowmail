@@ -1,5 +1,6 @@
 import { db } from "@repo/database";
 import { requireOrgMembership } from "../../../lib/require-org-membership";
+import { writeAuditLog } from "../../../lib/audit-log";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { generateRawToken, hashToken, extractPrefix } from "../lib/token-utils";
 import { createApiTokenSchema } from "../types";
@@ -31,6 +32,15 @@ export const createApiToken = protectedProcedure
 				scopes: input.scopes ?? "mcp:full",
 				expiresAt,
 			},
+		});
+
+		writeAuditLog({
+			organizationId: input.organizationId,
+			userId: context.user.id,
+			action: "API_TOKEN_CREATE",
+			targetType: "ApiToken",
+			targetId: token.id,
+			metadata: { name: input.name, scopes: token.scopes },
 		});
 
 		return {

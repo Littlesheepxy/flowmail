@@ -2,8 +2,8 @@ export const config = {
 	// Whether signup is enabled
 	enableSignup: true,
 
-	// Whether magic link is enabled
-	enableMagicLink: true,
+	// Whether email OTP (verification code) login is enabled
+	enableEmailOtp: true,
 
 	// Whether social login is enabled
 	enableSocialLogin: true,

@@ -17,7 +17,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import {
 	admin,
 	createAuthMiddleware,
-	magicLink,
+	emailOTP,
 	openAPI,
 	organization,
 	twoFactor,
@@ -205,21 +205,20 @@ export const auth = betterAuth({
 		username(),
 		admin(),
 		passkey(),
-		magicLink({
-			disableSignUp: false,
-			sendMagicLink: async ({ email, url }, ctx) => {
-				const request = ctx?.request as Request;
-
-				const locale = getLocaleFromRequest(request);
+		emailOTP({
+			async sendVerificationOTP({ email, otp, type }) {
 				await sendEmail({
 					to: email,
-					templateId: "magicLink",
+					templateId: "otpCode",
 					context: {
-						url,
+						otp,
+						type,
 					},
-					locale,
+					locale: i18nConfig.defaultLocale as Locale,
 				});
 			},
+			otpLength: 6,
+			expiresIn: 300,
 		}),
 		organization({
 			sendInvitationEmail: async (

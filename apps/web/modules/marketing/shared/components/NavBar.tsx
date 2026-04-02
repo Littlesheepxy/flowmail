@@ -57,8 +57,12 @@ export function NavBar() {
 		href: string;
 	}[] = [
 		{
-			label: t("common.menu.pricing"),
-			href: "/#pricing",
+			label: t("common.menu.features"),
+			href: "/#features",
+		},
+		{
+			label: t("common.menu.security"),
+			href: "/#security",
 		},
 		{
 			label: t("common.menu.faq"),
@@ -67,14 +71,6 @@ export function NavBar() {
 		{
 			label: t("common.menu.blog"),
 			href: "/blog",
-		},
-		{
-			label: t("common.menu.changelog"),
-			href: "/changelog",
-		},
-		{
-			label: t("common.menu.contact"),
-			href: "/contact",
 		},
 		...(config.docsLink
 			? [

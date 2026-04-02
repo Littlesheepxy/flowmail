@@ -7,8 +7,10 @@
 			"dashboard": "控制台",
 			"docs": "文档",
 			"faq": "常见问题",
+			"features": "功能",
 			"login": "登录",
-			"pricing": "定价"
+			"pricing": "定价",
+			"security": "安全"
 		},
 		"confirmation": {
 			"cancel": "取消",
@@ -28,6 +30,7 @@
 			"features": "功能",
 			"pricing": "定价",
 			"privacy": "隐私政策",
+			"security": "安全",
 			"terms": "服务条款"
 		}
 	},
@@ -49,10 +52,10 @@
 			"continueWith": "或通过以下方式继续",
 			"loginWithPasskey": "使用 Passkey 登录",
 			"modes": {
-				"magicLink": "Magic Link",
+				"emailOtp": "验证码",
 				"password": "密码"
 			},
-			"sendMagicLink": "发送 Magic Link"
+			"sendOtp": "发送验证码"
 		},
 		"signup": {
 			"title": "创建账号",
@@ -77,6 +80,15 @@
 			"newPassword": "新密码",
 			"submit": "重置密码",
 			"backToSignin": "返回登录"
+		},
+		"verifyOtp": {
+			"title": "输入验证码",
+			"code": "验证码",
+			"submit": "验证并登录",
+			"backToSignin": "返回登录",
+			"message": "我们已向 {email} 发送了 6 位验证码。",
+			"resend": "重新发送",
+			"resendCountdown": "{seconds} 秒后可重新发送"
 		}
 	},
 	"faq": {
@@ -112,10 +124,42 @@
 		"waitlist_error": "出了点问题，请重试。",
 		"waitlist_submitting": "提交中..."
 	},
+	"howItWorks": {
+		"label": "如何使用",
+		"title": "三步，从邮件到执行",
+		"description": "连接收件箱，让 AI 为你处理一切。",
+		"step1": {
+			"title": "连接",
+			"description": "一键接入 Gmail、Outlook、飞书或任何 IMAP 邮箱。"
+		},
+		"step2": {
+			"title": "理解",
+			"description": "AI 自动分类邮件、提取关键字段、创建结构化事项。"
+		},
+		"step3": {
+			"title": "执行",
+			"description": "审批请求、追踪汇报、触发操作 — 全在一处完成。"
+		}
+	},
+	"metrics": {
+		"speed": "处理速度",
+		"speedValue": "< 3s",
+		"accuracy": "分类准确率",
+		"accuracyValue": "98.5%",
+		"platforms": "邮箱平台",
+		"platformsValue": "6+",
+		"encryption": "加密标准",
+		"encryptionValue": "AES-256"
+	},
+	"bottomCta": {
+		"title": "把邮件变成可执行的业务结果",
+		"subtitle": "30 秒连接你的邮箱，让 AI 完成其余工作。",
+		"waitlistTitle": "抢先体验"
+	},
 	"features": {
-		"label": "Flowmail 能做什么",
-		"title": "从收件箱到执行，全自动",
-		"description": "Flowmail 监听你的邮箱，分类重要邮件，提取结构化数据，并触发执行 — 日历事件、任务创建、IM 通知和自动回复。",
+		"label": "核心场景",
+		"title": "两个最重要的工作流",
+		"description": "Flowmail 专注于消耗邮件时间最多的两个场景：审批和汇报跟踪。",
 		"inbox": {
 			"title": "自动分流收件箱",
 			"subtitle": "AI 自动将邮件分类为可执行事项。",
@@ -213,6 +257,41 @@
 			"action3": "OpenClaw → 创建日历事件",
 			"action4": "Claude → 通知飞书 #approvals"
 		}
+	},
+	"security": {
+		"label": "企业级安全",
+		"title": "您的数据安全无虞",
+		"description": "Flowmail 采用安全优先架构，通过行业标准加密、严格访问控制和全面审计日志保护您的邮件数据。",
+		"features": {
+			"encryption": {
+				"title": "AES-256 加密",
+				"description": "所有敏感凭证——OAuth 令牌、IMAP 密码和 API 密钥——均使用 AES-256-GCM 加密存储。"
+			},
+			"accessControl": {
+				"title": "基于角色的访问控制",
+				"description": "组织级隔离与角色权限管理，每个 API 请求均经过认证和授权。"
+			},
+			"auditLog": {
+				"title": "完整审计日志",
+				"description": "每项敏感操作——审批、状态变更、令牌使用——均记录时间戳、操作者和 IP 地址。"
+			},
+			"rateLimiting": {
+				"title": "速率限制",
+				"description": "所有认证端点内置智能速率限制，有效防止暴力破解攻击。"
+			},
+			"headers": {
+				"title": "安全响应头",
+				"description": "HSTS、CSP、X-Frame-Options 和严格引用策略可防御 XSS、点击劫持和注入攻击。"
+			},
+			"mfa": {
+				"title": "多因素认证",
+				"description": "支持 Passkey、TOTP 双因素认证和邮箱 OTP 验证，全方位保护您的账户安全。"
+			}
+		},
+		"badge1": "SOC 2 就绪",
+		"badge2": "GDPR 合规",
+		"badge3": "端到端加密",
+		"badge4": "零数据训练"
 	},
 	"newsletter": {
 		"email": "邮箱",

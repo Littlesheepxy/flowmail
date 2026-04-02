@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
+import { writeAuditLog } from "../../../lib/audit-log";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { revokeApiTokenSchema } from "../types";
 
@@ -26,6 +27,15 @@ export const revokeApiToken = protectedProcedure
 		await db.apiToken.update({
 			where: { id: input.tokenId },
 			data: { isActive: false },
+		});
+
+		writeAuditLog({
+			organizationId: token.organizationId,
+			userId: context.user.id,
+			action: "API_TOKEN_REVOKE",
+			targetType: "ApiToken",
+			targetId: input.tokenId,
+			metadata: { name: token.name },
 		});
 
 		return { success: true, tokenId: input.tokenId };

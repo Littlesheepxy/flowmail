@@ -79,18 +79,12 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 
 	const onSubmit = form.handleSubmit(async ({ email, password, name }) => {
 		try {
-			const { error } = await (authConfig.enablePasswordLogin
-				? await authClient.signUp.email({
+			const { error } = await authClient.signUp.email({
 						email,
 						password,
 						name,
 						callbackURL: redirectPath,
-					})
-				: authClient.signIn.magicLink({
-						email,
-						name,
-						callbackURL: redirectPath,
-					}));
+					});
 
 			if (error) {
 				throw error;

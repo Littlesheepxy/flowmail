@@ -1,4 +1,4 @@
-import { db } from "@repo/database";
+import { db, encryptSensitiveFields } from "@repo/database";
 import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectOAuthSchema } from "../types";
@@ -207,6 +207,19 @@ export const connectOAuth = protectedProcedure
 		};
 		const imapDefaults = IMAP_DEFAULTS[input.provider];
 
+		const encryptedCreate = encryptSensitiveFields({
+			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken ?? "",
+			appSecret: input.appSecret,
+			imapPassword: input.imapPassword ?? null,
+		});
+		const encryptedUpdate = encryptSensitiveFields({
+			accessToken: tokens.accessToken,
+			refreshToken: tokens.refreshToken ?? undefined,
+			appSecret: input.appSecret,
+			...(input.imapPassword ? { imapPassword: input.imapPassword } : {}),
+		});
+
 		const connection = await db.emailConnection.upsert({
 			where: {
 				organizationId_email: {
@@ -219,35 +232,28 @@ export const connectOAuth = protectedProcedure
 				provider: input.provider,
 				authType: input.imapPassword ? "password" : "oauth2",
 				email,
-				accessToken: tokens.accessToken,
-				refreshToken: tokens.refreshToken ?? "",
+				...encryptedCreate,
 				tokenExpiresAt: tokens.expiresIn
 					? new Date(Date.now() + tokens.expiresIn * 1000)
 					: null,
 				appId: input.appId,
-				appSecret: input.appSecret,
 				imapHost: imapDefaults?.host ?? null,
 				imapPort: imapDefaults?.port ?? null,
 				smtpHost: imapDefaults?.smtpHost ?? null,
 				smtpPort: imapDefaults?.smtpPort ?? null,
-				imapPassword: input.imapPassword ?? null,
 				isActive: true,
 			},
 			update: {
-				accessToken: tokens.accessToken,
-				refreshToken: tokens.refreshToken ?? undefined,
+				...encryptedUpdate,
 				tokenExpiresAt: tokens.expiresIn
 					? new Date(Date.now() + tokens.expiresIn * 1000)
 					: null,
 				appId: input.appId,
-				appSecret: input.appSecret,
 				imapHost: imapDefaults?.host ?? undefined,
 				imapPort: imapDefaults?.port ?? undefined,
 				smtpHost: imapDefaults?.smtpHost ?? undefined,
 				smtpPort: imapDefaults?.smtpPort ?? undefined,
-				...(input.imapPassword
-					? { imapPassword: input.imapPassword, authType: "password" }
-					: {}),
+				...(input.imapPassword ? { authType: "password" } : {}),
 				isActive: true,
 			},
 		});

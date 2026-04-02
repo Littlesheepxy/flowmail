@@ -1,4 +1,4 @@
-import { db } from "@repo/database";
+import { db, encryptSensitiveFields } from "@repo/database";
 import { google } from "googleapis";
 import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -27,7 +27,18 @@ export const connectGmail = protectedProcedure
 		const profile = await gmail.users.getProfile({ userId: "me" });
 		const email = profile.data.emailAddress;
 
-		if (!email) throw new Error("Could not retrieve email address from Gmail");
+		if (!email) {
+			throw new Error("Could not retrieve email address from Gmail");
+		}
+
+		const encryptedCreate = encryptSensitiveFields({
+			accessToken: tokens.access_token ?? "",
+			refreshToken: tokens.refresh_token ?? "",
+		});
+		const encryptedUpdate = encryptSensitiveFields({
+			accessToken: tokens.access_token ?? "",
+			refreshToken: tokens.refresh_token ?? undefined,
+		});
 
 		const connection = await db.emailConnection.upsert({
 			where: {
@@ -41,16 +52,14 @@ export const connectGmail = protectedProcedure
 				provider: "gmail",
 				authType: "oauth2",
 				email,
-				accessToken: tokens.access_token ?? "",
-				refreshToken: tokens.refresh_token ?? "",
+				...encryptedCreate,
 				tokenExpiresAt: tokens.expiry_date
 					? new Date(tokens.expiry_date)
 					: null,
 				isActive: true,
 			},
 			update: {
-				accessToken: tokens.access_token ?? "",
-				refreshToken: tokens.refresh_token ?? undefined,
+				...encryptedUpdate,
 				tokenExpiresAt: tokens.expiry_date
 					? new Date(tokens.expiry_date)
 					: null,
