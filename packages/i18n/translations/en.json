@@ -214,14 +214,11 @@
 		},
 		"menu": {
 			"blog": "Blog",
-			"changelog": "Changelog",
-			"contact": "Contact",
 			"dashboard": "Dashboard",
 			"docs": "Docs",
 			"faq": "FAQ",
 			"features": "Features",
 			"login": "Login",
-			"pricing": "Pricing",
 			"security": "Security"
 		},
 		"tableOfContents": {
@@ -239,7 +236,6 @@
 		"footer": {
 			"blog": "Blog",
 			"features": "Features",
-			"pricing": "Pricing",
 			"privacy": "Privacy policy",
 			"security": "Security",
 			"terms": "Terms and conditions"
@@ -283,8 +279,8 @@
 	"hero": {
 		"badge1": "AI-Powered",
 		"badge2": "Agent-Native",
-		"headline": "Stop sorting email. Start executing it.",
-		"subtitle": "Flowmail automatically classifies incoming emails, extracts approvals and report updates, and turns them into actions — ready for you or your agents.",
+		"headline": "When was the last time an important email slipped through?",
+		"subtitle": "Flowmail uses AI to classify every email, build timelines for every business item, and remind you before deadlines slip — so nothing gets lost in your inbox.",
 		"subtitle2": "Work still arrives by email. Flowmail turns it into execution.",
 		"cta": "Get started free",
 		"docs": "Read the docs",
@@ -321,6 +317,23 @@
 		"platformsValue": "6+",
 		"encryption": "Encryption Standard",
 		"encryptionValue": "AES-256"
+	},
+	"notifications": {
+		"label": "Smart Notifications",
+		"title": "Never forget. We'll remind you.",
+		"description": "Flowmail proactively monitors every business item and alerts you before things fall through the cracks.",
+		"approval": {
+			"title": "Approval Deadline Alerts",
+			"description": "When an approval request approaches its deadline without action, Flowmail automatically reminds the approver via email and IM — no more expired requests."
+		},
+		"anomaly": {
+			"title": "Report Anomaly Warnings",
+			"description": "When a status report reveals blockers, missed targets, or risk signals, Flowmail instantly notifies stakeholders so issues get addressed early."
+		},
+		"timeline": {
+			"title": "Timeline Change Notifications",
+			"description": "Every status change — approved, rejected, escalated, completed — is pushed to your email and team channels in real time."
+		}
 	},
 	"bottomCta": {
 		"title": "Turn email into execution",
@@ -1167,5 +1180,51 @@
 		"title": "Page not found",
 		"goToDashboard": "Go to dashboard",
 		"goToHomepage": "Go to homepage"
+	},
+	"setupGuide": {
+		"title": "Getting Started",
+		"completedTitle": "Setup Complete!",
+		"completedMessage": "You're all set to use Flowmail",
+		"dismiss": "Got it",
+		"progress": "{completed}/{total}",
+		"steps": {
+			"connectEmail": "Connect your mailbox",
+			"connectEmailHint": "Go to \"Email Connections\" and click \"Connect Mailbox\" to authorize via OAuth",
+			"configureCategories": "Set up classification rules",
+			"configureCategoriesHint": "Go to \"Category Management\" and click \"New Category\" to add AI rules",
+			"processFirstEmail": "Process your first email",
+			"processFirstEmailHint": "Check the \"Inbox\" to see AI-parsed email items",
+			"checkNotifications": "Explore notification center",
+			"checkNotificationsHint": "Click the bell icon in the top right to view system alerts"
+		}
+	},
+	"productTour": {
+		"inbox": {
+			"title": "① Smart Inbox",
+			"description": "Once your mailbox is connected, AI automatically analyzes every email and extracts business items like approvals and reports. They all appear here — click any item to view details and its full timeline."
+		},
+		"connections": {
+			"title": "② Connect Your Mailbox",
+			"description": "Click here to go to the mailbox connection page. Supports Gmail, Feishu, DingTalk, WeCom, and more. Just one OAuth authorization and Flowmail will automatically sync and process your emails."
+		},
+		"categories": {
+			"title": "③ Custom Classification Rules",
+			"description": "Go to classification management to create your own categories. Each category can have AI prompts like \"identify all approval request emails\". AI will automatically sort emails based on your rules."
+		},
+		"notifications": {
+			"title": "④ Smart Notification Center",
+			"description": "Flowmail proactively notifies you at critical moments — approval deadlines, overdue reports, and more. Click the bell anytime to view all alerts and never miss anything important."
+		},
+		"next": "Next",
+		"prev": "Back",
+		"done": "Let's start!",
+		"skip": "Skip tour"
+	},
+	"aiEyes": {
+		"helpAccept": "Help me",
+		"helpDismiss": "No thanks",
+		"panelTitle": "AI Assistant",
+		"panelSubtitle": "I noticed you might need some help",
+		"placeholder": "How can I help you?"
 	}
 }

@@ -127,6 +127,18 @@ importers:
 
   apps/web:
     dependencies:
+      '@ai-eyes/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai-eyes-ai
+      '@ai-eyes/core':
+        specifier: workspace:*
+        version: link:../../packages/ai-eyes
+      '@ai-eyes/panel':
+        specifier: workspace:*
+        version: link:../../packages/ai-eyes-panel
+      '@ai-eyes/react':
+        specifier: workspace:*
+        version: link:../../packages/ai-eyes-react
       '@ai-sdk/openai':
         specifier: ^3.0.48
         version: 3.0.48(zod@4.3.6)
@@ -232,6 +244,9 @@ importers:
       boring-avatars:
         specifier: ^2.0.4
         version: 2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -247,6 +262,9 @@ importers:
       deepmerge:
         specifier: ^4.3.1
         version: 4.3.1
+      driver.js:
+        specifier: ^1.4.0
+        version: 1.4.0
       es-toolkit:
         specifier: ^1.41.0
         version: 1.45.1
@@ -389,6 +407,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.17
         version: 4.2.1
+      '@types/canvas-confetti':
+        specifier: ^1.9.0
+        version: 1.9.0
       '@types/js-cookie':
         specifier: ^3.0.4
         version: 3.0.6
@@ -456,6 +477,66 @@ importers:
       '@biomejs/biome':
         specifier: 2.3.13
         version: 2.3.13
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/react':
+        specifier: 19.2.3
+        version: 19.2.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/ai-eyes:
+    devDependencies:
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/ai-eyes-ai:
+    dependencies:
+      '@ai-eyes/core':
+        specifier: workspace:*
+        version: link:../ai-eyes
+    devDependencies:
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/ai-eyes-panel:
+    dependencies:
+      '@ai-eyes/core':
+        specifier: workspace:*
+        version: link:../ai-eyes
+      react:
+        specifier: '>=18'
+        version: 19.2.4
+    devDependencies:
+      '@repo/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/react':
+        specifier: 19.2.3
+        version: 19.2.3
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/ai-eyes-react:
+    dependencies:
+      '@ai-eyes/core':
+        specifier: workspace:*
+        version: link:../ai-eyes
+      react:
+        specifier: '>=18'
+        version: 19.2.4
+    devDependencies:
       '@repo/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
@@ -871,12 +952,18 @@ importers:
       '@radix-ui/react-popover':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      driver.js:
+        specifier: ^1.4.0
+        version: 1.4.0
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -914,6 +1001,9 @@ importers:
       '@repo/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
+      '@types/canvas-confetti':
+        specifier: ^1.9.0
+        version: 1.9.0
       '@types/react':
         specifier: 19.2.3
         version: 19.2.3
@@ -4856,6 +4946,9 @@ packages:
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
 
+  '@types/canvas-confetti@1.9.0':
+    resolution: {integrity: sha512-aBGj/dULrimR1XDZLtG9JwxX1b4HPRF6CX9Yfwh3NvstZEm1ZL7RBnel4keCPSqs1ANRu1u2Aoz9R+VmtjYuTg==}
+
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
 
@@ -5273,6 +5366,9 @@ packages:
   caniuse-lite@1.0.30001777:
     resolution: {integrity: sha512-tmN+fJxroPndC74efCdp12j+0rk0RHwV5Jwa1zWaFVyw2ZxAuPeG8ZgWC3Wz7uSjT3qMRQ5XHZ4COgQmsCMJAQ==}
 
+  canvas-confetti@1.9.4:
+    resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
+
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
 
@@ -5607,6 +5703,9 @@ packages:
   dotenv@17.3.1:
     resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
     engines: {node: '>=12'}
+
+  driver.js@1.4.0:
+    resolution: {integrity: sha512-Gm64jm6PmcU+si21sQhBrTAM1JvUrR0QhNmjkprNLxohOBzul9+pNHXgQaT9lW84gwg9GMLB3NZGuGolsz5uew==}
 
   drizzle-kit@0.31.9:
     resolution: {integrity: sha512-GViD3IgsXn7trFyBUUHyTFBpH/FsHTxYJ66qdbVggxef4UBPHRYxQaRzYLTuekYnk9i5FIEL9pbBIwMqX/Uwrg==}
@@ -13076,6 +13175,8 @@ snapshots:
       '@types/connect': 3.4.38
       '@types/node': 25.3.5
 
+  '@types/canvas-confetti@1.9.0': {}
+
   '@types/connect@3.4.38':
     dependencies:
       '@types/node': 25.3.5
@@ -13465,6 +13566,8 @@ snapshots:
 
   caniuse-lite@1.0.30001777: {}
 
+  canvas-confetti@1.9.4: {}
+
   ccount@2.0.1: {}
 
   chalk@5.6.2: {}
@@ -13757,6 +13860,8 @@ snapshots:
   dotenv@16.6.1: {}
 
   dotenv@17.3.1: {}
+
+  driver.js@1.4.0: {}
 
   drizzle-kit@0.31.9:
     dependencies:

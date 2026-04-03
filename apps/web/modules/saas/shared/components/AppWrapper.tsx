@@ -1,12 +1,31 @@
 "use client";
 
 import { cn } from "@repo/ui";
+import { AiEyesProvider } from "@ai-eyes/react";
+import { AnalyzerEngine, createVercelAiAdapter } from "@ai-eyes/ai";
+import type { AiEyesCoreConfig, ConfusionEvent, HelpSuggestion } from "@ai-eyes/core";
 import { AgentFloatingButton } from "@flowmail/components/AgentFloatingButton";
 import { AgentProvider } from "@flowmail/components/AgentProvider";
 import { NavBar } from "@saas/shared/components/NavBar";
-import type { PropsWithChildren } from "react";
+import { useCallback, type PropsWithChildren } from "react";
 import { config } from "@/config";
 import { SidebarProvider, useSidebar } from "../lib/sidebar-context";
+
+const analyzer = new AnalyzerEngine({
+	adapter: createVercelAiAdapter({ apiUrl: "/api/ai-eyes/analyze" }),
+	cooldownMs: 15000,
+});
+
+const AI_EYES_CONFIG: AiEyesCoreConfig = {
+	recorder: {
+		durationMs: 30_000,
+		maxEntries: 200,
+		trackNavigation: true,
+		trackFocus: true,
+		trackKeyboard: true,
+		trackErrors: true,
+	},
+};
 
 function AppContent({ children }: PropsWithChildren) {
 	const { isCollapsed } = useSidebar();
@@ -37,10 +56,19 @@ function AppContent({ children }: PropsWithChildren) {
 }
 
 export function AppWrapper({ children }: PropsWithChildren) {
+	const handleConfusion = useCallback(
+		async (event: ConfusionEvent): Promise<HelpSuggestion | null> => {
+			return analyzer.analyze(event);
+		},
+		[],
+	);
+
 	return (
 		<SidebarProvider>
 			<AgentProvider>
-				<AppContent>{children}</AppContent>
+				<AiEyesProvider config={AI_EYES_CONFIG} onConfusion={handleConfusion}>
+					<AppContent>{children}</AppContent>
+				</AiEyesProvider>
 			</AgentProvider>
 		</SidebarProvider>
 	);
