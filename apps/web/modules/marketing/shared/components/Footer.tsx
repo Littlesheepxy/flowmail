@@ -33,9 +33,9 @@ export function Footer() {
 					<a href="/#features" className="block">
 						{t("common.footer.features")}
 					</a>
-					<a href="/#security" className="block">
+					<LocaleLink href="/security" className="block">
 						{t("common.footer.security")}
-					</a>
+					</LocaleLink>
 					<LocaleLink href="/blog" className="block">
 						{t("common.footer.blog")}
 					</LocaleLink>

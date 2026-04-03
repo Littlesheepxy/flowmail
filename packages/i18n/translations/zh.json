@@ -288,10 +288,119 @@
 				"description": "支持 Passkey、TOTP 双因素认证和邮箱 OTP 验证，全方位保护您的账户安全。"
 			}
 		},
-		"badge1": "SOC 2 就绪",
-		"badge2": "GDPR 合规",
-		"badge3": "端到端加密",
-		"badge4": "零数据训练"
+		"badge1": "SOC 2 安全控制",
+		"badge2": "GDPR 承诺",
+		"badge3": "AES-256 加密",
+		"badge4": "零数据训练",
+		"page": {
+			"hero": {
+				"title": "安全、可靠、私密。",
+				"description": "Flowmail 的每一层设计都以保护您的数据安全为核心。因为您的业务只属于您。"
+			},
+			"dataSecurity": {
+				"title": "数据安全",
+				"description": "您的邮件数据在每一层都受到行业标准加密和安全基础设施的保护。",
+				"items": {
+					"encryptionAtRest": {
+						"title": "静态加密",
+						"description": "所有敏感凭证——OAuth 令牌、IMAP 密码和 API 密钥——在存储前均使用 AES-256-GCM 加密。"
+					},
+					"encryptionInTransit": {
+						"title": "传输加密",
+						"description": "所有连接强制使用 HTTPS 和 TLS 1.2+。每个响应都强制执行严格的安全头（HSTS、CSP）。"
+					},
+					"oauthSecurity": {
+						"title": "OAuth 2.0 授权",
+						"description": "我们通过 OAuth 2.0 连接 Gmail 和 Outlook——绝不查看或存储您的邮箱密码。您可以随时撤销授权。"
+					}
+				}
+			},
+			"accessControl": {
+				"title": "访问控制",
+				"description": "细粒度权限和多因素认证保护每一个账户。",
+				"items": {
+					"mfa": {
+						"title": "多因素认证",
+						"description": "邮箱 OTP 和 Passkey 为所有用户账户提供强双因素认证。"
+					},
+					"orgIsolation": {
+						"title": "组织隔离",
+						"description": "每个组织的数据严格隔离，跨租户访问在架构层面不可能发生。"
+					},
+					"apiTokens": {
+						"title": "API 令牌管理",
+						"description": "API 令牌在存储前使用 SHA-256 哈希。令牌可设定作用域并随时撤销。"
+					},
+					"rateLimiting": {
+						"title": "速率限制",
+						"description": "所有认证端点均受滑动窗口速率限制保护，防止暴力破解攻击。"
+					}
+				}
+			},
+			"aiPrivacy": {
+				"title": "AI 与隐私",
+				"description": "我们相信您的邮件数据属于您——而非 AI 模型提供商。",
+				"items": {
+					"zeroTraining": {
+						"title": "零数据训练",
+						"description": "您的邮件内容绝不会被用于训练、微调或改进 AI 模型。我们对 AI 提供商执行零数据留存策略。"
+					},
+					"minimalAccess": {
+						"title": "最小数据访问",
+						"description": "AI 仅处理分类和抽取所需的特定字段。原始邮件内容不会在处理后被留存。"
+					},
+					"transparency": {
+						"title": "处理透明",
+						"description": "每个 AI 分类和抽取结果都对您可见。您可以在任何 AI 生成的结果生效前审查、修正或拒绝。"
+					}
+				}
+			},
+			"compliance": {
+				"title": "合规",
+				"description": "我们正在逐步达成行业标准认证，并维持严格的内部控制。",
+				"items": {
+					"soc2": {
+						"title": "SOC 2 安全控制已实施",
+						"description": "我们已实施 SOC 2 信任服务准则所要求的安全控制。随着业务发展，将进行正式的 Type I 审计。"
+					},
+					"gdpr": {
+						"title": "GDPR 承诺",
+						"description": "我们遵循 GDPR 原则：数据最小化、目的限制和数据主体权利。可应要求提供数据处理协议（DPA）。"
+					},
+					"auditLog": {
+						"title": "全面审计日志",
+						"description": "所有敏感操作——审批、连接变更、令牌管理——均记录操作者、时间戳和 IP 地址。"
+					},
+					"dataExport": {
+						"title": "数据可携性",
+						"description": "您可以随时导出或删除您的数据。我们尊重您的数据可携权和删除权。"
+					}
+				}
+			},
+			"infrastructure": {
+				"title": "基础设施",
+				"description": "Flowmail 运行在企业级基础设施上，内置冗余和全球性能保障。",
+				"items": {
+					"hosting": {
+						"title": "Vercel 托管",
+						"description": "部署在 Vercel 全球边缘网络上，自动 DDoS 防护、SSL 证书和 99.99% SLA 可用性保障。"
+					},
+					"database": {
+						"title": "托管 PostgreSQL",
+						"description": "数据存储在 Neon 无服务器 PostgreSQL 中，自动备份、时间点恢复和静态加密。"
+					},
+					"securityHeaders": {
+						"title": "安全响应头",
+						"description": "每个响应包含 HSTS、Content-Security-Policy、X-Frame-Options、X-Content-Type-Options 和严格 Referrer-Policy。"
+					}
+				}
+			},
+			"cta": {
+				"title": "有安全方面的问题？",
+				"description": "我们非常重视安全。如果您对我们的安全实践有疑问或需要数据处理协议，请联系我们。",
+				"email": "联系安全团队"
+			}
+		}
 	},
 	"newsletter": {
 		"email": "邮箱",

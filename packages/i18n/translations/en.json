@@ -500,10 +500,119 @@
 				"description": "Passkeys, TOTP two-factor authentication, and email OTP verification keep your accounts secure."
 			}
 		},
-		"badge1": "SOC 2 Ready",
-		"badge2": "GDPR Compliant",
-		"badge3": "End-to-End Encrypted",
-		"badge4": "Zero Data Training"
+		"badge1": "SOC 2 Controls",
+		"badge2": "GDPR Committed",
+		"badge3": "AES-256 Encrypted",
+		"badge4": "Zero Data Training",
+		"page": {
+			"hero": {
+				"title": "Safe, secure, and private.",
+				"description": "Everything in Flowmail is designed to keep your work safe and secure. Because your business is nobody else's business."
+			},
+			"dataSecurity": {
+				"title": "Data Security",
+				"description": "Your email data is protected at every layer with industry-standard encryption and secure infrastructure.",
+				"items": {
+					"encryptionAtRest": {
+						"title": "Encryption at rest",
+						"description": "All sensitive credentials — OAuth tokens, IMAP passwords, and API secrets — are encrypted using AES-256-GCM before storage."
+					},
+					"encryptionInTransit": {
+						"title": "Encryption in transit",
+						"description": "All connections are forced over HTTPS with TLS 1.2+. Strict security headers (HSTS, CSP) are enforced on every response."
+					},
+					"oauthSecurity": {
+						"title": "OAuth 2.0 authorization",
+						"description": "We connect to Gmail and Outlook via OAuth 2.0 — we never see or store your email password. You can revoke access at any time."
+					}
+				}
+			},
+			"accessControl": {
+				"title": "Access Control",
+				"description": "Fine-grained permissions and multi-factor authentication protect every account.",
+				"items": {
+					"mfa": {
+						"title": "Multi-factor authentication",
+						"description": "Email OTP and Passkey support provide strong second-factor authentication for all user accounts."
+					},
+					"orgIsolation": {
+						"title": "Organization isolation",
+						"description": "Each organization's data is strictly isolated. Cross-tenant access is impossible by design."
+					},
+					"apiTokens": {
+						"title": "API token management",
+						"description": "API tokens are hashed with SHA-256 before storage. Tokens can be scoped and revoked at any time."
+					},
+					"rateLimiting": {
+						"title": "Rate limiting",
+						"description": "All authentication endpoints are protected with sliding-window rate limiting to prevent brute-force attacks."
+					}
+				}
+			},
+			"aiPrivacy": {
+				"title": "AI & Privacy",
+				"description": "We believe your email data belongs to you — not to AI model providers.",
+				"items": {
+					"zeroTraining": {
+						"title": "Zero data training",
+						"description": "Your email content is never used to train, fine-tune, or improve AI models. We enforce zero-data-retention policies with our AI providers."
+					},
+					"minimalAccess": {
+						"title": "Minimal data access",
+						"description": "AI only processes the specific fields needed for classification and extraction. Raw email content is not stored beyond processing."
+					},
+					"transparency": {
+						"title": "Processing transparency",
+						"description": "Every AI classification and extraction result is visible to you. You can review, correct, or reject any AI-generated output before it takes effect."
+					}
+				}
+			},
+			"compliance": {
+				"title": "Compliance",
+				"description": "We are building toward industry-standard certifications and maintain rigorous internal controls.",
+				"items": {
+					"soc2": {
+						"title": "SOC 2 controls implemented",
+						"description": "We have implemented the security controls required by SOC 2 Trust Services Criteria. Formal Type I audit is planned as we scale."
+					},
+					"gdpr": {
+						"title": "GDPR committed",
+						"description": "We are committed to GDPR principles: data minimization, purpose limitation, and data subject rights. A Data Processing Agreement (DPA) is available upon request."
+					},
+					"auditLog": {
+						"title": "Comprehensive audit logging",
+						"description": "All sensitive operations — approvals, connection changes, token management — are logged with actor, timestamp, and IP address."
+					},
+					"dataExport": {
+						"title": "Data portability",
+						"description": "You can export or delete your data at any time. We respect your right to data portability and erasure."
+					}
+				}
+			},
+			"infrastructure": {
+				"title": "Infrastructure",
+				"description": "Flowmail runs on enterprise-grade infrastructure with built-in redundancy and global performance.",
+				"items": {
+					"hosting": {
+						"title": "Vercel hosting",
+						"description": "Deployed on Vercel's global edge network with automatic DDoS protection, SSL, and 99.99% uptime SLA."
+					},
+					"database": {
+						"title": "Managed PostgreSQL",
+						"description": "Data is stored in Neon serverless PostgreSQL with automatic backups, point-in-time recovery, and encryption at rest."
+					},
+					"securityHeaders": {
+						"title": "Security headers",
+						"description": "Every response includes HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and strict Referrer-Policy."
+					}
+				}
+			},
+			"cta": {
+				"title": "Have security questions?",
+				"description": "We take security seriously. If you have questions about our security practices or need a DPA, please reach out.",
+				"email": "Contact security team"
+			}
+		}
 	},
 	"newsletter": {
 		"email": "Email",

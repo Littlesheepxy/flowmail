@@ -62,7 +62,7 @@ export function NavBar() {
 		},
 		{
 			label: t("common.menu.security"),
-			href: "/#security",
+			href: "/security",
 		},
 		{
 			label: t("common.menu.faq"),

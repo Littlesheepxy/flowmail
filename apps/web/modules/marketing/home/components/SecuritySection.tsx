@@ -1,7 +1,9 @@
 "use client";
 
+import { LocaleLink } from "@i18n/routing";
 import { BlurFade } from "@repo/ui/components/blur-fade";
 import {
+	ArrowRightIcon,
 	EyeOffIcon,
 	FlagIcon,
 	LockIcon,
@@ -48,6 +50,18 @@ export function SecuritySection() {
 								{t(badge.key)}
 							</div>
 						))}
+					</div>
+				</BlurFade>
+
+				<BlurFade delay={0.2} inView>
+					<div className="mt-6 text-center">
+						<LocaleLink
+							href="/security"
+							className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+						>
+							Learn more
+							<ArrowRightIcon className="size-3.5" />
+						</LocaleLink>
 					</div>
 				</BlurFade>
 			</div>
