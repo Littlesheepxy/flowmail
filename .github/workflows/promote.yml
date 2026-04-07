@@ -1,0 +1,97 @@
+name: Promote to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag (commit SHA) to promote"
+        required: true
+        type: string
+      confirm:
+        description: "Type 'yes' to confirm production deployment"
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate:
+    name: Validate Input
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        if: ${{ github.event.inputs.confirm != 'yes' }}
+        run: |
+          echo "❌ Deployment not confirmed. Type 'yes' to confirm."
+          exit 1
+
+  tag-release:
+    name: Tag Release Images
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        suffix: ["", "-docs"]
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag image as production
+        run: |
+          SRC=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}:${{ github.event.inputs.image_tag }}
+          DST=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}:production
+          docker pull $SRC
+          docker tag $SRC $DST
+          docker push $DST
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: tag-release
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy project files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+          source: "docker-compose.prod.yml,Dockerfile.migrate,nginx/,packages/database/,package.json,pnpm-lock.yaml,pnpm-workspace.yaml"
+          target: /opt/flowmail
+
+      - name: Deploy to production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+          script: |
+            cd /opt/flowmail
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            export IMAGE_TAG=production
+            export GITHUB_REPOSITORY=${{ github.repository }}
+
+            docker compose -f docker-compose.prod.yml pull web docs
+
+            docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate
+
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            docker image prune -f
+
+            sleep 15
+            curl -sf http://localhost:3000/api/health || exit 1
+            echo "✅ Production deployment successful"

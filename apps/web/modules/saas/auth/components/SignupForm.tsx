@@ -79,18 +79,12 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 
 	const onSubmit = form.handleSubmit(async ({ email, password, name }) => {
 		try {
-			const { error } = await (authConfig.enablePasswordLogin
-				? await authClient.signUp.email({
+			const { error } = await authClient.signUp.email({
 						email,
 						password,
 						name,
 						callbackURL: redirectPath,
-					})
-				: authClient.signIn.magicLink({
-						email,
-						name,
-						callbackURL: redirectPath,
-					}));
+					});
 
 			if (error) {
 				throw error;
@@ -255,11 +249,12 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 									</p>
 								</div>
 
-								<div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
+								<div className="flex flex-col items-stretch gap-2">
 									{Object.keys(oAuthProviders).map(
 										(providerId) => (
 											<SocialSigninButton
 												key={providerId}
+												className="w-full"
 												provider={
 													providerId as OAuthProvider
 												}

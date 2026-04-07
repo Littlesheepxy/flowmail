@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { reorderCategoriesSchema } from "../types";
 
@@ -10,7 +11,8 @@ export const reorderCategories = protectedProcedure
 		summary: "Reorder categories by providing ordered IDs",
 	})
 	.input(reorderCategoriesSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		await db.$transaction(
 			input.orderedIds.map((id, index) =>
 				db.category.update({

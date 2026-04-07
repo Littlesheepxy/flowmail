@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { getEntitySchema } from "../types";
 
@@ -11,7 +12,7 @@ export const getEntity = protectedProcedure
 		summary: "Get entity details with timeline",
 	})
 	.input(getEntitySchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const entity = await db.flowEntity.findUnique({
 			where: { id: input.entityId },
 			include: {
@@ -56,6 +57,8 @@ export const getEntity = protectedProcedure
 		if (!entity) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
 		return entity;
 	});

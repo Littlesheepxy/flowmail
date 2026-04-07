@@ -32,6 +32,7 @@ import {
 	type LucideIcon,
 } from "lucide-react";
 import { useCallback, useState } from "react";
+import { usePageGuide } from "../hooks/use-page-guide";
 
 const AVAILABLE_ICONS: { name: string; icon: LucideIcon }[] = [
 	{ name: "ShieldCheckIcon", icon: ShieldCheckIcon },
@@ -76,6 +77,17 @@ interface CategoryFormData {
 export function CategoryManager() {
 	const { activeOrganization } = useActiveOrganization();
 	const queryClient = useQueryClient();
+
+	usePageGuide("configureCategories", [
+		{
+			element: '[data-guide="create-category-btn"]',
+			title: "第 1 步：点击「新建分类」",
+			description:
+				"点击此按钮创建一个分类。每个分类代表一种业务类型（如审批、汇报、工单等）。\n\n创建时你需要填写：\n• 分类名称（如「审批请求」）\n• AI 提示词（告诉 AI 什么样的邮件属于这个分类，比如「包含请审批、approval 等关键词的邮件」）\n\nAI 会根据你写的提示词自动将新邮件归类。",
+			side: "bottom",
+		},
+	]);
+
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingCategory, setEditingCategory] = useState<string | null>(
 		null,
@@ -158,7 +170,7 @@ export function CategoryManager() {
 	}
 
 	return (
-		<div className="space-y-6">
+		<div data-module="categories" className="space-y-6">
 			<div className="flex items-center justify-between">
 				<p className="text-sm text-muted-foreground">
 					共 {categories?.length ?? 0} 个分类
@@ -166,6 +178,7 @@ export function CategoryManager() {
 				<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 					<DialogTrigger asChild>
 						<Button
+							data-guide="create-category-btn"
 							onClick={() => {
 								setEditingCategory(null);
 								setDialogOpen(true);

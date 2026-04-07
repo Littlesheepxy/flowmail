@@ -1,5 +1,6 @@
-import { db } from "@repo/database";
+import { db, encryptSensitiveFields } from "@repo/database";
 import { google } from "googleapis";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectGmailSchema } from "../types";
 
@@ -11,7 +12,8 @@ export const connectGmail = protectedProcedure
 		summary: "Connect a Gmail account via OAuth",
 	})
 	.input(connectGmailSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const oauth2Client = new google.auth.OAuth2(
 			process.env.GMAIL_CLIENT_ID,
 			process.env.GMAIL_CLIENT_SECRET,
@@ -25,7 +27,18 @@ export const connectGmail = protectedProcedure
 		const profile = await gmail.users.getProfile({ userId: "me" });
 		const email = profile.data.emailAddress;
 
-		if (!email) throw new Error("Could not retrieve email address from Gmail");
+		if (!email) {
+			throw new Error("Could not retrieve email address from Gmail");
+		}
+
+		const encryptedCreate = encryptSensitiveFields({
+			accessToken: tokens.access_token ?? "",
+			refreshToken: tokens.refresh_token ?? "",
+		});
+		const encryptedUpdate = encryptSensitiveFields({
+			accessToken: tokens.access_token ?? "",
+			refreshToken: tokens.refresh_token ?? undefined,
+		});
 
 		const connection = await db.emailConnection.upsert({
 			where: {
@@ -39,16 +52,14 @@ export const connectGmail = protectedProcedure
 				provider: "gmail",
 				authType: "oauth2",
 				email,
-				accessToken: tokens.access_token ?? "",
-				refreshToken: tokens.refresh_token ?? "",
+				...encryptedCreate,
 				tokenExpiresAt: tokens.expiry_date
 					? new Date(tokens.expiry_date)
 					: null,
 				isActive: true,
 			},
 			update: {
-				accessToken: tokens.access_token ?? "",
-				refreshToken: tokens.refresh_token ?? undefined,
+				...encryptedUpdate,
 				tokenExpiresAt: tokens.expiry_date
 					? new Date(tokens.expiry_date)
 					: null,

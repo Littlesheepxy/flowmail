@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: flowmail-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-flowmail}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-flowmail}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-flowmail}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  minio:
+    image: minio/minio:latest
+    container_name: flowmail-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: flowmail-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-minioadmin} $${MINIO_ROOT_PASSWORD};
+      mc mb local/avatars --ignore-existing;
+      mc anonymous set download local/avatars;
+      echo 'Bucket setup complete';
+      exit 0;
+      "
+    networks:
+      - internal
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: flowmail-migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-flowmail}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-flowmail}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    profiles:
+      - migrate
+
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY:-flowmail/flowmail}:${IMAGE_TAG:-latest}
+    container_name: flowmail-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-flowmail}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-flowmail}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  docs:
+    image: ghcr.io/${GITHUB_REPOSITORY:-flowmail/flowmail}-docs:${IMAGE_TAG:-latest}
+    container_name: flowmail-docs
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      NODE_ENV: production
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:alpine
+    container_name: flowmail-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/flowmail.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/ssl/cloudflare:/etc/ssl/cloudflare:ro
+    depends_on:
+      - web
+      - docs
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  internal:
+    driver: bridge

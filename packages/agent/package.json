@@ -1,0 +1,19 @@
+{
+	"name": "@repo/agent",
+	"version": "0.0.0",
+	"main": "./index.ts",
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@repo/ai": "workspace:*",
+		"@repo/database": "workspace:*",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.13",
+		"@repo/tsconfig": "workspace:*",
+		"typescript": "5.9.3"
+	}
+}

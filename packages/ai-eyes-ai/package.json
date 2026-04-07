@@ -1,0 +1,23 @@
+{
+	"name": "@ai-eyes/ai",
+	"version": "0.1.0",
+	"description": "AI analysis adapter layer for AI Eyes — pluggable LLM-powered confusion detection",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./server": "./src/server/handler.ts"
+	},
+	"dependencies": {
+		"@ai-eyes/core": "workspace:*"
+	},
+	"devDependencies": {
+		"@repo/tsconfig": "workspace:*",
+		"typescript": "5.9.3"
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"type-check": "tsc --noEmit"
+	},
+	"license": "MIT"
+}

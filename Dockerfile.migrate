@@ -1,0 +1,11 @@
+FROM node:20-alpine
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/database/ ./packages/database/
+
+RUN pnpm install --frozen-lockfile --filter database
+
+CMD ["pnpm", "--filter", "database", "exec", "prisma", "migrate", "deploy"]

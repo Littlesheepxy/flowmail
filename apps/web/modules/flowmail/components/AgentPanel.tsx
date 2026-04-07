@@ -390,16 +390,20 @@ function MarkdownContent({ content }: { content: string }) {
 						{children}
 					</blockquote>
 				),
-				a: ({ href, children }) => (
-					<a
-						href={href}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="underline underline-offset-2 hover:opacity-80 text-primary"
-					>
-						{children}
-					</a>
-				),
+				a: ({ href, children }) => {
+					const isSafe = href && /^(https?:|mailto:)/i.test(href);
+					return (
+						<a
+							href={isSafe ? href : undefined}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="underline underline-offset-2 hover:opacity-80 text-primary"
+							onClick={isSafe ? undefined : (e) => e.preventDefault()}
+						>
+							{children}
+						</a>
+					);
+				},
 			}}
 		>
 			{content}
@@ -583,7 +587,7 @@ export function AgentPanel({
 	);
 
 	return (
-		<div className={cn("h-full", className)}>
+		<div data-module="agent" className={cn("h-full", className)}>
 			<div className="h-full agent-panel-border">
 				<div className="agent-panel-inner">
 					{/* Header */}

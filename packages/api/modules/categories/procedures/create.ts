@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { createCategorySchema } from "../types";
 
@@ -10,7 +11,8 @@ export const createCategory = protectedProcedure
 		summary: "Create a new category",
 	})
 	.input(createCategorySchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const maxOrder = await db.category.aggregate({
 			where: { organizationId: input.organizationId },
 			_max: { sortOrder: true },

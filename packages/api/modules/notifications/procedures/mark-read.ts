@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { markReadSchema } from "../types";
 
@@ -12,6 +13,8 @@ export const markRead = protectedProcedure
 	})
 	.input(markReadSchema)
 	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+
 		if (input.markAll) {
 			const result = await db.notification.updateMany({
 				where: {

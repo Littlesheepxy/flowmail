@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { listNotificationsSchema } from "../types";
 
@@ -11,6 +12,8 @@ export const listNotifications = protectedProcedure
 	})
 	.input(listNotificationsSchema)
 	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+
 		const where: Record<string, unknown> = {
 			organizationId: input.organizationId,
 			userId: context.user.id,

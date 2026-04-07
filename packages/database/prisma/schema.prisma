@@ -152,6 +152,7 @@ model Organization {
   categories         Category[]
   apiTokens          ApiToken[]
   notifications      Notification[]
+  agentMemories      AgentMemory[]
 
   @@unique([slug])
   @@map("organization")
@@ -411,6 +412,50 @@ model Notification {
   @@map("notification")
 }
 
+// ─── Flowmail: Audit Log (security & compliance) ───
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  SIGNUP
+  OTP_REQUEST
+  OTP_VERIFY
+  PASSWORD_RESET
+  EMAIL_CONNECTION_CREATE
+  EMAIL_CONNECTION_DELETE
+  EMAIL_SYNC
+  EMAIL_SEND
+  ENTITY_STATUS_CHANGE
+  ENTITY_APPROVE
+  ENTITY_REJECT
+  API_TOKEN_CREATE
+  API_TOKEN_REVOKE
+  MEMBER_INVITE
+  MEMBER_REMOVE
+  ORGANIZATION_CREATE
+  ORGANIZATION_DELETE
+  SETTINGS_CHANGE
+  DATA_EXPORT
+}
+
+model AuditLog {
+  id             String      @id @default(cuid())
+  organizationId String?
+  userId         String?
+  action         AuditAction
+  targetType     String?
+  targetId       String?
+  metadata       String?     @db.Text
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime    @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_log")
+}
+
 // ─── Flowmail: API Token (MCP / Agent 鉴权) ───
 
 model ApiToken {
@@ -429,4 +474,35 @@ model ApiToken {
   @@index([organizationId])
   @@index([tokenHash])
   @@map("api_token")
+}
+
+// ─── Flowmail: Agent Memory ───
+
+model AgentMemory {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  category       String       // user_preference | contact_profile | project_context | behavior_pattern | decision_record | classification_learning | org_insight
+  scope          String       @default("org") // org | user | contact | project
+  scopeId        String?      // user ID / contact email / project entity ID
+
+  content        String       @db.Text
+  metadata       String?      @db.Text
+
+  importance     Int          @default(5)  // 1-10, affects recall priority
+  accessCount    Int          @default(0)
+  lastAccessedAt DateTime?
+  expiresAt      DateTime?
+
+  embedding      Unsupported("vector(1536)")?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, category])
+  @@index([organizationId, scope, scopeId])
+  @@index([organizationId, importance])
+  @@index([organizationId, createdAt])
+  @@map("agent_memory")
 }

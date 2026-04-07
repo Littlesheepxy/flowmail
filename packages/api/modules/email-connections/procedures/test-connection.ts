@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import { getConnector } from "@repo/email-processor";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 import { testConnectionSchema } from "../types";
@@ -13,7 +14,7 @@ export const testEmailConnection = protectedProcedure
 		summary: "Test if an email connection is working",
 	})
 	.input(testConnectionSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
 		const connection = await db.emailConnection.findUnique({
 			where: { id: input.connectionId },
 		});
@@ -21,6 +22,8 @@ export const testEmailConnection = protectedProcedure
 		if (!connection) {
 			throw new ORPCError("NOT_FOUND");
 		}
+
+		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
 
 		const connectionWithToken =
 			connection.provider === "feishu"

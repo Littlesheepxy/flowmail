@@ -1,0 +1,157 @@
+/* ── driver.js 完整主题覆盖 ── */
+
+.driver-popover.flowmail-tour-popover {
+	all: unset;
+	display: block;
+	position: fixed;
+	z-index: 1000000001;
+	background: var(--card);
+	color: var(--card-foreground);
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	box-shadow:
+		0 20px 40px -8px rgb(0 0 0 / 0.3),
+		0 0 0 1px rgb(0 0 0 / 0.05);
+	padding: 20px;
+	max-width: 380px;
+	font-family: inherit;
+	box-sizing: border-box;
+}
+
+.driver-popover.flowmail-tour-popover * {
+	box-sizing: border-box;
+}
+
+/* Arrow */
+.driver-popover.flowmail-tour-popover .driver-popover-arrow {
+	display: none !important;
+}
+
+/* Close button */
+.driver-popover.flowmail-tour-popover .driver-popover-close-btn {
+	all: unset;
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	cursor: pointer;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	color: var(--muted-foreground);
+	font-size: 18px;
+	line-height: 1;
+	transition: background 0.15s, color 0.15s;
+}
+
+.driver-popover.flowmail-tour-popover .driver-popover-close-btn:hover {
+	background: var(--accent);
+	color: var(--foreground);
+}
+
+/* Title */
+.driver-popover.flowmail-tour-popover .driver-popover-title {
+	all: unset;
+	display: block;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--foreground);
+	padding-right: 24px;
+	line-height: 1.3;
+}
+
+/* Description */
+.driver-popover.flowmail-tour-popover .driver-popover-description {
+	all: unset;
+	display: block;
+	font-size: 13px;
+	color: var(--muted-foreground);
+	line-height: 1.7;
+	margin-top: 10px;
+	max-height: 260px;
+	overflow-y: auto;
+	padding-right: 4px;
+}
+
+/* Footer (progress + buttons) */
+.driver-popover.flowmail-tour-popover .driver-popover-footer {
+	all: unset;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 16px;
+	gap: 8px;
+}
+
+/* Progress text */
+.driver-popover.flowmail-tour-popover .driver-popover-progress-text {
+	all: unset;
+	font-size: 12px;
+	color: var(--muted-foreground);
+	white-space: nowrap;
+}
+
+/* Navigation buttons container */
+.driver-popover.flowmail-tour-popover .driver-popover-navigation-btns {
+	all: unset;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+}
+
+/* Previous button */
+.driver-popover.flowmail-tour-popover .driver-popover-prev-btn {
+	all: unset;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 13px;
+	font-weight: 500;
+	padding: 6px 16px;
+	border-radius: 8px;
+	border: 1px solid var(--border);
+	color: var(--foreground);
+	background: transparent;
+	transition: background 0.15s;
+	white-space: nowrap;
+}
+
+.driver-popover.flowmail-tour-popover .driver-popover-prev-btn:hover {
+	background: var(--accent);
+}
+
+/* Next / Done button */
+.driver-popover.flowmail-tour-popover .driver-popover-next-btn {
+	all: unset;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 13px;
+	font-weight: 500;
+	padding: 6px 16px;
+	border-radius: 8px;
+	background: var(--foreground);
+	color: var(--background);
+	transition: opacity 0.15s;
+	white-space: nowrap;
+}
+
+.driver-popover.flowmail-tour-popover .driver-popover-next-btn:hover {
+	opacity: 0.85;
+}
+
+/* Overlay */
+.driver-overlay {
+	background: rgb(0 0 0 / 0.5) !important;
+}
+
+/* Highlighted stage area — make it visually bright */
+.driver-active-element {
+	background: var(--card) !important;
+	border-radius: 10px !important;
+}

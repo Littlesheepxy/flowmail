@@ -22,6 +22,15 @@ export const updateEntityStatusSchema = z.object({
 	reason: z.string().optional(),
 });
 
+export const submitFeedbackSchema = z.object({
+	entityId: z.string(),
+	feedbackType: z.enum(["thumbs_up", "thumbs_down"]),
+	target: z.enum(["classification", "suggestion", "agent_action"]),
+	correction: z.string().optional(),
+	comment: z.string().optional(),
+});
+
 export type ListEntitiesInput = z.infer<typeof listEntitiesSchema>;
 export type GetEntityInput = z.infer<typeof getEntitySchema>;
 export type UpdateEntityStatusInput = z.infer<typeof updateEntityStatusSchema>;
+export type SubmitFeedbackInput = z.infer<typeof submitFeedbackSchema>;

@@ -31,12 +31,12 @@ export function SocialSigninButton({
 	return (
 		<Button
 			onClick={() => onSignin()}
-			variant="secondary"
+			variant="outline"
 			type="button"
 			className={className}
 		>
 			{providerData.icon && (
-				<i className="mr-2 text-primary">
+				<i className="mr-2">
 					<providerData.icon className="size-4" />
 				</i>
 			)}

@@ -1,5 +1,6 @@
-import { db } from "@repo/database";
+import { db, encryptSensitiveFields } from "@repo/database";
 import { getConnector } from "@repo/email-processor";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectImapSchema } from "../types";
 
@@ -35,7 +36,9 @@ export const connectImap = protectedProcedure
 		summary: "Connect an email account via IMAP (Feishu, DingTalk, WeCom, generic)",
 	})
 	.input(connectImapSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
+
 		const defaults = PROVIDER_DEFAULTS[input.provider];
 		const imapHost = input.imapHost ?? defaults?.imapHost ?? "";
 		const imapPort = input.imapPort ?? defaults?.imapPort ?? 993;
@@ -60,6 +63,8 @@ export const connectImap = protectedProcedure
 
 		const maxSyncCount = input.maxSyncCount ?? 500;
 
+		const encrypted = encryptSensitiveFields({ imapPassword: input.password });
+
 		const connection = await db.emailConnection.upsert({
 			where: {
 				organizationId_email: {
@@ -76,7 +81,7 @@ export const connectImap = protectedProcedure
 				imapPort,
 				smtpHost,
 				smtpPort,
-				imapPassword: input.password,
+				imapPassword: encrypted.imapPassword,
 				maxSyncCount,
 				isActive: true,
 			},
@@ -87,7 +92,7 @@ export const connectImap = protectedProcedure
 				imapPort,
 				smtpHost,
 				smtpPort,
-				imapPassword: input.password,
+				imapPassword: encrypted.imapPassword,
 				maxSyncCount,
 				isActive: true,
 			},

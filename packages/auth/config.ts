@@ -2,20 +2,20 @@ export const config = {
 	// Whether signup is enabled
 	enableSignup: true,
 
-	// Whether magic link is enabled
-	enableMagicLink: true,
+	// Whether email OTP (verification code) login is enabled
+	enableEmailOtp: true,
 
 	// Whether social login is enabled
 	enableSocialLogin: true,
 
 	// Whether passkeys are enabled
-	enablePasskeys: true,
+	enablePasskeys: false,
 
 	// Whether password login is enabled
-	enablePasswordLogin: true,
+	enablePasswordLogin: false,
 
 	// Whether two factor authentication is enabled
-	enableTwoFactor: true,
+	enableTwoFactor: false,
 
 	// The maximum age of the session cookie in seconds
 	sessionCookieMaxAge: 60 * 60 * 24 * 30,

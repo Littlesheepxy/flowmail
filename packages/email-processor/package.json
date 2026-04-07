@@ -7,8 +7,8 @@
 	},
 	"dependencies": {
 		"@repo/ai": "workspace:*",
+		"@repo/agent": "workspace:*",
 		"@repo/database": "workspace:*",
-		"ai": "^5.0.0",
 		"googleapis": "^171.4.0",
 		"imapflow": "^1.2.18",
 		"zod": "^4.3.6"

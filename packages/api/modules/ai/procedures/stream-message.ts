@@ -26,7 +26,7 @@ export const streamMessage = protectedProcedure
 
 		const response = streamText({
 			model: textModel,
-			messages: convertToModelMessages(
+			messages: await convertToModelMessages(
 				messages as unknown as UIMessage[],
 			),
 		});

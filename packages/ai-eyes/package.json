@@ -1,0 +1,23 @@
+{
+	"name": "@ai-eyes/core",
+	"version": "0.1.0",
+	"description": "AI-powered behavior sensing engine — detect user confusion in real-time",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"bin": {
+		"ai-eyes-detect": "./bin/detect-modules.mjs"
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"detect": "node bin/detect-modules.mjs",
+		"type-check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@repo/tsconfig": "workspace:*",
+		"typescript": "5.9.3"
+	},
+	"license": "MIT"
+}

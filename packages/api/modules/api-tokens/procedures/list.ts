@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { listApiTokensSchema } from "../types";
 
@@ -10,7 +11,8 @@ export const listApiTokens = protectedProcedure
 		summary: "List API tokens for an organization",
 	})
 	.input(listApiTokensSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const tokens = await db.apiToken.findMany({
 			where: { organizationId: input.organizationId },
 			select: {

@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { listConnectionsSchema } from "../types";
 
@@ -10,7 +11,8 @@ export const listEmailConnections = protectedProcedure
 		summary: "List email connections for an organization",
 	})
 	.input(listConnectionsSchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const connections = await db.emailConnection.findMany({
 			where: { organizationId: input.organizationId },
 			select: {

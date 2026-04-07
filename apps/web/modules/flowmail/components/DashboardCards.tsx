@@ -58,7 +58,7 @@ export function DashboardCards() {
 	const recentEntities = entities.slice(0, 8);
 
 	return (
-		<div className="space-y-8 mt-6">
+		<div data-module="dashboard" className="space-y-8 mt-6">
 			{/* Category distribution */}
 			<div>
 				<h3 className="text-sm font-medium text-muted-foreground mb-3">分类分布</h3>

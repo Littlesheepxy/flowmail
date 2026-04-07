@@ -144,21 +144,17 @@
 			"dontHaveAnAccount": "Don't have an account yet?",
 			"forgotPassword": "Forgot password?",
 			"hints": {
-				"invalidCredentials": "The email or password you entered are invalid. Please try again.",
-				"linkSent": {
-					"message": "We have sent you a link to continue. Please check your inbox.",
-					"title": "Link sent"
-				}
+				"invalidCredentials": "The email or password you entered are invalid. Please try again."
 			},
 			"loginWithPasskey": "Login with passkey",
 			"modes": {
-				"magicLink": "Magic link",
+				"emailOtp": "Verification code",
 				"password": "Password"
 			},
 			"submit": "Sign in",
 			"subtitle": "Please enter your credentials to sign in.",
 			"title": "Welcome back",
-			"sendMagicLink": "Send magic link"
+			"sendOtp": "Send verification code"
 		},
 		"resetPassword": {
 			"backToSignin": "Back to signin",
@@ -191,6 +187,15 @@
 			"submit": "Verify",
 			"backToSignin": "Back to login",
 			"message": "Enter the one-time password from your authenticator app to continue."
+		},
+		"verifyOtp": {
+			"title": "Enter verification code",
+			"code": "Verification code",
+			"submit": "Verify & Sign in",
+			"backToSignin": "Back to login",
+			"message": "We've sent a 6-digit verification code to {email}.",
+			"resend": "Resend code",
+			"resendCountdown": "Resend in {seconds}s"
 		}
 	},
 	"blog": {
@@ -209,13 +214,12 @@
 		},
 		"menu": {
 			"blog": "Blog",
-			"changelog": "Changelog",
-			"contact": "Contact",
 			"dashboard": "Dashboard",
 			"docs": "Docs",
 			"faq": "FAQ",
+			"features": "Features",
 			"login": "Login",
-			"pricing": "Pricing"
+			"security": "Security"
 		},
 		"tableOfContents": {
 			"title": "On this page"
@@ -232,8 +236,8 @@
 		"footer": {
 			"blog": "Blog",
 			"features": "Features",
-			"pricing": "Pricing",
 			"privacy": "Privacy policy",
+			"security": "Security",
 			"terms": "Terms and conditions"
 		}
 	},
@@ -275,8 +279,8 @@
 	"hero": {
 		"badge1": "AI-Powered",
 		"badge2": "Agent-Native",
-		"headline": "Stop sorting email. Start executing it.",
-		"subtitle": "Flowmail automatically classifies incoming emails, extracts approvals and report updates, and turns them into actions — ready for you or your agents.",
+		"headline": "When was the last time an important email slipped through?",
+		"subtitle": "Flowmail uses AI to classify every email, build timelines for every business item, and remind you before deadlines slip — so nothing gets lost in your inbox.",
 		"subtitle2": "Work still arrives by email. Flowmail turns it into execution.",
 		"cta": "Get started free",
 		"docs": "Read the docs",
@@ -287,10 +291,59 @@
 		"waitlist_error": "Something went wrong. Please try again.",
 		"waitlist_submitting": "Submitting..."
 	},
+	"howItWorks": {
+		"label": "How it works",
+		"title": "Three steps from email to action",
+		"description": "Connect your inbox and let AI handle the rest.",
+		"step1": {
+			"title": "Connect",
+			"description": "Link your Gmail, Outlook, Feishu, or any IMAP inbox in one click."
+		},
+		"step2": {
+			"title": "Understand",
+			"description": "AI classifies emails, extracts key fields, and creates structured items."
+		},
+		"step3": {
+			"title": "Execute",
+			"description": "Approve requests, track reports, and trigger actions — all from one place."
+		}
+	},
+	"metrics": {
+		"speed": "Processing Time",
+		"speedValue": "< 3s",
+		"accuracy": "Classification Accuracy",
+		"accuracyValue": "98.5%",
+		"platforms": "Email Platforms",
+		"platformsValue": "6+",
+		"encryption": "Encryption Standard",
+		"encryptionValue": "AES-256"
+	},
+	"notifications": {
+		"label": "Smart Notifications",
+		"title": "Never forget. We'll remind you.",
+		"description": "Flowmail proactively monitors every business item and alerts you before things fall through the cracks.",
+		"approval": {
+			"title": "Approval Deadline Alerts",
+			"description": "When an approval request approaches its deadline without action, Flowmail automatically reminds the approver via email and IM — no more expired requests."
+		},
+		"anomaly": {
+			"title": "Report Anomaly Warnings",
+			"description": "When a status report reveals blockers, missed targets, or risk signals, Flowmail instantly notifies stakeholders so issues get addressed early."
+		},
+		"timeline": {
+			"title": "Timeline Change Notifications",
+			"description": "Every status change — approved, rejected, escalated, completed — is pushed to your email and team channels in real time."
+		}
+	},
+	"bottomCta": {
+		"title": "Turn email into execution",
+		"subtitle": "Connect your inbox in 30 seconds. Let AI handle the rest.",
+		"waitlistTitle": "Get early access"
+	},
 	"features": {
-		"label": "What Flowmail does",
-		"title": "From inbox to execution, automatically",
-		"description": "Flowmail watches your email, classifies what matters, extracts structured data, and triggers actions — calendar events, task creation, IM notifications, and auto-replies.",
+		"label": "Core scenarios",
+		"title": "Two workflows that matter most",
+		"description": "Flowmail focuses on the two workflows that consume the most email time: approvals and report tracking.",
 		"inbox": {
 			"title": "Auto-triage your inbox",
 			"subtitle": "AI classifies emails into actionable categories.",
@@ -405,10 +458,14 @@
 			"resetPassword": "Reset password",
 			"subject": "Reset your password"
 		},
-		"magicLink": {
-			"body": "Hey,\nyou requested a login email from Flowmail.\n\nClick the link below to login.",
-			"login": "Login",
-			"subject": "Login to Flowmail"
+		"otpCode": {
+			"body": {
+				"sign-in": "Your Flowmail verification code is below. Enter it to sign in to your account.",
+				"email-verification": "Your Flowmail verification code is below. Enter it to verify your email address.",
+				"forget-password": "Your Flowmail verification code is below. Enter it to reset your password."
+			},
+			"expiry": "This code expires in 5 minutes. If you didn't request this, you can safely ignore this email.",
+			"subject": "Your Flowmail verification code"
 		},
 		"newUser": {
 			"body": "Hey,\nthanks for signing up for Flowmail.\n\nTo start using our app, please confirm your email address by clicking the link below.",
@@ -424,6 +481,150 @@
 			"headline": "Join the organization {organizationName}",
 			"join": "Join the organization",
 			"subject": "You have been invited to join an organization"
+		}
+	},
+	"security": {
+		"label": "Enterprise-grade Security",
+		"title": "Your data is safe with us",
+		"description": "Flowmail is built with security-first architecture. We protect your email data with industry-standard encryption, strict access controls, and comprehensive audit logging.",
+		"features": {
+			"encryption": {
+				"title": "AES-256 Encryption",
+				"description": "All sensitive credentials — OAuth tokens, IMAP passwords, and API secrets — are encrypted at rest using AES-256-GCM."
+			},
+			"accessControl": {
+				"title": "Role-based Access",
+				"description": "Organization-level isolation with role-based permissions. Every API request is authenticated and authorized."
+			},
+			"auditLog": {
+				"title": "Full Audit Trail",
+				"description": "Every sensitive operation — approvals, status changes, token usage — is logged with timestamps, actor, and IP address."
+			},
+			"rateLimiting": {
+				"title": "Rate Limiting",
+				"description": "Built-in protection against brute-force attacks with intelligent rate limiting on all authentication endpoints."
+			},
+			"headers": {
+				"title": "Security Headers",
+				"description": "HSTS, CSP, X-Frame-Options, and strict referrer policies protect against XSS, clickjacking, and injection attacks."
+			},
+			"mfa": {
+				"title": "Multi-factor Auth",
+				"description": "Passkeys, TOTP two-factor authentication, and email OTP verification keep your accounts secure."
+			}
+		},
+		"badge1": "SOC 2 Controls",
+		"badge2": "GDPR Committed",
+		"badge3": "AES-256 Encrypted",
+		"badge4": "Zero Data Training",
+		"page": {
+			"hero": {
+				"title": "Safe, secure, and private.",
+				"description": "Everything in Flowmail is designed to keep your work safe and secure. Because your business is nobody else's business."
+			},
+			"dataSecurity": {
+				"title": "Data Security",
+				"description": "Your email data is protected at every layer with industry-standard encryption and secure infrastructure.",
+				"items": {
+					"encryptionAtRest": {
+						"title": "Encryption at rest",
+						"description": "All sensitive credentials — OAuth tokens, IMAP passwords, and API secrets — are encrypted using AES-256-GCM before storage."
+					},
+					"encryptionInTransit": {
+						"title": "Encryption in transit",
+						"description": "All connections are forced over HTTPS with TLS 1.2+. Strict security headers (HSTS, CSP) are enforced on every response."
+					},
+					"oauthSecurity": {
+						"title": "OAuth 2.0 authorization",
+						"description": "We connect to Gmail and Outlook via OAuth 2.0 — we never see or store your email password. You can revoke access at any time."
+					}
+				}
+			},
+			"accessControl": {
+				"title": "Access Control",
+				"description": "Fine-grained permissions and multi-factor authentication protect every account.",
+				"items": {
+					"mfa": {
+						"title": "Multi-factor authentication",
+						"description": "Email OTP and Passkey support provide strong second-factor authentication for all user accounts."
+					},
+					"orgIsolation": {
+						"title": "Organization isolation",
+						"description": "Each organization's data is strictly isolated. Cross-tenant access is impossible by design."
+					},
+					"apiTokens": {
+						"title": "API token management",
+						"description": "API tokens are hashed with SHA-256 before storage. Tokens can be scoped and revoked at any time."
+					},
+					"rateLimiting": {
+						"title": "Rate limiting",
+						"description": "All authentication endpoints are protected with sliding-window rate limiting to prevent brute-force attacks."
+					}
+				}
+			},
+			"aiPrivacy": {
+				"title": "AI & Privacy",
+				"description": "We believe your email data belongs to you — not to AI model providers.",
+				"items": {
+					"zeroTraining": {
+						"title": "Zero data training",
+						"description": "Your email content is never used to train, fine-tune, or improve AI models. We enforce zero-data-retention policies with our AI providers."
+					},
+					"minimalAccess": {
+						"title": "Minimal data access",
+						"description": "AI only processes the specific fields needed for classification and extraction. Raw email content is not stored beyond processing."
+					},
+					"transparency": {
+						"title": "Processing transparency",
+						"description": "Every AI classification and extraction result is visible to you. You can review, correct, or reject any AI-generated output before it takes effect."
+					}
+				}
+			},
+			"compliance": {
+				"title": "Compliance",
+				"description": "We are building toward industry-standard certifications and maintain rigorous internal controls.",
+				"items": {
+					"soc2": {
+						"title": "SOC 2 controls implemented",
+						"description": "We have implemented the security controls required by SOC 2 Trust Services Criteria. Formal Type I audit is planned as we scale."
+					},
+					"gdpr": {
+						"title": "GDPR committed",
+						"description": "We are committed to GDPR principles: data minimization, purpose limitation, and data subject rights. A Data Processing Agreement (DPA) is available upon request."
+					},
+					"auditLog": {
+						"title": "Comprehensive audit logging",
+						"description": "All sensitive operations — approvals, connection changes, token management — are logged with actor, timestamp, and IP address."
+					},
+					"dataExport": {
+						"title": "Data portability",
+						"description": "You can export or delete your data at any time. We respect your right to data portability and erasure."
+					}
+				}
+			},
+			"infrastructure": {
+				"title": "Infrastructure",
+				"description": "Flowmail runs on enterprise-grade infrastructure with built-in redundancy and global performance.",
+				"items": {
+					"hosting": {
+						"title": "Vercel hosting",
+						"description": "Deployed on Vercel's global edge network with automatic DDoS protection, SSL, and 99.99% uptime SLA."
+					},
+					"database": {
+						"title": "Managed PostgreSQL",
+						"description": "Data is stored in Neon serverless PostgreSQL with automatic backups, point-in-time recovery, and encryption at rest."
+					},
+					"securityHeaders": {
+						"title": "Security headers",
+						"description": "Every response includes HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and strict Referrer-Policy."
+					}
+				}
+			},
+			"cta": {
+				"title": "Have security questions?",
+				"description": "We take security seriously. If you have questions about our security practices or need a DPA, please reach out.",
+				"email": "Contact security team"
+			}
 		}
 	},
 	"newsletter": {
@@ -979,5 +1180,51 @@
 		"title": "Page not found",
 		"goToDashboard": "Go to dashboard",
 		"goToHomepage": "Go to homepage"
+	},
+	"setupGuide": {
+		"title": "Getting Started",
+		"completedTitle": "Setup Complete!",
+		"completedMessage": "You're all set to use Flowmail",
+		"dismiss": "Got it",
+		"progress": "{completed}/{total}",
+		"steps": {
+			"connectEmail": "Connect your mailbox",
+			"connectEmailHint": "Go to \"Email Connections\" and click \"Connect Mailbox\" to authorize via OAuth",
+			"configureCategories": "Set up classification rules",
+			"configureCategoriesHint": "Go to \"Category Management\" and click \"New Category\" to add AI rules",
+			"processFirstEmail": "Process your first email",
+			"processFirstEmailHint": "Check the \"Inbox\" to see AI-parsed email items",
+			"checkNotifications": "Explore notification center",
+			"checkNotificationsHint": "Click the bell icon in the top right to view system alerts"
+		}
+	},
+	"productTour": {
+		"inbox": {
+			"title": "① Smart Inbox",
+			"description": "Once your mailbox is connected, AI automatically analyzes every email and extracts business items like approvals and reports. They all appear here — click any item to view details and its full timeline."
+		},
+		"connections": {
+			"title": "② Connect Your Mailbox",
+			"description": "Click here to go to the mailbox connection page. Supports Gmail, Feishu, DingTalk, WeCom, and more. Just one OAuth authorization and Flowmail will automatically sync and process your emails."
+		},
+		"categories": {
+			"title": "③ Custom Classification Rules",
+			"description": "Go to classification management to create your own categories. Each category can have AI prompts like \"identify all approval request emails\". AI will automatically sort emails based on your rules."
+		},
+		"notifications": {
+			"title": "④ Smart Notification Center",
+			"description": "Flowmail proactively notifies you at critical moments — approval deadlines, overdue reports, and more. Click the bell anytime to view all alerts and never miss anything important."
+		},
+		"next": "Next",
+		"prev": "Back",
+		"done": "Let's start!",
+		"skip": "Skip tour"
+	},
+	"aiEyes": {
+		"helpAccept": "Help me",
+		"helpDismiss": "No thanks",
+		"panelTitle": "AI Assistant",
+		"panelSubtitle": "I noticed you might need some help",
+		"placeholder": "How can I help you?"
 	}
 }

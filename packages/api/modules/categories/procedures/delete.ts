@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { deleteCategorySchema } from "../types";
 
@@ -10,7 +11,8 @@ export const deleteCategory = protectedProcedure
 		summary: "Delete a category (non-default only)",
 	})
 	.input(deleteCategorySchema)
-	.handler(async ({ input }) => {
+	.handler(async ({ input, context }) => {
+		await requireOrgMembership(input.organizationId, context.user.id);
 		const existing = await db.category.findUniqueOrThrow({
 			where: { id: input.id },
 		});
