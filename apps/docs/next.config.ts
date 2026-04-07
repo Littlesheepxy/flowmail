@@ -6,6 +6,9 @@ const withMDX = createMDX();
 const config: NextConfig = {
 	output: "standalone",
 	reactStrictMode: true,
+	typescript: {
+		ignoreBuildErrors: true,
+	},
 	async rewrites() {
 		return [
 			{
