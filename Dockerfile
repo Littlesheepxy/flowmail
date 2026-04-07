@@ -27,6 +27,7 @@ COPY --from=pruner /app/out/full/ .
 RUN pnpm install --frozen-lockfile
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN pnpm turbo build --filter=${APP_NAME}
+RUN mkdir -p /app/apps/${APP_NAME}/public
 
 # ── Stage 5: Runner ──
 FROM node:${NODE_VERSION} AS runner
@@ -39,12 +40,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 ARG APP_NAME
 ENV APP_NAME=${APP_NAME}
 
-RUN mkdir -p ./public
+COPY --from=builder /app/apps/${APP_NAME}/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
-# public dir may not exist for all apps (e.g. docs), so copy conditionally via shell
-RUN --mount=from=builder,source=/app/apps/${APP_NAME}/public,target=/tmp/public,required=false \
-    if [ -d /tmp/public ] && [ "$(ls -A /tmp/public 2>/dev/null)" ]; then cp -a /tmp/public/. ./public/; fi
 
 USER nextjs
 
