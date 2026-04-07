@@ -587,7 +587,7 @@ export function AgentPanel({
 	);
 
 	return (
-		<div className={cn("h-full", className)}>
+		<div data-module="agent" className={cn("h-full", className)}>
 			<div className="h-full agent-panel-border">
 				<div className="agent-panel-inner">
 					{/* Header */}

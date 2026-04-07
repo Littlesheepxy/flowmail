@@ -12,6 +12,7 @@ import { cn } from "@repo/ui";
 import { EntityCardList } from "./EntityCardList";
 import { ThreadChatView } from "./ThreadChatView";
 import { AgentPanel } from "./AgentPanel";
+import { usePageGuide } from "../hooks/use-page-guide";
 
 function useIsWideScreen() {
 	const [isWide, setIsWide] = useState(false);
@@ -33,6 +34,24 @@ export function SmartInbox() {
 	const { isCollapsed } = useSidebar();
 	const isWide = useIsWideScreen();
 	const searchParams = useSearchParams();
+
+	usePageGuide("processFirstEmail", [
+		{
+			element: '[data-guide="inbox-search"]',
+			title: "第 1 步：搜索与筛选",
+			description:
+				"连接邮箱并同步后，AI 处理过的邮件事项会自动出现在下方列表中。\n\n你可以在搜索框中输入关键词快速定位，也可以按分类筛选。如果列表为空，说明还没有同步邮件——请先去「邮箱连接」页面连接并同步邮箱。",
+			side: "bottom",
+		},
+		{
+			element: '[data-guide="inbox-entity-list"]',
+			title: "第 2 步：查看和处理事项",
+			description:
+				"这里是 AI 自动从邮件中提取的业务事项列表。每个事项显示：\n\n• 标题和分类标签\n• AI 提取的关键信息（如申请人、截止日期）\n• 当前状态（待审批、进行中等）\n\n点击任意事项可以查看完整时间线、所有关联邮件，以及执行操作（审批/拒绝等）。",
+			side: "right",
+		},
+	]);
+
 	const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
 		null,
 	);
@@ -79,13 +98,14 @@ export function SmartInbox() {
 
 	return (
 		<div
+			data-module="inbox"
 			className="flex flex-col h-dvh overflow-hidden fixed inset-0 z-10 bg-muted/40 transition-[left] duration-300 ease-in-out"
 			style={{ left: isCollapsed ? 64 : 260 }}
 		>
 			{/* Global top bar — outside content card */}
 			<div className="flex items-center gap-3 px-4 py-2 shrink-0">
 				{/* Search */}
-				<div className="relative flex-1 max-w-md">
+				<div className="relative flex-1 max-w-md" data-guide="inbox-search">
 					<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
 					<input
 						type="text"
@@ -125,7 +145,7 @@ export function SmartInbox() {
 			<div className="flex-1 flex overflow-hidden min-w-0 mx-2 mb-2">
 				<div className="flex-1 flex overflow-hidden bg-background rounded-2xl border shadow-sm">
 					{/* Entity list panel */}
-					<div className="w-[300px] shrink-0 flex flex-col overflow-hidden">
+					<div className="w-[300px] shrink-0 flex flex-col overflow-hidden" data-guide="inbox-entity-list">
 						<EntityCardList
 							selectedEntityId={selectedEntityId}
 							onSelectEntity={setSelectedEntityId}

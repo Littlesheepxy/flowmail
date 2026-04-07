@@ -33,6 +33,8 @@ import { config as webConfig } from "@/config";
 import { OrganzationSelect } from "../../organizations/components/OrganizationSelect";
 import { OrgSettingsModal, type OrgTab } from "./OrgSettingsModal";
 import { NotificationBell } from "@/modules/flowmail/components/NotificationCenter";
+import { ProductTour } from "@/modules/flowmail/components/ProductTour";
+import { SetupGuide } from "@/modules/flowmail/components/SetupGuide";
 import { useSidebar } from "../lib/sidebar-context";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -98,6 +100,7 @@ export function NavBar() {
 		onClick?: () => void;
 		badge?: number;
 		color?: string;
+		dataTour?: string;
 	};
 
 	type MenuGroup = {
@@ -130,6 +133,7 @@ export function NavBar() {
 								label: "收件箱",
 								href: `${basePath}/inbox`,
 								icon: InboxIcon,
+								dataTour: "inbox",
 						isActive:
 								pathname.startsWith(`${basePath}/inbox`) &&
 								!searchParams.has("category"),
@@ -151,6 +155,7 @@ export function NavBar() {
 								label: "邮箱连接",
 								href: `${basePath}/connections`,
 								icon: MailIcon,
+								dataTour: "connections",
 								isActive: pathname.startsWith(
 									`${basePath}/connections`,
 								),
@@ -159,6 +164,7 @@ export function NavBar() {
 								label: "分类管理",
 								href: `${basePath}/categories`,
 								icon: SettingsIcon,
+								dataTour: "categories",
 								isActive: pathname.startsWith(
 									`${basePath}/categories`,
 								),
@@ -186,6 +192,7 @@ export function NavBar() {
 	return (
 		<>
 		<nav
+			data-module="navigation"
 			className={cn("w-full", {
 				"w-full md:fixed md:top-0 md:left-0 md:h-full md:z-20 md:transition-[width] md:duration-300 md:ease-in-out md:w-[260px]":
 					useSidebarLayout,
@@ -403,6 +410,7 @@ export function NavBar() {
 											<li
 												key={itemKey}
 												className="flex justify-center"
+												data-tour={menuItem.dataTour}
 											>
 												<Tooltip>
 													<TooltipTrigger asChild>
@@ -472,7 +480,7 @@ export function NavBar() {
 									);
 
 									return (
-										<li key={itemKey}>{expandedItem}</li>
+										<li key={itemKey} data-tour={menuItem.dataTour}>{expandedItem}</li>
 									);
 								})}
 
@@ -520,8 +528,15 @@ export function NavBar() {
 							}}
 						/>
 					)}
+					<SetupGuide
+						collapsed={isCollapsed && useSidebarLayout}
+						basePath={basePath}
+					/>
 					{activeOrganization && (
-						<div className={cn("flex items-center", isCollapsed && useSidebarLayout ? "justify-center mb-2" : "px-3 mb-2")}>
+						<div
+							className={cn("flex items-center", isCollapsed && useSidebarLayout ? "justify-center mb-2" : "px-3 mb-2")}
+							data-tour="notifications"
+						>
 							<NotificationBell
 								organizationId={activeOrganization.id}
 								basePath={basePath}
@@ -556,6 +571,7 @@ export function NavBar() {
 				defaultTab={orgModalTab}
 			/>
 		)}
+		{activeOrganization && <ProductTour />}
 		</>
 	);
 }

@@ -1,5 +1,7 @@
 export { AiEyes } from "./components/AiEyes";
 export type { AiEyesProps, AiEyesPosition } from "./components/AiEyes";
+export { AiEyesKit } from "./components/AiEyesKit";
+export type { AiEyesKitProps } from "./components/AiEyesKit";
 export { EyeSvg } from "./components/EyeSvg";
 export { HelpBubble } from "./components/HelpBubble";
 export { AiEyesProvider, useAiEyes } from "./provider/AiEyesProvider";

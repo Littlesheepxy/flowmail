@@ -351,7 +351,7 @@ export function EntityDetail() {
 	const actionPending = approveMutation.isPending || rejectMutation.isPending;
 
 	return (
-		<div className="space-y-6">
+		<div data-module="entity-detail" className="space-y-6">
 			{/* Header */}
 			<div className="flex items-center gap-3">
 				<Link href={backPath}>

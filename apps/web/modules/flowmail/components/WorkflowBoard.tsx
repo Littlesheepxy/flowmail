@@ -89,7 +89,7 @@ export function WorkflowBoard() {
 	];
 
 	return (
-		<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+		<div data-module="workflow" className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
 			{lanes.map((lane) => (
 				<div key={lane.title}>
 					<div className="flex items-center gap-2 mb-3">

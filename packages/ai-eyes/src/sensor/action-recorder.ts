@@ -5,6 +5,56 @@ const DEFAULT_MAX_ENTRIES = 200;
 const DEFAULT_THROTTLE_MS = 500;
 
 /**
+ * Walk up the DOM tree from `el` to find the closest ancestor
+ * (or self) with a `data-module` attribute.
+ * Also collects `data-section` for sub-module granularity.
+ */
+function resolveModuleContext(el: Element): {
+	module?: string;
+	section?: string;
+} {
+	let current: Element | null = el;
+	let section: string | undefined;
+	let module: string | undefined;
+
+	while (current && current !== document.documentElement) {
+		if (!section) {
+			const sec = current.getAttribute("data-section");
+			if (sec) {
+				section = sec;
+			}
+		}
+		if (!module) {
+			const mod = current.getAttribute("data-module");
+			if (mod) {
+				module = mod;
+			}
+		}
+		if (module) {
+			break;
+		}
+		current = current.parentElement;
+	}
+
+	return { module, section };
+}
+
+/**
+ * Check if an element or any of its ancestors has `data-ai-eyes-ignore`.
+ * Used to exclude sensitive areas (password fields, payment forms, etc.).
+ */
+function isIgnored(el: Element): boolean {
+	let current: Element | null = el;
+	while (current && current !== document.documentElement) {
+		if (current.hasAttribute("data-ai-eyes-ignore")) {
+			return true;
+		}
+		current = current.parentElement;
+	}
+	return false;
+}
+
+/**
  * ActionRecorder — a rolling dashcam-style buffer for user actions.
  *
  * - Continuously records user interactions (click, navigate, scroll, input, etc.)
@@ -164,20 +214,23 @@ export class ActionRecorder {
 	private listenClicks(): void {
 		const handler = (e: MouseEvent) => {
 			const el = e.target instanceof Element ? e.target : null;
-			if (!el) {
+			if (!el || isIgnored(el)) {
 				return;
 			}
 			const tag = el.tagName.toLowerCase();
 			const text = (el.textContent ?? "").slice(0, 50).trim();
 			const ariaLabel = el.getAttribute("aria-label");
 			const href = el.getAttribute("href");
+			const { module, section } = resolveModuleContext(el);
 
 			this.record({
 				type: "click",
+				module,
 				target: ariaLabel ? `[${tag}] "${ariaLabel}"` : `[${tag}] "${text}"`,
 				timestamp: Date.now(),
 				detail: {
 					...(href ? { href } : {}),
+					...(section ? { section } : {}),
 					x: Math.round(e.clientX),
 					y: Math.round(e.clientY),
 				},
@@ -192,8 +245,10 @@ export class ActionRecorder {
 			if (this.shouldThrottle("scroll")) {
 				return;
 			}
+			const viewportModule = this.resolveViewportModule();
 			this.record({
 				type: "scroll",
+				module: viewportModule,
 				timestamp: Date.now(),
 				detail: {
 					scrollY: Math.round(window.scrollY),
@@ -207,6 +262,16 @@ export class ActionRecorder {
 		};
 		window.addEventListener("scroll", handler, { passive: true });
 		this.cleanup.push(() => window.removeEventListener("scroll", handler));
+	}
+
+	private resolveViewportModule(): string | undefined {
+		const centerX = window.innerWidth / 2;
+		const centerY = window.innerHeight / 2;
+		const el = document.elementFromPoint(centerX, centerY);
+		if (!el) {
+			return undefined;
+		}
+		return resolveModuleContext(el).module;
 	}
 
 	private listenNavigation(): void {
@@ -237,15 +302,17 @@ export class ActionRecorder {
 	private listenFocus(): void {
 		const onFocusIn = (e: FocusEvent) => {
 			const el = e.target instanceof Element ? e.target : null;
-			if (!el) {
+			if (!el || isIgnored(el)) {
 				return;
 			}
 			const tag = el.tagName.toLowerCase();
 			if (!["input", "textarea", "select"].includes(tag) && el.getAttribute("contenteditable") !== "true") {
 				return;
 			}
+			const { module } = resolveModuleContext(el);
 			this.record({
 				type: "focus",
+				module,
 				target: `[${tag}] ${el.getAttribute("name") ?? el.getAttribute("placeholder") ?? ""}`.trim(),
 				timestamp: Date.now(),
 			});
@@ -253,15 +320,17 @@ export class ActionRecorder {
 
 		const onFocusOut = (e: FocusEvent) => {
 			const el = e.target instanceof Element ? e.target : null;
-			if (!el) {
+			if (!el || isIgnored(el)) {
 				return;
 			}
 			const tag = el.tagName.toLowerCase();
 			if (!["input", "textarea", "select"].includes(tag) && el.getAttribute("contenteditable") !== "true") {
 				return;
 			}
+			const { module } = resolveModuleContext(el);
 			this.record({
 				type: "blur",
+				module,
 				target: `[${tag}]`,
 				timestamp: Date.now(),
 			});

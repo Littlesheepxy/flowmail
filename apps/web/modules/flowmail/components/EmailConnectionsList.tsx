@@ -47,6 +47,7 @@ import {
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { usePageGuide } from "../hooks/use-page-guide";
 
 type AuthMethod = "oauth" | "imap";
 
@@ -120,6 +121,16 @@ export function EmailConnectionsList() {
 	const params = useParams();
 	const organizationSlug = params.organizationSlug as string;
 
+	usePageGuide("connectEmail", [
+		{
+			element: '[data-guide="connect-email-btn"]',
+			title: "第 1 步：点击「连接邮箱」",
+			description:
+				"点击此按钮开始连接。弹出的对话框中会列出 Gmail、飞书、钉钉、企微以及通用 IMAP（QQ邮箱、163等）多种选项。选择你的邮箱类型即可开始授权。\n\n连接成功后，Flowmail 会自动同步你的邮件并用 AI 进行分析。",
+			side: "bottom",
+		},
+	]);
+
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [selectedProvider, setSelectedProvider] = useState<ProviderDef | null>(null);
 	const [passwordDialogConn, setPasswordDialogConn] = useState<{ id: string; email: string } | null>(null);
@@ -185,7 +196,7 @@ export function EmailConnectionsList() {
 	}
 
 	return (
-		<div className="space-y-6">
+		<div data-module="connections" className="space-y-6">
 			<div className="flex items-center justify-between">
 				<div>
 					<h3 className="font-semibold text-lg">邮箱连接</h3>
@@ -195,7 +206,7 @@ export function EmailConnectionsList() {
 				</div>
 				<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 					<DialogTrigger asChild>
-						<Button onClick={() => setSelectedProvider(null)}>
+						<Button data-guide="connect-email-btn" onClick={() => setSelectedProvider(null)}>
 							<PlusIcon className="mr-2 size-4" />
 							连接邮箱
 						</Button>
