@@ -55,6 +55,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+	output: "standalone",
 	serverExternalPackages: ["livekit-server-sdk"],
 	transpilePackages: [
 		"@repo/api",

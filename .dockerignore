@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+!README.md
+.env*
+!.env.example
+docker-compose*.yml
+Dockerfile
+.dockerignore
+.github
+.cursor
+.vscode
+playwright-report
+test-results
+apps/web/tests

@@ -19,15 +19,50 @@ jobs:
           version: 2.3.13
       - name: Run Biome
         run: biome ci .
-  e2e:
-    name: Run e2e tests
-    timeout-minutes: 60
+
+  type-check:
+    name: Type check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter database generate
+      - name: Run type check
+        run: pnpm type-check
+
+  build:
+    name: Build validation
+    runs-on: ubuntu-latest
+    needs: [lint, type-check]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter database generate
+      - name: Build
+        run: pnpm build
+
+  e2e:
+    name: Run e2e tests
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - uses: pnpm/action-setup@v4
       - name: Install dependencies
         run: pnpm install && pnpm --filter database generate
