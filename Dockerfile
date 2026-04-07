@@ -25,6 +25,7 @@ ARG APP_NAME
 COPY --from=deps /app/ .
 COPY --from=pruner /app/out/full/ .
 RUN pnpm install --frozen-lockfile
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN pnpm turbo build --filter=${APP_NAME}
 
 # ── Stage 5: Runner ──
