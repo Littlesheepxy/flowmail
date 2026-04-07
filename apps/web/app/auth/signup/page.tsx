@@ -1,3 +1,4 @@
+import { applyLocaleFromAuthSearchParams } from "@i18n/lib/apply-locale-from-auth-search-params";
 import { config } from "@repo/auth/config";
 import { SignupForm } from "@saas/auth/components/SignupForm";
 import { getInvitation } from "@saas/auth/lib/server";
@@ -24,6 +25,8 @@ export default async function SignupPage({
 	}>;
 }) {
 	const params = await searchParams;
+	await applyLocaleFromAuthSearchParams("/auth/signup", params);
+
 	const { invitationId } = params;
 
 	if (!(config.enableSignup || invitationId)) {

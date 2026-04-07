@@ -1,5 +1,6 @@
 "use client";
 
+import { authLoginHref } from "@i18n/lib/auth-login-href";
 import { LocaleLink, useLocalePathname } from "@i18n/routing";
 import { cn, Logo } from "@repo/ui";
 import { Button } from "@repo/ui/components/button";
@@ -14,13 +15,14 @@ import { ColorModeToggle } from "@shared/components/ColorModeToggle";
 import { LocaleSwitch } from "@shared/components/LocaleSwitch";
 import { MenuIcon } from "lucide-react";
 import NextLink from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { config } from "@/config";
 
 export function NavBar() {
 	const t = useTranslations();
+	const locale = useLocale();
 	const { user } = useSession();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const localePathname = useLocalePathname();
@@ -168,7 +170,11 @@ export function NavBar() {
 
 									<NextLink
 										key={user ? "start" : "login"}
-										href={user ? "/app" : "/auth/login"}
+										href={
+											user
+												? "/app"
+												: authLoginHref(locale)
+										}
 										className="block px-3 py-2 text-base"
 										onClick={handleMobileMenuClose}
 										prefetch={!user}
@@ -200,7 +206,10 @@ export function NavBar() {
 									asChild
 									variant="secondary"
 								>
-									<NextLink href="/auth/login" prefetch>
+									<NextLink
+										href={authLoginHref(locale)}
+										prefetch
+									>
 										{t("common.menu.login")}
 									</NextLink>
 								</Button>

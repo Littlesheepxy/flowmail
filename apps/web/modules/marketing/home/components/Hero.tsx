@@ -1,18 +1,20 @@
 "use client";
 
+import { authLoginHref } from "@i18n/lib/auth-login-href";
 import { LocaleLink } from "@i18n/routing";
-import { Button } from "@repo/ui/components/button";
 import { BlurFade } from "@repo/ui/components/blur-fade";
+import { Button } from "@repo/ui/components/button";
 import { NoiseBackground } from "@repo/ui/components/ui/noise-background";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { config } from "@/config";
-import { WaitlistForm } from "./WaitlistForm";
 import { HeroDemoVisual } from "./HeroDemoVisual";
+import { WaitlistForm } from "./WaitlistForm";
 
 export function Hero() {
 	const t = useTranslations();
+	const locale = useLocale();
 
 	return (
 		<div className="relative max-w-full overflow-x-hidden">
@@ -33,9 +35,15 @@ export function Hero() {
 									speed={0.08}
 								>
 									<div className="rounded-full bg-linear-to-r from-neutral-100 via-neutral-100 to-white px-4 py-1.5 flex items-center gap-2 font-normal text-sm text-black shadow-[0px_2px_0px_0px_var(--color-neutral-50)_inset,0px_0.5px_1px_0px_var(--color-neutral-400)] dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-800 dark:text-white dark:shadow-[0px_1px_0px_0px_var(--color-neutral-950)_inset,0px_1px_0px_0px_var(--color-neutral-800)]">
-										<span className="font-semibold">{t("hero.badge1")}</span>
-										<span className="text-black/30 dark:text-white/30">&middot;</span>
-										<span className="font-medium">{t("hero.badge2")}</span>
+										<span className="font-semibold">
+											{t("hero.badge1")}
+										</span>
+										<span className="text-black/30 dark:text-white/30">
+											&middot;
+										</span>
+										<span className="font-medium">
+											{t("hero.badge2")}
+										</span>
 									</div>
 								</NoiseBackground>
 							</div>
@@ -64,7 +72,7 @@ export function Hero() {
 											variant="primary"
 											asChild
 										>
-											<Link href="/auth/login">
+											<Link href={authLoginHref(locale)}>
 												{t("hero.cta")}
 												<ArrowRightIcon className="ml-2 size-4" />
 											</Link>

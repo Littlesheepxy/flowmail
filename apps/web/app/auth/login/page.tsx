@@ -1,3 +1,4 @@
+import { applyLocaleFromAuthSearchParams } from "@i18n/lib/apply-locale-from-auth-search-params";
 import { LoginForm } from "@saas/auth/components/LoginForm";
 import { getTranslations } from "next-intl/server";
 
@@ -12,6 +13,11 @@ export async function generateMetadata() {
 	};
 }
 
-export default function LoginPage() {
+export default async function LoginPage({
+	searchParams,
+}: {
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+	await applyLocaleFromAuthSearchParams("/auth/login", await searchParams);
 	return <LoginForm />;
 }

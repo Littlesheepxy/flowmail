@@ -20,13 +20,18 @@ export default async function proxy(req: NextRequest) {
 		}
 
 		if (!sessionCookie) {
+			const localeCookie = req.cookies.get("NEXT_LOCALE")?.value;
+			const loginQuery: Record<string, string> = { redirectTo: pathname };
+			if (
+				localeCookie &&
+				routing.locales.includes(
+					localeCookie as (typeof routing.locales)[number],
+				)
+			) {
+				loginQuery.locale = localeCookie;
+			}
 			return NextResponse.redirect(
-				new URL(
-					withQuery("/auth/login", {
-						redirectTo: pathname,
-					}),
-					origin,
-				),
+				new URL(withQuery("/auth/login", loginQuery), origin),
 			);
 		}
 
@@ -47,6 +52,7 @@ export default async function proxy(req: NextRequest) {
 		"/choose-plan",
 		"/organization-invitation",
 		"/call",
+		"/ph",
 	];
 
 	if (pathsWithoutLocale.some((path) => pathname.startsWith(path))) {

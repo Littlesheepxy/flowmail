@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { withQuery } from "ufo";
@@ -55,6 +55,7 @@ const formSchema = z.union([
 
 export function LoginForm() {
 	const t = useTranslations();
+	const locale = useLocale();
 	const { getAuthErrorMessage } = useAuthErrorMessages();
 	const router = useRouter();
 	const queryClient = useQueryClient();
@@ -170,9 +171,7 @@ export function LoginForm() {
 				{t("auth.login.subtitle")}
 			</p>
 
-			{invitationId && (
-				<OrganizationInvitationAlert className="mb-6" />
-			)}
+			{invitationId && <OrganizationInvitationAlert className="mb-6" />}
 
 			<Form {...form}>
 				<form className="space-y-4" onSubmit={onSubmit}>
@@ -206,10 +205,7 @@ export function LoginForm() {
 							<FormItem>
 								<FormLabel>{t("auth.signup.email")}</FormLabel>
 								<FormControl>
-									<Input
-										{...field}
-										autoComplete="email"
-									/>
+									<Input {...field} autoComplete="email" />
 								</FormControl>
 							</FormItem>
 						)}
@@ -230,9 +226,7 @@ export function LoginForm() {
 												href="/auth/forgot-password"
 												className="text-foreground/60 text-xs"
 											>
-												{t(
-													"auth.login.forgotPassword",
-												)}
+												{t("auth.login.forgotPassword")}
 											</Link>
 										</div>
 										<FormControl>
@@ -283,8 +277,7 @@ export function LoginForm() {
 			</Form>
 
 			{(authConfig.enablePasskeys ||
-				(authConfig.enableSignup &&
-					authConfig.enableSocialLogin)) && (
+				(authConfig.enableSignup && authConfig.enableSocialLogin)) && (
 				<>
 					<div className="relative my-6 h-4">
 						<hr className="relative top-2" />
@@ -296,17 +289,13 @@ export function LoginForm() {
 					<div className="flex flex-col items-stretch gap-2">
 						{authConfig.enableSignup &&
 							authConfig.enableSocialLogin &&
-							Object.keys(oAuthProviders).map(
-								(providerId) => (
-									<SocialSigninButton
-										key={providerId}
-										className="w-full"
-										provider={
-											providerId as OAuthProvider
-										}
-									/>
-								),
-							)}
+							Object.keys(oAuthProviders).map((providerId) => (
+								<SocialSigninButton
+									key={providerId}
+									className="w-full"
+									provider={providerId as OAuthProvider}
+								/>
+							))}
 
 						{authConfig.enablePasskeys && (
 							<Button
@@ -328,10 +317,10 @@ export function LoginForm() {
 						{t("auth.login.dontHaveAnAccount")}{" "}
 					</span>
 					<Link
-						href={withQuery(
-							"/auth/signup",
-							Object.fromEntries(searchParams.entries()),
-						)}
+						href={withQuery("/auth/signup", {
+							...Object.fromEntries(searchParams.entries()),
+							locale,
+						})}
 					>
 						{t("auth.login.createAnAccount")}
 						<ArrowRightIcon className="ml-1 inline size-4 align-middle" />

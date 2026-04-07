@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { withQuery } from "ufo";
@@ -46,6 +46,7 @@ const formSchema = z.object({
 
 export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	const t = useTranslations();
+	const locale = useLocale();
 	const router = useRouter();
 	const { user, loaded: sessionLoaded } = useSession();
 	const { getAuthErrorMessage } = useAuthErrorMessages();
@@ -80,11 +81,11 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	const onSubmit = form.handleSubmit(async ({ email, password, name }) => {
 		try {
 			const { error } = await authClient.signUp.email({
-						email,
-						password,
-						name,
-						callbackURL: redirectPath,
-					});
+				email,
+				password,
+				name,
+				callbackURL: redirectPath,
+			});
 
 			if (error) {
 				throw error;
@@ -272,10 +273,10 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 					{t("auth.signup.alreadyHaveAccount")}{" "}
 				</span>
 				<Link
-					href={withQuery(
-						"/auth/login",
-						Object.fromEntries(searchParams.entries()),
-					)}
+					href={withQuery("/auth/login", {
+						...Object.fromEntries(searchParams.entries()),
+						locale,
+					})}
 				>
 					{t("auth.signup.signIn")}
 					<ArrowRightIcon className="ml-1 inline size-4 align-middle" />

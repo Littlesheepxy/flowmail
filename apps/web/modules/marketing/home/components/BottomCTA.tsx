@@ -1,15 +1,17 @@
 "use client";
 
+import { authLoginHref } from "@i18n/lib/auth-login-href";
 import { BlurFade } from "@repo/ui/components/blur-fade";
-import { useTranslations } from "next-intl";
-import { WaitlistForm } from "./WaitlistForm";
-import { config } from "@/config";
 import { Button } from "@repo/ui/components/button";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { config } from "@/config";
+import { WaitlistForm } from "./WaitlistForm";
 
 export function BottomCTA() {
 	const t = useTranslations();
+	const locale = useLocale();
 
 	return (
 		<section className="py-16 lg:py-24 bg-foreground text-background">
@@ -33,7 +35,7 @@ export function BottomCTA() {
 								<WaitlistForm />
 							) : (
 								<Button size="lg" variant="secondary" asChild>
-									<Link href="/auth/login">
+									<Link href={authLoginHref(locale)}>
 										{t("hero.cta")}
 										<ArrowRightIcon className="ml-2 size-4" />
 									</Link>
