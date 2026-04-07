@@ -54,8 +54,13 @@ export async function GET(req: Request) {
 		const existing = await db.notification.findFirst({
 			where: {
 				entityId: entity.id,
-				type: hoursRemaining <= 0 ? "DEADLINE_OVERDUE" : "DEADLINE_WARNING",
-				createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+				type:
+					hoursRemaining <= 0
+						? "DEADLINE_OVERDUE"
+						: "DEADLINE_WARNING",
+				createdAt: {
+					gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+				},
 			},
 		});
 
@@ -74,9 +79,7 @@ export async function GET(req: Request) {
 			created += result.created;
 		} else if (hoursRemaining <= 48) {
 			const label =
-				hoursRemaining <= 24
-					? "剩余不到 24 小时"
-					: "剩余不到 48 小时";
+				hoursRemaining <= 24 ? "剩余不到 24 小时" : "剩余不到 48 小时";
 			const result = await triggerNotification({
 				organizationId: entity.organizationId,
 				type: "DEADLINE_WARNING",
@@ -108,7 +111,9 @@ export async function GET(req: Request) {
 			where: {
 				entityId: entity.id,
 				type: "APPROVAL_TIMEOUT",
-				createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+				createdAt: {
+					gte: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+				},
 			},
 		});
 
@@ -117,7 +122,8 @@ export async function GET(req: Request) {
 		}
 
 		const daysSinceCreation = Math.floor(
-			(now.getTime() - entity.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+			(now.getTime() - entity.createdAt.getTime()) /
+				(1000 * 60 * 60 * 24),
 		);
 
 		const result = await triggerNotification({

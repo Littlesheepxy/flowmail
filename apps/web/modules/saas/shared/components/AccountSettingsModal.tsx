@@ -2,6 +2,12 @@
 
 import { config as authConfig } from "@repo/auth/config";
 import { config as paymentsConfig } from "@repo/payments/config";
+import { cn } from "@repo/ui";
+import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog";
+import { useSession } from "@saas/auth/hooks/use-session";
+import { ActivePlan } from "@saas/payments/components/ActivePlan";
+import { ChangePlan } from "@saas/payments/components/ChangePlan";
+import { usePurchases } from "@saas/payments/hooks/purchases";
 import { ActiveSessionsBlock } from "@saas/settings/components/ActiveSessionsBlock";
 import { ChangeEmailForm } from "@saas/settings/components/ChangeEmailForm";
 import { ChangeNameForm } from "@saas/settings/components/ChangeNameForm";
@@ -11,17 +17,7 @@ import { DeleteAccountForm } from "@saas/settings/components/DeleteAccountForm";
 import { PasskeysBlock } from "@saas/settings/components/PasskeysBlock";
 import { TwoFactorBlock } from "@saas/settings/components/TwoFactorBlock";
 import { UserAvatarForm } from "@saas/settings/components/UserAvatarForm";
-import { ActivePlan } from "@saas/payments/components/ActivePlan";
-import { ChangePlan } from "@saas/payments/components/ChangePlan";
-import { useSession } from "@saas/auth/hooks/use-session";
-import { usePurchases } from "@saas/payments/hooks/purchases";
 import { SettingsList } from "@saas/shared/components/SettingsList";
-import {
-	Dialog,
-	DialogContent,
-	DialogTitle,
-} from "@repo/ui/components/dialog";
-import { cn } from "@repo/ui";
 import {
 	CreditCardIcon,
 	LockKeyholeIcon,
@@ -116,7 +112,9 @@ export function AccountSettingsModal({
 										)}
 									>
 										<Icon className="size-4 shrink-0" />
-										<span className="truncate">{item.title}</span>
+										<span className="truncate">
+											{item.title}
+										</span>
 									</button>
 								);
 							})}
@@ -127,7 +125,11 @@ export function AccountSettingsModal({
 					<div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 						<div className="px-6 pt-5 pb-3 shrink-0 border-b border-border/50">
 							<h2 className="text-base font-semibold">
-								{menuItems.find((item) => item.id === activeTab)?.title}
+								{
+									menuItems.find(
+										(item) => item.id === activeTab,
+									)?.title
+								}
 							</h2>
 						</div>
 
@@ -145,28 +147,34 @@ export function AccountSettingsModal({
 									{authConfig.enablePasswordLogin && (
 										<ChangePasswordForm />
 									)}
-									{authConfig.enableSocialLogin && <ConnectedAccountsBlock />}
-									{authConfig.enablePasskeys && <PasskeysBlock />}
-									{authConfig.enableTwoFactor && <TwoFactorBlock />}
+									{authConfig.enableSocialLogin && (
+										<ConnectedAccountsBlock />
+									)}
+									{authConfig.enablePasskeys && (
+										<PasskeysBlock />
+									)}
+									{authConfig.enableTwoFactor && (
+										<TwoFactorBlock />
+									)}
 									<ActiveSessionsBlock />
 								</SettingsList>
 							)}
 
-						{activeTab === "billing" && (
-							<SettingsList>
-								{activePlan && <ActivePlan />}
-								<ChangePlan
-									userId={user?.id}
-									activePlanId={activePlan?.id}
-								/>
-							</SettingsList>
-						)}
+							{activeTab === "billing" && (
+								<SettingsList>
+									{activePlan && <ActivePlan />}
+									<ChangePlan
+										userId={user?.id}
+										activePlanId={activePlan?.id}
+									/>
+								</SettingsList>
+							)}
 
-						{activeTab === "danger-zone" && (
-							<SettingsList>
-								<DeleteAccountForm />
-							</SettingsList>
-						)}
+							{activeTab === "danger-zone" && (
+								<SettingsList>
+									<DeleteAccountForm />
+								</SettingsList>
+							)}
 						</div>
 					</div>
 				</div>

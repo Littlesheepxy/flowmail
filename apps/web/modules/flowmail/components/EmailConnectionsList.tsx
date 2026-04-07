@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@repo/ui";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
@@ -20,7 +21,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/components/select";
-import { Spinner } from "@repo/ui";
 import {
 	Table,
 	TableBody,
@@ -31,7 +31,7 @@ import {
 } from "@repo/ui/components/table";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	ArrowLeftIcon,
 	ExternalLinkIcon,
@@ -57,6 +57,7 @@ interface ProviderDef {
 	icon: string;
 	method: AuthMethod;
 	description: string;
+	region: "global" | "china" | "universal";
 	oauthUrl?: string;
 	scopes?: string;
 }
@@ -67,16 +68,29 @@ const PROVIDERS: ProviderDef[] = [
 		name: "Gmail",
 		icon: "/icons/integrations/gmail.svg",
 		method: "oauth",
-		description: "通过 Google OAuth 安全授权",
+		region: "global",
+		description: "Google Workspace / Gmail",
 		oauthUrl: "https://accounts.google.com/o/oauth2/v2/auth",
 		scopes: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
+	},
+	{
+		id: "outlook",
+		name: "Outlook",
+		icon: "/icons/integrations/outlook.svg",
+		method: "oauth",
+		region: "global",
+		description: "Microsoft 365 / Outlook",
+		oauthUrl:
+			"https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+		scopes: "https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access",
 	},
 	{
 		id: "feishu",
 		name: "飞书邮箱",
 		icon: "/icons/integrations/feishu.svg",
 		method: "oauth",
-		description: "通过飞书开放平台 OAuth 授权",
+		region: "china",
+		description: "飞书开放平台 OAuth",
 		oauthUrl: "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
 	},
 	{
@@ -84,7 +98,8 @@ const PROVIDERS: ProviderDef[] = [
 		name: "钉钉邮箱",
 		icon: "/icons/integrations/dingtalk.svg",
 		method: "oauth",
-		description: "通过钉钉开放平台 OAuth 授权",
+		region: "china",
+		description: "钉钉开放平台 OAuth",
 		oauthUrl: "https://login.dingtalk.com/oauth2/auth",
 		scopes: "openid",
 	},
@@ -93,15 +108,17 @@ const PROVIDERS: ProviderDef[] = [
 		name: "企微邮箱",
 		icon: "/icons/integrations/wecom.png",
 		method: "oauth",
-		description: "通过企业微信 OAuth 授权",
+		region: "china",
+		description: "企业微信 OAuth",
 		oauthUrl: "https://open.weixin.qq.com/connect/oauth2/authorize",
 	},
 	{
 		id: "imap",
-		name: "个人邮箱",
+		name: "其他邮箱",
 		icon: "",
 		method: "imap",
-		description: "通用 IMAP 连接（QQ、163、Outlook 等）",
+		region: "universal",
+		description: "通用 IMAP（QQ、163、Yahoo 等）",
 	},
 ];
 
@@ -132,8 +149,12 @@ export function EmailConnectionsList() {
 	]);
 
 	const [dialogOpen, setDialogOpen] = useState(false);
-	const [selectedProvider, setSelectedProvider] = useState<ProviderDef | null>(null);
-	const [passwordDialogConn, setPasswordDialogConn] = useState<{ id: string; email: string } | null>(null);
+	const [selectedProvider, setSelectedProvider] =
+		useState<ProviderDef | null>(null);
+	const [passwordDialogConn, setPasswordDialogConn] = useState<{
+		id: string;
+		email: string;
+	} | null>(null);
 	const [newImapPassword, setNewImapPassword] = useState("");
 
 	const { data, isLoading } = useQuery(
@@ -206,7 +227,10 @@ export function EmailConnectionsList() {
 				</div>
 				<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 					<DialogTrigger asChild>
-						<Button data-guide="connect-email-btn" onClick={() => setSelectedProvider(null)}>
+						<Button
+							data-guide="connect-email-btn"
+							onClick={() => setSelectedProvider(null)}
+						>
 							<PlusIcon className="mr-2 size-4" />
 							连接邮箱
 						</Button>
@@ -216,6 +240,12 @@ export function EmailConnectionsList() {
 							<ProviderPicker onSelect={setSelectedProvider} />
 						) : selectedProvider.id === "gmail" ? (
 							<GmailOAuthForm
+								organizationId={activeOrganization?.id ?? ""}
+								organizationSlug={organizationSlug}
+								onBack={() => setSelectedProvider(null)}
+							/>
+						) : selectedProvider.id === "outlook" ? (
+							<OutlookOAuthForm
 								organizationId={activeOrganization?.id ?? ""}
 								organizationSlug={organizationSlug}
 								onBack={() => setSelectedProvider(null)}
@@ -234,7 +264,8 @@ export function EmailConnectionsList() {
 								onSuccess={() => {
 									handleClose();
 									queryClient.invalidateQueries({
-										queryKey: orpc.emailConnections.list.key(),
+										queryKey:
+											orpc.emailConnections.list.key(),
 									});
 								}}
 							/>
@@ -257,7 +288,10 @@ export function EmailConnectionsList() {
 					<TableBody>
 						{isLoading ? (
 							<TableRow>
-								<TableCell colSpan={5} className="h-32 text-center">
+								<TableCell
+									colSpan={5}
+									className="h-32 text-center"
+								>
 									<div className="flex items-center justify-center gap-2">
 										<Spinner className="size-4 text-primary" />
 										加载中...
@@ -291,42 +325,72 @@ export function EmailConnectionsList() {
 										</div>
 									</TableCell>
 									<TableCell>
-										<Badge status="info">{providerLabel(conn.provider)}</Badge>
+										<Badge status="info">
+											{providerLabel(conn.provider)}
+										</Badge>
 									</TableCell>
 									<TableCell>
-										{conn.isActive && !["gmail", "feishu"].includes(conn.provider) && !conn.hasImapPassword ? (
-											<Badge status="warning">需配置 IMAP 密码</Badge>
+										{conn.isActive &&
+										!["gmail", "feishu"].includes(
+											conn.provider,
+										) &&
+										!conn.hasImapPassword ? (
+											<Badge status="warning">
+												需配置 IMAP 密码
+											</Badge>
 										) : (
-											<Badge status={conn.isActive ? "success" : "error"}>
-												{conn.isActive ? "已连接" : "已断开"}
+											<Badge
+												status={
+													conn.isActive
+														? "success"
+														: "error"
+												}
+											>
+												{conn.isActive
+													? "已连接"
+													: "已断开"}
 											</Badge>
 										)}
 									</TableCell>
 									<TableCell className="text-sm text-muted-foreground">
 										{conn.lastSyncAt
-											? new Date(conn.lastSyncAt).toLocaleString()
+											? new Date(
+													conn.lastSyncAt,
+												).toLocaleString()
 											: "从未同步"}
 									</TableCell>
 									<TableCell>
 										<div className="flex justify-end gap-1">
-											{!["gmail", "feishu"].includes(conn.provider) && !conn.hasImapPassword && (
-												<Button
-													size="icon"
-													variant="ghost"
-													title="设置 IMAP 密码"
-													onClick={() => {
-														setPasswordDialogConn({ id: conn.id, email: conn.email });
-														setNewImapPassword("");
-													}}
-												>
-													<KeyIcon className="size-4 text-amber-500" />
-												</Button>
-											)}
+											{!["gmail", "feishu"].includes(
+												conn.provider,
+											) &&
+												!conn.hasImapPassword && (
+													<Button
+														size="icon"
+														variant="ghost"
+														title="设置 IMAP 密码"
+														onClick={() => {
+															setPasswordDialogConn(
+																{
+																	id: conn.id,
+																	email: conn.email,
+																},
+															);
+															setNewImapPassword(
+																"",
+															);
+														}}
+													>
+														<KeyIcon className="size-4 text-amber-500" />
+													</Button>
+												)}
 											<Button
 												size="icon"
 												variant="ghost"
 												title="同步邮件"
-												disabled={syncMutation.isPending}
+												disabled={
+													syncMutation.isPending
+												}
 												onClick={() =>
 													syncMutation.mutate({
 														connectionId: conn.id,
@@ -343,7 +407,9 @@ export function EmailConnectionsList() {
 												size="icon"
 												variant="ghost"
 												title="断开连接"
-												disabled={disconnectMutation.isPending}
+												disabled={
+													disconnectMutation.isPending
+												}
 												onClick={() =>
 													disconnectMutation.mutate({
 														connectionId: conn.id,
@@ -373,7 +439,8 @@ export function EmailConnectionsList() {
 					<DialogHeader>
 						<DialogTitle>设置 IMAP 密码</DialogTitle>
 						<DialogDescription>
-							为 {passwordDialogConn?.email} 设置 IMAP 专用密码以启用邮件同步。
+							为 {passwordDialogConn?.email} 设置 IMAP
+							专用密码以启用邮件同步。
 						</DialogDescription>
 					</DialogHeader>
 					<form
@@ -394,20 +461,28 @@ export function EmailConnectionsList() {
 								type="password"
 								placeholder="在邮箱设置中生成的应用专用密码"
 								value={newImapPassword}
-								onChange={(e) => setNewImapPassword(e.target.value)}
+								onChange={(e) =>
+									setNewImapPassword(e.target.value)
+								}
 								required
 								autoFocus
 							/>
 							<p className="text-xs text-muted-foreground">
-								请在飞书/钉钉/企微邮箱设置中开启 IMAP 服务并生成专用密码。
+								请在飞书/钉钉/企微邮箱设置中开启 IMAP
+								服务并生成专用密码。
 							</p>
 						</div>
 						<Button
 							type="submit"
 							className="w-full"
-							disabled={!newImapPassword.trim() || updatePwMutation.isPending}
+							disabled={
+								!newImapPassword.trim() ||
+								updatePwMutation.isPending
+							}
 						>
-							{updatePwMutation.isPending ? "保存中..." : "保存并启用同步"}
+							{updatePwMutation.isPending
+								? "保存中..."
+								: "保存并启用同步"}
 						</Button>
 					</form>
 				</DialogContent>
@@ -416,37 +491,64 @@ export function EmailConnectionsList() {
 	);
 }
 
-function ProviderPicker({
-	onSelect,
-}: {
-	onSelect: (p: ProviderDef) => void;
-}) {
-	const oauthProviders = PROVIDERS.filter((p) => p.method === "oauth");
+function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
+	const globalProviders = PROVIDERS.filter((p) => p.region === "global");
+	const chinaProviders = PROVIDERS.filter((p) => p.region === "china");
 	const imapProvider = PROVIDERS.find((p) => p.id === "imap");
+
+	function ProviderButton({ p }: { p: ProviderDef }) {
+		return (
+			<button
+				key={p.id}
+				type="button"
+				onClick={() => onSelect(p)}
+				className="flex flex-col items-center gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30"
+			>
+				<Image src={p.icon} alt={p.name} width={32} height={32} />
+				<span className="text-sm font-medium text-foreground">
+					{p.name}
+				</span>
+				<span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+					<ShieldCheckIcon className="size-3" />
+					OAuth
+				</span>
+			</button>
+		);
+	}
 
 	return (
 		<>
 			<DialogHeader>
 				<DialogTitle>连接邮箱</DialogTitle>
-				<DialogDescription>选择你的邮箱服务，通过 OAuth 安全授权连接。</DialogDescription>
+				<DialogDescription>
+					选择你的邮箱服务，通过 OAuth 安全授权连接。
+				</DialogDescription>
 			</DialogHeader>
 
-			<div className="grid grid-cols-2 gap-3 mt-2">
-				{oauthProviders.map((p) => (
-					<button
-						key={p.id}
-						type="button"
-						onClick={() => onSelect(p)}
-						className="flex flex-col items-center gap-2.5 rounded-lg border p-4 transition-colors hover:bg-muted/50 hover:border-primary/30"
-					>
-						<Image src={p.icon} alt={p.name} width={36} height={36} />
-						<span className="text-sm font-medium text-foreground">{p.name}</span>
-						<span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
-							<ShieldCheckIcon className="size-3" />
-							OAuth
-						</span>
-					</button>
-				))}
+			<div className="grid grid-cols-2 gap-4 mt-2">
+				<div className="space-y-2">
+					<p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+						<GlobeIcon className="size-3" />
+						海外邮箱
+					</p>
+					<div className="space-y-2">
+						{globalProviders.map((p) => (
+							<ProviderButton key={p.id} p={p} />
+						))}
+					</div>
+				</div>
+
+				<div className="space-y-2">
+					<p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+						<MailIcon className="size-3" />
+						国内邮箱
+					</p>
+					<div className="space-y-2">
+						{chinaProviders.map((p) => (
+							<ProviderButton key={p.id} p={p} />
+						))}
+					</div>
+				</div>
 			</div>
 
 			{imapProvider && (
@@ -467,15 +569,16 @@ function ProviderPicker({
 						className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30 w-full text-left"
 					>
 						<div className="flex size-9 items-center justify-center rounded-full bg-muted">
-							<GlobeIcon className="size-4 text-muted-foreground" />
+							<KeyIcon className="size-4 text-muted-foreground" />
 						</div>
 						<div>
-							<p className="text-sm font-medium text-foreground">个人邮箱 / 通用 IMAP</p>
+							<p className="text-sm font-medium text-foreground">
+								其他邮箱 / 通用 IMAP
+							</p>
 							<p className="text-xs text-muted-foreground">
-								QQ 邮箱、163、Outlook、iCloud 等
+								QQ 邮箱、163、Yahoo、iCloud 等
 							</p>
 						</div>
-						<KeyIcon className="size-4 text-muted-foreground/50 ml-auto" />
 					</button>
 				</>
 			)}
@@ -510,7 +613,10 @@ function GmailOAuthForm({
 		authUrl.searchParams.set("client_id", clientId);
 		authUrl.searchParams.set("redirect_uri", redirectUri);
 		authUrl.searchParams.set("response_type", "code");
-		authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send");
+		authUrl.searchParams.set(
+			"scope",
+			"https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
+		);
 		authUrl.searchParams.set("access_type", "offline");
 		authUrl.searchParams.set("prompt", "consent");
 		authUrl.searchParams.set("state", organizationId);
@@ -522,7 +628,11 @@ function GmailOAuthForm({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>连接 Gmail</DialogTitle>
@@ -533,7 +643,12 @@ function GmailOAuthForm({
 			</DialogHeader>
 
 			<div className="flex flex-col items-center gap-4 py-4">
-				<Image src="/icons/integrations/gmail.svg" alt="Gmail" width={48} height={48} />
+				<Image
+					src="/icons/integrations/gmail.svg"
+					alt="Gmail"
+					width={48}
+					height={48}
+				/>
 				<div className="text-center space-y-1">
 					<p className="text-sm text-muted-foreground">
 						点击下方按钮将跳转到 Google 登录页面
@@ -545,6 +660,88 @@ function GmailOAuthForm({
 				<Button onClick={handleConnect} className="w-full gap-2">
 					<ExternalLinkIcon className="size-4" />
 					前往 Google 授权
+				</Button>
+			</div>
+		</>
+	);
+}
+
+function OutlookOAuthForm({
+	organizationId,
+	organizationSlug,
+	onBack,
+}: {
+	organizationId: string;
+	organizationSlug: string;
+	onBack: () => void;
+}) {
+	function handleConnect() {
+		const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID;
+		if (!clientId) {
+			alert("Microsoft OAuth 尚未配置 (NEXT_PUBLIC_MICROSOFT_CLIENT_ID)");
+			return;
+		}
+
+		const redirectUri = `${window.location.origin}/app/${organizationSlug}/connections/callback`;
+
+		sessionStorage.setItem(
+			"flowmail_oauth_state",
+			JSON.stringify({ provider: "outlook", organizationId }),
+		);
+
+		const authUrl = new URL(
+			"https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+		);
+		authUrl.searchParams.set("client_id", clientId);
+		authUrl.searchParams.set("redirect_uri", redirectUri);
+		authUrl.searchParams.set("response_type", "code");
+		authUrl.searchParams.set(
+			"scope",
+			"https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access",
+		);
+		authUrl.searchParams.set("response_mode", "query");
+		authUrl.searchParams.set("state", organizationId);
+
+		window.location.href = authUrl.toString();
+	}
+
+	return (
+		<>
+			<DialogHeader>
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
+						<ArrowLeftIcon className="size-4" />
+					</button>
+					<DialogTitle>连接 Microsoft 365 / Outlook</DialogTitle>
+				</div>
+				<DialogDescription>
+					通过 Microsoft OAuth 安全授权，Flowmail
+					仅获取邮件读取和发送权限。
+				</DialogDescription>
+			</DialogHeader>
+
+			<div className="flex flex-col items-center gap-4 py-4">
+				<Image
+					src="/icons/integrations/outlook.svg"
+					alt="Outlook"
+					width={48}
+					height={48}
+				/>
+				<div className="text-center space-y-1">
+					<p className="text-sm text-muted-foreground">
+						点击下方按钮将跳转到 Microsoft 登录页面
+					</p>
+					<p className="text-xs text-muted-foreground/60">
+						支持 Microsoft 365、Outlook.com、Hotmail
+					</p>
+				</div>
+				<Button onClick={handleConnect} className="w-full gap-2">
+					<ExternalLinkIcon className="size-4" />
+					前往 Microsoft 授权
 				</Button>
 			</div>
 		</>
@@ -580,18 +777,25 @@ function PlatformOAuthForm({
 				organizationId,
 				appId: appId.trim(),
 				appSecret: appSecret.trim(),
-				...(imapPassword.trim() ? { imapPassword: imapPassword.trim() } : {}),
+				...(imapPassword.trim()
+					? { imapPassword: imapPassword.trim() }
+					: {}),
 			}),
 		);
 
 		let authUrl: URL;
 
 		if (provider.id === "feishu") {
-			authUrl = new URL("https://accounts.feishu.cn/open-apis/authen/v1/authorize");
+			authUrl = new URL(
+				"https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+			);
 			authUrl.searchParams.set("client_id", appId.trim());
 			authUrl.searchParams.set("redirect_uri", redirectUri);
 			authUrl.searchParams.set("response_type", "code");
-			authUrl.searchParams.set("scope", "contact:user.email:readonly mail:user_mailbox.message:readonly mail:user_mailbox.message.subject:read mail:user_mailbox.message.address:read mail:user_mailbox.message.body:read");
+			authUrl.searchParams.set(
+				"scope",
+				"contact:user.email:readonly mail:user_mailbox.message:readonly mail:user_mailbox.message.subject:read mail:user_mailbox.message.address:read mail:user_mailbox.message.body:read",
+			);
 			authUrl.searchParams.set("state", organizationId);
 		} else if (provider.id === "dingtalk") {
 			authUrl = new URL("https://login.dingtalk.com/oauth2/auth");
@@ -602,7 +806,9 @@ function PlatformOAuthForm({
 			authUrl.searchParams.set("prompt", "consent");
 			authUrl.searchParams.set("state", organizationId);
 		} else if (provider.id === "wecom") {
-			authUrl = new URL("https://open.weixin.qq.com/connect/oauth2/authorize");
+			authUrl = new URL(
+				"https://open.weixin.qq.com/connect/oauth2/authorize",
+			);
 			authUrl.searchParams.set("appid", appId.trim());
 			authUrl.searchParams.set("redirect_uri", redirectUri);
 			authUrl.searchParams.set("response_type", "code");
@@ -616,7 +822,10 @@ function PlatformOAuthForm({
 		window.location.href = authUrl.toString();
 	}
 
-	const platformGuide: Record<string, { docUrl: string; idLabel: string; secretLabel: string }> = {
+	const platformGuide: Record<
+		string,
+		{ docUrl: string; idLabel: string; secretLabel: string }
+	> = {
 		feishu: {
 			docUrl: "https://open.feishu.cn/app",
 			idLabel: "App ID",
@@ -640,7 +849,11 @@ function PlatformOAuthForm({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>连接 {provider.name}</DialogTitle>
@@ -658,10 +871,19 @@ function PlatformOAuthForm({
 				}}
 			>
 				<div className="flex items-center gap-3 rounded-lg bg-muted/50 border p-3">
-					<Image src={provider.icon} alt={provider.name} width={28} height={28} />
+					<Image
+						src={provider.icon}
+						alt={provider.name}
+						width={28}
+						height={28}
+					/>
 					<div className="flex-1">
-						<p className="text-sm font-medium text-foreground">{provider.name}</p>
-						<p className="text-xs text-muted-foreground">{provider.description}</p>
+						<p className="text-sm font-medium text-foreground">
+							{provider.name}
+						</p>
+						<p className="text-xs text-muted-foreground">
+							{provider.description}
+						</p>
 					</div>
 				</div>
 
@@ -689,7 +911,9 @@ function PlatformOAuthForm({
 					<div className="space-y-2">
 						<Label>
 							IMAP 专用密码
-							<span className="text-muted-foreground font-normal ml-1">(同步邮件必填)</span>
+							<span className="text-muted-foreground font-normal ml-1">
+								(同步邮件必填)
+							</span>
 						</Label>
 						<Input
 							type="password"
@@ -698,7 +922,8 @@ function PlatformOAuthForm({
 							onChange={(e) => setImapPassword(e.target.value)}
 						/>
 						<p className="text-xs text-muted-foreground">
-							OAuth 仅用于身份验证，邮件同步需要 IMAP 密码。请在邮箱设置中开启 IMAP 并生成专用密码。
+							OAuth 仅用于身份验证，邮件同步需要 IMAP
+							密码。请在邮箱设置中开启 IMAP 并生成专用密码。
 						</p>
 					</div>
 				)}
@@ -717,7 +942,11 @@ function PlatformOAuthForm({
 					</p>
 				)}
 
-				<Button type="submit" className="w-full gap-2" disabled={!appId.trim() || !appSecret.trim()}>
+				<Button
+					type="submit"
+					className="w-full gap-2"
+					disabled={!appId.trim() || !appSecret.trim()}
+				>
 					<ExternalLinkIcon className="size-4" />
 					前往授权
 				</Button>
@@ -762,7 +991,11 @@ function ImapConnectForm({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>连接个人邮箱</DialogTitle>
@@ -782,8 +1015,10 @@ function ImapConnectForm({
 						email,
 						password,
 						...(imapHost ? { imapHost } : {}),
-						...(imapPort ? { imapPort: Number.parseInt(imapPort) } : {}),
-						maxSyncCount: Number.parseInt(maxSyncCount),
+						...(imapPort
+							? { imapPort: Number.parseInt(imapPort, 10) }
+							: {}),
+						maxSyncCount: Number.parseInt(maxSyncCount, 10),
 					});
 				}}
 			>
@@ -812,16 +1047,23 @@ function ImapConnectForm({
 				</div>
 				<div className="space-y-2">
 					<Label>首次同步数量</Label>
-					<Select value={maxSyncCount} onValueChange={setMaxSyncCount}>
+					<Select
+						value={maxSyncCount}
+						onValueChange={setMaxSyncCount}
+					>
 						<SelectTrigger>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="100">最近 100 封</SelectItem>
-							<SelectItem value="500">最近 500 封（推荐）</SelectItem>
+							<SelectItem value="500">
+								最近 500 封（推荐）
+							</SelectItem>
 							<SelectItem value="1000">最近 1000 封</SelectItem>
 							<SelectItem value="5000">最近 5000 封</SelectItem>
-							<SelectItem value="10000">全部（最多 10000 封）</SelectItem>
+							<SelectItem value="10000">
+								全部（最多 10000 封）
+							</SelectItem>
 						</SelectContent>
 					</Select>
 					<p className="text-xs text-muted-foreground">
@@ -849,7 +1091,8 @@ function ImapConnectForm({
 				</div>
 
 				<p className="text-xs text-muted-foreground">
-					IMAP 服务器和端口会根据邮箱域名自动填充（支持 QQ、163、Outlook 等）。
+					IMAP 服务器和端口会根据邮箱域名自动填充（支持
+					QQ、163、Outlook 等）。
 				</p>
 
 				{connectMutation.error && (
@@ -858,8 +1101,14 @@ function ImapConnectForm({
 					</p>
 				)}
 
-				<Button type="submit" className="w-full" disabled={connectMutation.isPending}>
-					{connectMutation.isPending && <Spinner className="mr-2 size-4" />}
+				<Button
+					type="submit"
+					className="w-full"
+					disabled={connectMutation.isPending}
+				>
+					{connectMutation.isPending && (
+						<Spinner className="mr-2 size-4" />
+					)}
 					测试并连接
 				</Button>
 			</form>

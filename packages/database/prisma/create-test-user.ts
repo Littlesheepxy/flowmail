@@ -1,9 +1,11 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "./generated/client";
 import { hashPassword } from "better-auth/crypto";
+import { PrismaClient } from "./generated/client";
 
 if (!process.env.DATABASE_URL) {
-	throw new Error("DATABASE_URL is not set. Run with: dotenv -e ../../.env.local -- tsx prisma/create-test-user.ts");
+	throw new Error(
+		"DATABASE_URL is not set. Run with: dotenv -e ../../.env.local -- tsx prisma/create-test-user.ts",
+	);
 }
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });

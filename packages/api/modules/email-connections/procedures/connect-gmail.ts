@@ -1,5 +1,6 @@
 import { db, encryptSensitiveFields } from "@repo/database";
 import { google } from "googleapis";
+import { writeAuditLog } from "../../../lib/audit-log";
 import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectGmailSchema } from "../types";
@@ -40,6 +41,7 @@ export const connectGmail = protectedProcedure
 			refreshToken: tokens.refresh_token ?? undefined,
 		});
 
+		const now = new Date();
 		const connection = await db.emailConnection.upsert({
 			where: {
 				organizationId_email: {
@@ -57,6 +59,9 @@ export const connectGmail = protectedProcedure
 					? new Date(tokens.expiry_date)
 					: null,
 				isActive: true,
+				consentedAt: now,
+				consentScope: "sync,classify,extract",
+				consentUserId: context.user.id,
 			},
 			update: {
 				...encryptedUpdate,
@@ -64,7 +69,19 @@ export const connectGmail = protectedProcedure
 					? new Date(tokens.expiry_date)
 					: null,
 				isActive: true,
+				consentedAt: now,
+				consentScope: "sync,classify,extract",
+				consentUserId: context.user.id,
 			},
+		});
+
+		writeAuditLog({
+			organizationId: input.organizationId,
+			userId: context.user.id,
+			action: "EMAIL_CONNECTION_CREATE",
+			targetType: "EmailConnection",
+			targetId: connection.id,
+			metadata: { provider: "gmail", email },
 		});
 
 		return {

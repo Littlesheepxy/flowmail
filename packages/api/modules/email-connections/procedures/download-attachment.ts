@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import { db } from "@repo/database";
+import { db, decryptSensitiveFields } from "@repo/database";
 import { z } from "zod/v4";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -47,47 +47,53 @@ export const downloadAttachment = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(attachment.thread.connection.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			attachment.thread.connection.organizationId,
+			context.user.id,
+		);
 
-		let conn = attachment.thread.connection;
+		let conn = decryptSensitiveFields(attachment.thread.connection);
 		if (conn.provider === "feishu") {
 			conn = await ensureFeishuOAuthAccessToken(conn);
 		}
 
 		const { provider, accessToken, email } = conn;
 
+		if (!accessToken) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "邮箱缺少 access token，请重新授权连接",
+			});
+		}
+
+		let proxyUrl: string;
 		if (provider === "feishu") {
-			if (!accessToken) {
-				throw new ORPCError("BAD_REQUEST", {
-					message: "飞书邮箱缺少 access token，请重新授权连接",
-				});
-			}
 			const mailboxId = encodeURIComponent(email || "me");
-			const url = `https://open.feishu.cn/open-apis/mail/v1/user_mailboxes/${mailboxId}/messages/attachment_download`;
-			return {
-				downloadUrl: url,
-				token: accessToken,
-				externalId: attachment.externalId,
-				filename: attachment.filename,
-				mimeType: attachment.mimeType,
-				provider,
-			};
-		}
-
-		if (provider === "gmail") {
+			proxyUrl = `https://open.feishu.cn/open-apis/mail/v1/user_mailboxes/${mailboxId}/messages/attachment_download`;
+		} else if (provider === "gmail") {
 			const [messageId, attachmentId] = attachment.externalId.split("/");
-			const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`;
-			return {
-				downloadUrl: url,
-				token: accessToken,
-				externalId: attachment.externalId,
-				filename: attachment.filename,
-				mimeType: attachment.mimeType,
-				provider,
-			};
+			proxyUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`;
+		} else {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Attachment download not supported for provider: ${provider}`,
+			});
 		}
 
-		throw new ORPCError("BAD_REQUEST", {
-			message: `Attachment download not supported for provider: ${provider}`,
+		const proxyRes = await fetch(proxyUrl, {
+			headers: { Authorization: `Bearer ${accessToken}` },
 		});
+
+		if (!proxyRes.ok) {
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: `Failed to fetch attachment from ${provider}: ${proxyRes.status}`,
+			});
+		}
+
+		const data = await proxyRes.text();
+		return {
+			data,
+			externalId: attachment.externalId,
+			filename: attachment.filename,
+			mimeType: attachment.mimeType,
+			provider,
+		};
 	});

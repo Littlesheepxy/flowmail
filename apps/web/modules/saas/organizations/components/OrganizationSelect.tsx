@@ -66,7 +66,8 @@ export function OrganzationSelect({
 			className={cn(
 				"flex w-full items-center justify-between gap-3 text-left outline-none transition-colors",
 				{
-					"justify-center rounded-lg py-2 hover:bg-muted/50": collapsed,
+					"justify-center rounded-lg py-2 hover:bg-muted/50":
+						collapsed,
 				},
 			)}
 		>

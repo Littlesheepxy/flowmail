@@ -1,15 +1,14 @@
-import { db } from "@repo/database";
 import { MemoryManager } from "@repo/agent";
+import { db, encryptEmailContent } from "@repo/database";
 import {
+	type CategoryDefinition,
 	classifyEmailDynamic,
 	classifyEmailWithMemory,
-	type CategoryDefinition,
 } from "./classifier";
+import type { EmailRecipient, RawEmailAttachment } from "./connectors/types";
 import { extractApprovalFields, extractReportFields } from "./extractor";
 import { generateSuggestions } from "./suggester";
 import { summarizeThread } from "./summarizer";
-
-import type { EmailRecipient, RawEmailAttachment } from "./connectors/types";
 
 const memoryManager = new MemoryManager();
 
@@ -38,6 +37,24 @@ interface ProcessResult {
 	categorySlug?: string;
 	error?: string;
 	requiresManualReview: boolean;
+}
+
+const DEFAULT_RETENTION_DAYS = 90;
+
+function computeExpiresAt(): Date {
+	return new Date(Date.now() + DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function encryptBodyFields(input: {
+	bodyHtml?: string | null;
+	bodyText?: string | null;
+	rawPayload?: string | null;
+}) {
+	return encryptEmailContent({
+		bodyHtml: input.bodyHtml ?? null,
+		bodyText: input.bodyText ?? null,
+		rawPayload: input.rawPayload ?? null,
+	});
 }
 
 const SLUG_TO_ENTITY_TYPE: Record<string, string> = {
@@ -83,7 +100,9 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				confidence = result.confidence;
 				reasoning = result.reasoning;
 
-				const matched = orgCategories.find((c) => c.slug === categorySlug);
+				const matched = orgCategories.find(
+					(c) => c.slug === categorySlug,
+				);
 				categoryId = matched?.id;
 				entityType =
 					SLUG_TO_ENTITY_TYPE[categorySlug] ??
@@ -132,7 +151,9 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 
 			summary = await summarizeThread(input.content);
 		} else {
-			const uncategorized = orgCategories.find((c) => c.slug === "uncategorized") ?? orgCategories[0];
+			const uncategorized =
+				orgCategories.find((c) => c.slug === "uncategorized") ??
+				orgCategories[0];
 			if (uncategorized) {
 				categoryId = uncategorized.id;
 				categorySlug = uncategorized.slug;
@@ -151,7 +172,8 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 			select: { entityId: true },
 		});
 
-		let existingEntityId: string | null = existingByThread?.entityId ?? null;
+		let existingEntityId: string | null =
+			existingByThread?.entityId ?? null;
 
 		// 层级2：同发件人 + 规范化主题（30天内）
 		if (!existingEntityId) {
@@ -182,6 +204,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 			].filter(Boolean);
 
 			try {
+				const encryptedBody = encryptBodyFields(input);
 				const thread = await db.emailThread.create({
 					data: {
 						organizationId: input.organizationId,
@@ -190,14 +213,21 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 						subject: input.subject,
 						sender: input.senderEmail,
 						senderName: input.sender || null,
-						participants: JSON.stringify([...new Set(allParticipants)]),
-						toRecipients: input.toRecipients ? JSON.stringify(input.toRecipients) : null,
-						ccRecipients: input.ccRecipients ? JSON.stringify(input.ccRecipients) : null,
+						participants: JSON.stringify([
+							...new Set(allParticipants),
+						]),
+						toRecipients: input.toRecipients
+							? JSON.stringify(input.toRecipients)
+							: null,
+						ccRecipients: input.ccRecipients
+							? JSON.stringify(input.ccRecipients)
+							: null,
 						snippet: input.content.slice(0, 200),
-						bodyHtml: input.bodyHtml ?? null,
-						bodyText: input.bodyText ?? null,
+						bodyHtml: encryptedBody.bodyHtml,
+						bodyText: encryptedBody.bodyText,
 						messageId: input.messageId ?? null,
 						entityId: existingEntityId,
+						expiresAt: null,
 						receivedAt: input.receivedAt,
 						processedAt: new Date(),
 					},
@@ -216,7 +246,10 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					});
 				}
 			} catch (threadError) {
-				console.error("[processEmail] Thread append failed:", threadError);
+				console.error(
+					"[processEmail] Thread append failed:",
+					threadError,
+				);
 				throw threadError;
 			}
 
@@ -254,9 +287,9 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 
 		// ─── 兜底：创建新 Entity ───
 
-		const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"] as const).includes(
-			entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK",
-		)
+		const validEntityType = (
+			["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"] as const
+		).includes(entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK")
 			? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK")
 			: "FEEDBACK";
 
@@ -271,7 +304,8 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				type: validEntityType,
 				categoryId: categoryId ?? undefined,
 				title:
-					(extractedFields as { title?: string }).title ?? input.subject,
+					(extractedFields as { title?: string }).title ??
+					input.subject,
 				status: initialStatus,
 				extractedFields: JSON.stringify(extractedFields),
 				aiSummary: summary,
@@ -287,6 +321,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 		].filter(Boolean);
 
 		try {
+			const encryptedBody2 = encryptBodyFields(input);
 			const thread = await db.emailThread.create({
 				data: {
 					organizationId: input.organizationId,
@@ -296,13 +331,18 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					sender: input.senderEmail,
 					senderName: input.sender || null,
 					participants: JSON.stringify([...new Set(allParticipants)]),
-					toRecipients: input.toRecipients ? JSON.stringify(input.toRecipients) : null,
-					ccRecipients: input.ccRecipients ? JSON.stringify(input.ccRecipients) : null,
+					toRecipients: input.toRecipients
+						? JSON.stringify(input.toRecipients)
+						: null,
+					ccRecipients: input.ccRecipients
+						? JSON.stringify(input.ccRecipients)
+						: null,
 					snippet: input.content.slice(0, 200),
-					bodyHtml: input.bodyHtml ?? null,
-					bodyText: input.bodyText ?? null,
+					bodyHtml: encryptedBody2.bodyHtml,
+					bodyText: encryptedBody2.bodyText,
 					messageId: input.messageId ?? null,
 					entityId: entity.id,
+					expiresAt: null,
 					receivedAt: input.receivedAt,
 					processedAt: new Date(),
 				},
@@ -321,7 +361,10 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				});
 			}
 		} catch (threadError) {
-			console.error("[processEmail] Thread creation failed:", threadError);
+			console.error(
+				"[processEmail] Thread creation failed:",
+				threadError,
+			);
 			throw threadError;
 		}
 
@@ -401,6 +444,67 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 			success: false,
 			error: error instanceof Error ? error.message : "Unknown error",
 			requiresManualReview: true,
+		};
+	}
+}
+
+export async function storeEmailOnly(input: EmailInput): Promise<{
+	success: boolean;
+	threadId?: string;
+	error?: string;
+}> {
+	try {
+		const allParticipants = [
+			input.senderEmail,
+			...(input.toRecipients?.map((r) => r.address) ?? []),
+			...(input.ccRecipients?.map((r) => r.address) ?? []),
+		].filter(Boolean);
+
+		const encryptedStoreBody = encryptBodyFields(input);
+		const thread = await db.emailThread.create({
+			data: {
+				organizationId: input.organizationId,
+				connectionId: input.connectionId,
+				externalThreadId: input.externalThreadId,
+				subject: input.subject,
+				sender: input.senderEmail,
+				senderName: input.sender || null,
+				participants: JSON.stringify([...new Set(allParticipants)]),
+				toRecipients: input.toRecipients
+					? JSON.stringify(input.toRecipients)
+					: null,
+				ccRecipients: input.ccRecipients
+					? JSON.stringify(input.ccRecipients)
+					: null,
+				snippet: input.content.slice(0, 200),
+				bodyHtml: encryptedStoreBody.bodyHtml,
+				bodyText: encryptedStoreBody.bodyText,
+				messageId: input.messageId ?? null,
+				entityId: null,
+				expiresAt: computeExpiresAt(),
+				receivedAt: input.receivedAt,
+				processedAt: null,
+			},
+		});
+
+		if (input.attachments && input.attachments.length > 0) {
+			await db.emailAttachment.createMany({
+				data: input.attachments.map((att) => ({
+					threadId: thread.id,
+					filename: att.filename,
+					mimeType: att.mimeType ?? null,
+					size: att.size ?? null,
+					externalId: att.externalId,
+					contentId: att.contentId ?? null,
+				})),
+			});
+		}
+
+		return { success: true, threadId: thread.id };
+	} catch (error) {
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "Unknown error",
 		};
 	}
 }

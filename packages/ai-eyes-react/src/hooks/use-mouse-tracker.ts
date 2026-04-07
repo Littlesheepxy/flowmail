@@ -61,10 +61,7 @@ export function useMouseTracker(
 		const newX = prev.x + (targetX - prev.x) * config.smoothing;
 		const newY = prev.y + (targetY - prev.y) * config.smoothing;
 
-		if (
-			Math.abs(newX - prev.x) > 0.01 ||
-			Math.abs(newY - prev.y) > 0.01
-		) {
+		if (Math.abs(newX - prev.x) > 0.01 || Math.abs(newY - prev.y) > 0.01) {
 			currentPupil.current = { x: newX, y: newY };
 			setPupil({ x: newX, y: newY });
 		}

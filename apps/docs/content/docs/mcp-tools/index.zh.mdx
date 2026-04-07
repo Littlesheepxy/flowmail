@@ -1,0 +1,77 @@
+---
+title: MCP 工具参考
+description: Flowmail MCP（Model Context Protocol）工具完整参考文档 — 让任何 AI Agent 管理邮件、审批、汇报和时间线。
+---
+
+Flowmail 提供 **15 个 MCP 工具**，允许任何兼容的 AI Agent 与你的业务数据交互。这些工具覆盖了邮件驱动工作流的完整生命周期。
+
+## 什么是 MCP？
+
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io) 是一个开放标准，用于将 AI Agent 连接到外部工具和数据源。Flowmail 实现了一个 MCP Server，让 Claude、Cursor、OpenClaw 等 Agent 能够代你执行业务操作。
+
+## 双轨 API 架构
+
+Flowmail 提供两个共享相同核心业务逻辑的 API 层：
+
+| 层级 | 协议 | 使用者 | 用途 |
+|------|------|--------|------|
+| **oRPC** | 类型安全 RPC over HTTP | Web UI（控制台） | 人类用户通过浏览器交互 |
+| **MCP** | Model Context Protocol | AI Agent | 自动化工作流、Agent 驱动的操作 |
+
+两个层级执行相同的多租户隔离、加密和审计日志。
+
+## 连接方式
+
+### HTTP（远程）
+
+通过 Server-Sent Events (SSE) 连接 Flowmail 的托管 MCP Server：
+
+```
+URL: https://your-domain.com/mcp/sse
+Authorization: Bearer <your-api-token>
+```
+
+### Stdio（本地）
+
+在本地运行 MCP Server 用于开发或私有部署：
+
+```bash
+npx flowmail-mcp
+```
+
+详见[集成指南](/docs/integration)了解各平台的配置方法。
+
+## 认证
+
+所有 MCP 工具需要有效的 API Token。Token 作用域限定在一个组织内，决定 Agent 能访问哪些数据。
+
+```
+Authorization: Bearer <api-token>
+```
+
+## 工具分类
+
+| 分类 | 工具数 | 描述 |
+|------|--------|------|
+| [实体工具](/docs/mcp-tools/entities) | 3 | 列出、查看和更新业务实体 |
+| [审批工具](/docs/mcp-tools/approvals) | 3 | 管理待审批请求 |
+| [汇报工具](/docs/mcp-tools/reports) | 2 | 访问和总结汇报 |
+| [邮件工具](/docs/mcp-tools/emails) | 2 | 搜索邮件和列出连接 |
+| [时间线工具](/docs/mcp-tools/timeline) | 5 | 追踪事件、计算差异、预测风险 |
+
+## 错误处理
+
+所有工具返回统一的响应格式：
+
+```json
+{
+  "content": [{ "type": "text", "text": "..." }],
+  "isError": false
+}
+```
+
+发生错误时，`isError` 设为 `true`，文本包含错误信息。常见错误：
+
+- `"Entity not found"` — ID 不存在或属于其他组织
+- `"Missing organizationId in auth context"` — 认证 Token 无效或缺失
+- `"Entity is not a pending approval"` — 尝试审批/拒绝非审批类型或已决定的实体

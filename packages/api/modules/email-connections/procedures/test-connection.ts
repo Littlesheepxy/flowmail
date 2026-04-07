@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/client";
-import { db } from "@repo/database";
+import { db, decryptSensitiveFields } from "@repo/database";
 import { getConnector } from "@repo/email-processor";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -15,16 +15,20 @@ export const testEmailConnection = protectedProcedure
 	})
 	.input(testConnectionSchema)
 	.handler(async ({ input, context }) => {
-		const connection = await db.emailConnection.findUnique({
+		const rawConnection = await db.emailConnection.findUnique({
 			where: { id: input.connectionId },
 		});
 
-		if (!connection) {
+		if (!rawConnection) {
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			rawConnection.organizationId,
+			context.user.id,
+		);
 
+		const connection = decryptSensitiveFields(rawConnection);
 		const connectionWithToken =
 			connection.provider === "feishu"
 				? await ensureFeishuOAuthAccessToken(connection)

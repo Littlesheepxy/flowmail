@@ -1,0 +1,101 @@
+---
+title: Entity Tools
+description: MCP tools for listing, retrieving, and updating structured business entities.
+---
+
+Entities are the core data model in Flowmail — structured business items extracted from emails (approvals, reports, issues, feedback).
+
+## list_entities
+
+List structured business entities for the organization.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `type` | `"APPROVAL" \| "REPORT" \| "ISSUE" \| "FEEDBACK"` | No | Filter by entity type |
+| `status` | `string` | No | Filter by status (e.g., `"pending"`, `"approved"`) |
+| `limit` | `number` | No | Max results (default: 20) |
+
+### Example
+
+```json
+{
+  "tool": "list_entities",
+  "arguments": {
+    "type": "APPROVAL",
+    "status": "pending",
+    "limit": 10
+  }
+}
+```
+
+### Response
+
+Returns an array of entities with assignee information, ordered by most recently updated.
+
+---
+
+## get_entity
+
+Get full details of a business entity including its timeline of events and related email threads.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Entity ID |
+
+### Example
+
+```json
+{
+  "tool": "get_entity",
+  "arguments": {
+    "entityId": "clx1234567890"
+  }
+}
+```
+
+### Response
+
+Returns the complete entity including:
+- Entity metadata (title, type, status, extracted fields)
+- Assignee information
+- Related email threads (subject, sender, snippet, date)
+- Full timeline of events with actor information
+
+---
+
+## update_entity_status
+
+Update the status of a business entity. Automatically creates a timeline event recording the change.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Entity ID |
+| `status` | `string` | Yes | New status value |
+| `reason` | `string` | No | Reason for the status change |
+
+### Example
+
+```json
+{
+  "tool": "update_entity_status",
+  "arguments": {
+    "entityId": "clx1234567890",
+    "status": "in_progress",
+    "reason": "Work has started on this item"
+  }
+}
+```
+
+### Response
+
+Returns the updated entity and confirms success. A timeline event is automatically created:
+
+```
+Status changed from pending to in_progress: Work has started on this item
+```

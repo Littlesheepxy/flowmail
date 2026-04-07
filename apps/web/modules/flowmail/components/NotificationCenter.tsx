@@ -10,15 +10,15 @@ import {
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	AlertTriangleIcon,
+	ArrowRightIcon,
 	BellIcon,
 	CheckCheckIcon,
 	ClockIcon,
-	AlertTriangleIcon,
 	InboxIcon,
-	ArrowRightIcon,
+	MailIcon,
 	ShieldCheckIcon,
 	SparklesIcon,
-	MailIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback } from "react";
@@ -196,7 +196,8 @@ export function NotificationBell({
 										key={notification.id}
 										className={cn(
 											"flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/30",
-											!notification.isRead && "bg-primary/3",
+											!notification.isRead &&
+												"bg-primary/3",
 										)}
 									>
 										<div
@@ -222,8 +223,10 @@ export function NotificationBell({
 												<span
 													className={cn(
 														"text-xs font-medium truncate",
-														!notification.isRead && "text-foreground",
-														notification.isRead && "text-muted-foreground",
+														!notification.isRead &&
+															"text-foreground",
+														notification.isRead &&
+															"text-muted-foreground",
 													)}
 												>
 													{notification.title}
@@ -237,15 +240,21 @@ export function NotificationBell({
 											</p>
 											<div className="flex items-center gap-2 mt-1">
 												<span className="text-[10px] text-muted-foreground/60">
-													{formatTimeAgo(notification.createdAt)}
+													{formatTimeAgo(
+														notification.createdAt,
+													)}
 												</span>
 												{notification.entityId && (
 													<Link
 														href={`${basePath}/inbox/${notification.entityId}`}
 														className="text-[10px] text-primary hover:underline"
 														onClick={() => {
-															if (!notification.isRead) {
-																handleMarkSingleRead(notification.id);
+															if (
+																!notification.isRead
+															) {
+																handleMarkSingleRead(
+																	notification.id,
+																);
 															}
 														}}
 													>

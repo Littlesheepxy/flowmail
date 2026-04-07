@@ -1,10 +1,5 @@
 "use client";
 
-import {
-	BehaviorSensor,
-	ConfusionDetector,
-	ContextCollector,
-} from "@ai-eyes/core";
 import type {
 	ActionRecorder,
 	AiEyesCoreConfig,
@@ -12,13 +7,18 @@ import type {
 	HelpSuggestion,
 } from "@ai-eyes/core";
 import {
+	BehaviorSensor,
+	ConfusionDetector,
+	ContextCollector,
+} from "@ai-eyes/core";
+import {
 	createContext,
+	type ReactNode,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type ReactNode,
 } from "react";
 import type { OrbMood } from "../hooks/use-orb-animation";
 
@@ -48,7 +48,9 @@ const AiEyesContext = createContext<AiEyesContextValue | null>(null);
 
 interface AiEyesProviderProps {
 	config?: AiEyesCoreConfig;
-	onConfusion?: (event: ConfusionEvent) => Promise<HelpSuggestion | null> | undefined;
+	onConfusion?: (
+		event: ConfusionEvent,
+	) => Promise<HelpSuggestion | null> | undefined;
 	children: ReactNode;
 }
 
@@ -71,10 +73,7 @@ export function AiEyesProvider({
 		() => new BehaviorSensor(config?.sensor, config?.recorder),
 		[],
 	);
-	const detector = useMemo(
-		() => new ConfusionDetector(config?.sensor),
-		[],
-	);
+	const detector = useMemo(() => new ConfusionDetector(config?.sensor), []);
 	const collector = useMemo(() => new ContextCollector(), []);
 	const recorder = sensor.recorder;
 
@@ -132,7 +131,18 @@ export function AiEyesProvider({
 			panelPrefill,
 			setPanelPrefill,
 		}),
-		[sensor, detector, collector, recorder, mood, activeSuggestion, confusionScore, enabled, panelOpen, panelPrefill],
+		[
+			sensor,
+			detector,
+			collector,
+			recorder,
+			mood,
+			activeSuggestion,
+			confusionScore,
+			enabled,
+			panelOpen,
+			panelPrefill,
+		],
 	);
 
 	return (

@@ -3,13 +3,9 @@ import { cn, Logo } from "@repo/ui";
 import { Footer } from "@saas/shared/components/Footer";
 import { ColorModeToggle } from "@shared/components/ColorModeToggle";
 import { LocaleSwitch } from "@shared/components/LocaleSwitch";
-import {
-	BotIcon,
-	InboxIcon,
-	WorkflowIcon,
-} from "lucide-react";
-import { useTranslations } from "next-intl";
+import { BotIcon, InboxIcon, WorkflowIcon } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { type PropsWithChildren, Suspense } from "react";
 
 const featureIcons = [InboxIcon, WorkflowIcon, BotIcon];
@@ -56,7 +52,10 @@ export function AuthWrapper({
 
 					<ul className="mt-8 flex flex-col gap-3">
 						{features.map((f) => (
-							<li key={f.text} className="flex items-center gap-3 text-white/70">
+							<li
+								key={f.text}
+								className="flex items-center gap-3 text-white/70"
+							>
 								<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
 									<f.icon className="size-3.5 text-white/80" />
 								</span>

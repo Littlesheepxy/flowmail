@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const entityTypeSchema = z.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"]);
+export const entityTypeSchema = z.enum([
+	"APPROVAL",
+	"REPORT",
+	"ISSUE",
+	"FEEDBACK",
+]);
 
 export const listEntitiesSchema = z.object({
 	organizationId: z.string(),

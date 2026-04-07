@@ -1,18 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import { useSidebar } from "@saas/shared/lib/sidebar-context";
-import {
-	SearchIcon,
-	SparklesIcon,
-	SlidersHorizontalIcon,
-} from "lucide-react";
 import { cn } from "@repo/ui";
+import { useSidebar } from "@saas/shared/lib/sidebar-context";
+import { SearchIcon, SlidersHorizontalIcon, SparklesIcon } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePageGuide } from "../hooks/use-page-guide";
+import { AgentPanel } from "./AgentPanel";
 import { EntityCardList } from "./EntityCardList";
 import { ThreadChatView } from "./ThreadChatView";
-import { AgentPanel } from "./AgentPanel";
-import { usePageGuide } from "../hooks/use-page-guide";
 
 function useIsWideScreen() {
 	const [isWide, setIsWide] = useState(false);
@@ -55,7 +51,9 @@ export function SmartInbox() {
 	const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
 		null,
 	);
-	const [agentManualToggle, setAgentManualToggle] = useState<boolean | null>(null);
+	const [agentManualToggle, setAgentManualToggle] = useState<boolean | null>(
+		null,
+	);
 	const [search, setSearch] = useState("");
 	const [agentWidth, setAgentWidth] = useState(AGENT_DEFAULT_W);
 	const isDragging = useRef(false);
@@ -78,7 +76,10 @@ export function SmartInbox() {
 					return;
 				}
 				const delta = startX.current - ev.clientX;
-				const next = Math.min(AGENT_MAX_W, Math.max(AGENT_MIN_W, startW.current + delta));
+				const next = Math.min(
+					AGENT_MAX_W,
+					Math.max(AGENT_MIN_W, startW.current + delta),
+				);
 				setAgentWidth(next);
 			};
 			const onUp = () => {
@@ -105,7 +106,10 @@ export function SmartInbox() {
 			{/* Global top bar — outside content card */}
 			<div className="flex items-center gap-3 px-4 py-2 shrink-0">
 				{/* Search */}
-				<div className="relative flex-1 max-w-md" data-guide="inbox-search">
+				<div
+					className="relative flex-1 max-w-md"
+					data-guide="inbox-search"
+				>
 					<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
 					<input
 						type="text"
@@ -127,7 +131,9 @@ export function SmartInbox() {
 
 					<button
 						type="button"
-						onClick={() => setAgentManualToggle((prev) => !(prev ?? agentOpen))}
+						onClick={() =>
+							setAgentManualToggle((prev) => !(prev ?? agentOpen))
+						}
 						className={cn(
 							"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
 							agentOpen
@@ -145,7 +151,10 @@ export function SmartInbox() {
 			<div className="flex-1 flex overflow-hidden min-w-0 mx-2 mb-2">
 				<div className="flex-1 flex overflow-hidden bg-background rounded-2xl border shadow-sm">
 					{/* Entity list panel */}
-					<div className="w-[300px] shrink-0 flex flex-col overflow-hidden" data-guide="inbox-entity-list">
+					<div
+						className="w-[300px] shrink-0 flex flex-col overflow-hidden"
+						data-guide="inbox-entity-list"
+					>
 						<EntityCardList
 							selectedEntityId={selectedEntityId}
 							onSelectEntity={setSelectedEntityId}

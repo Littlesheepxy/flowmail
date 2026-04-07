@@ -63,7 +63,10 @@ export function useOrbAnimation(externalMood?: OrbMood): OrbAnimationState {
 				setTimeout(() => {
 					setEyeState("closed");
 					setTimeout(
-						() => setEyeState(mood === "wink" ? "wink-right" : "open"),
+						() =>
+							setEyeState(
+								mood === "wink" ? "wink-right" : "open",
+							),
 						BLINK_CLOSE_MS,
 					);
 				}, 140);

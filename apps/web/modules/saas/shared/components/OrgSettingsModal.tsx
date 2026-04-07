@@ -1,22 +1,18 @@
 "use client";
 
 import { config as paymentsConfig } from "@repo/payments/config";
-import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
+import { cn } from "@repo/ui";
+import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog";
 import { ChangeOrganizationNameForm } from "@saas/organizations/components/ChangeOrganizationNameForm";
-import { OrganizationLogoForm } from "@saas/organizations/components/OrganizationLogoForm";
-import { InviteMemberForm } from "@saas/organizations/components/InviteMemberForm";
-import { OrganizationMembersBlock } from "@saas/organizations/components/OrganizationMembersBlock";
 import { DeleteOrganizationForm } from "@saas/organizations/components/DeleteOrganizationForm";
+import { InviteMemberForm } from "@saas/organizations/components/InviteMemberForm";
+import { OrganizationLogoForm } from "@saas/organizations/components/OrganizationLogoForm";
+import { OrganizationMembersBlock } from "@saas/organizations/components/OrganizationMembersBlock";
+import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { ActivePlan } from "@saas/payments/components/ActivePlan";
 import { ChangePlan } from "@saas/payments/components/ChangePlan";
 import { usePurchases } from "@saas/payments/hooks/purchases";
 import { SettingsList } from "@saas/shared/components/SettingsList";
-import {
-	Dialog,
-	DialogContent,
-	DialogTitle,
-} from "@repo/ui/components/dialog";
-import { cn } from "@repo/ui";
 import {
 	BuildingIcon,
 	CreditCardIcon,
@@ -25,11 +21,16 @@ import {
 	UsersIcon,
 	XIcon,
 } from "lucide-react";
-import { OpenClawSettings } from "@/modules/flowmail/components/OpenClawSettings";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { OpenClawSettings } from "@/modules/flowmail/components/OpenClawSettings";
 
-export type OrgTab = "general" | "members" | "billing" | "agent-integration" | "danger-zone";
+export type OrgTab =
+	| "general"
+	| "members"
+	| "billing"
+	| "agent-integration"
+	| "danger-zone";
 
 interface OrgSettingsModalProps {
 	open: boolean;
@@ -37,7 +38,11 @@ interface OrgSettingsModalProps {
 	defaultTab?: OrgTab;
 }
 
-export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettingsModalProps) {
+export function OrgSettingsModal({
+	open,
+	onOpenChange,
+	defaultTab,
+}: OrgSettingsModalProps) {
 	const t = useTranslations();
 	const [activeTab, setActiveTab] = useState<OrgTab>(defaultTab ?? "general");
 
@@ -72,20 +77,20 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 					},
 				]
 			: []),
-	{
-		id: "agent-integration" as const,
-		title: "Agent 接入",
-		icon: PlugIcon,
-	},
-	...(isOrganizationAdmin
-		? [
-				{
-					id: "danger-zone" as const,
-					title: t("settings.menu.organization.dangerZone"),
-					icon: TriangleAlertIcon,
-				},
-			]
-		: []),
+		{
+			id: "agent-integration" as const,
+			title: "Agent 接入",
+			icon: PlugIcon,
+		},
+		...(isOrganizationAdmin
+			? [
+					{
+						id: "danger-zone" as const,
+						title: t("settings.menu.organization.dangerZone"),
+						icon: TriangleAlertIcon,
+					},
+				]
+			: []),
 	];
 
 	if (!activeOrganization) {
@@ -134,7 +139,9 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 										)}
 									>
 										<Icon className="size-4 shrink-0" />
-										<span className="truncate">{item.title}</span>
+										<span className="truncate">
+											{item.title}
+										</span>
 									</button>
 								);
 							})}
@@ -145,7 +152,11 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 					<div className="flex-1 min-w-0 flex flex-col overflow-hidden">
 						<div className="px-6 pt-5 pb-3 shrink-0 border-b border-border/50">
 							<h2 className="text-base font-semibold">
-								{menuItems.find((item) => item.id === activeTab)?.title}
+								{
+									menuItems.find(
+										(item) => item.id === activeTab,
+									)?.title
+								}
 							</h2>
 						</div>
 
@@ -160,7 +171,11 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 							{activeTab === "members" && (
 								<SettingsList>
 									{isOrganizationAdmin && (
-										<InviteMemberForm organizationId={activeOrganization.id} />
+										<InviteMemberForm
+											organizationId={
+												activeOrganization.id
+											}
+										/>
 									)}
 									<OrganizationMembersBlock
 										organizationId={activeOrganization.id}
@@ -171,7 +186,11 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 							{activeTab === "billing" && (
 								<SettingsList>
 									{activePlan && (
-										<ActivePlan organizationId={activeOrganization.id} />
+										<ActivePlan
+											organizationId={
+												activeOrganization.id
+											}
+										/>
 									)}
 									<ChangePlan
 										organizationId={activeOrganization.id}

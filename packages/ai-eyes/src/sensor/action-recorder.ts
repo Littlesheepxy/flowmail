@@ -226,7 +226,9 @@ export class ActionRecorder {
 			this.record({
 				type: "click",
 				module,
-				target: ariaLabel ? `[${tag}] "${ariaLabel}"` : `[${tag}] "${text}"`,
+				target: ariaLabel
+					? `[${tag}] "${ariaLabel}"`
+					: `[${tag}] "${text}"`,
 				timestamp: Date.now(),
 				detail: {
 					...(href ? { href } : {}),
@@ -254,7 +256,11 @@ export class ActionRecorder {
 					scrollY: Math.round(window.scrollY),
 					scrollPercent: Math.round(
 						(window.scrollY /
-							Math.max(1, document.documentElement.scrollHeight - window.innerHeight)) *
+							Math.max(
+								1,
+								document.documentElement.scrollHeight -
+									window.innerHeight,
+							)) *
 							100,
 					),
 				},
@@ -306,7 +312,10 @@ export class ActionRecorder {
 				return;
 			}
 			const tag = el.tagName.toLowerCase();
-			if (!["input", "textarea", "select"].includes(tag) && el.getAttribute("contenteditable") !== "true") {
+			if (
+				!["input", "textarea", "select"].includes(tag) &&
+				el.getAttribute("contenteditable") !== "true"
+			) {
 				return;
 			}
 			const { module } = resolveModuleContext(el);
@@ -324,7 +333,10 @@ export class ActionRecorder {
 				return;
 			}
 			const tag = el.tagName.toLowerCase();
-			if (!["input", "textarea", "select"].includes(tag) && el.getAttribute("contenteditable") !== "true") {
+			if (
+				!["input", "textarea", "select"].includes(tag) &&
+				el.getAttribute("contenteditable") !== "true"
+			) {
 				return;
 			}
 			const { module } = resolveModuleContext(el);

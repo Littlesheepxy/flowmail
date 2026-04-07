@@ -1,5 +1,5 @@
-import { db } from "@repo/database";
 import { verifyApiToken } from "@repo/api";
+import { db } from "@repo/database";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -30,7 +30,10 @@ export async function POST(req: Request) {
 	const bearerToken = authHeader.slice(7);
 	const tokenResult = await verifyApiToken(bearerToken);
 	if (!tokenResult) {
-		return NextResponse.json({ error: "Invalid or expired API token" }, { status: 401 });
+		return NextResponse.json(
+			{ error: "Invalid or expired API token" },
+			{ status: 401 },
+		);
 	}
 
 	let body: z.infer<typeof callbackSchema>;
@@ -38,7 +41,10 @@ export async function POST(req: Request) {
 		const raw = await req.json();
 		body = callbackSchema.parse(raw);
 	} catch {
-		return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+		return NextResponse.json(
+			{ error: "Invalid request body" },
+			{ status: 400 },
+		);
 	}
 
 	const entity = await db.flowEntity.findUnique({
@@ -47,14 +53,21 @@ export async function POST(req: Request) {
 	});
 
 	if (!entity) {
-		return NextResponse.json({ error: "Entity not found" }, { status: 404 });
+		return NextResponse.json(
+			{ error: "Entity not found" },
+			{ status: 404 },
+		);
 	}
 
 	if (entity.organizationId !== tokenResult.organizationId) {
-		return NextResponse.json({ error: "Entity does not belong to this organization" }, { status: 403 });
+		return NextResponse.json(
+			{ error: "Entity does not belong to this organization" },
+			{ status: 403 },
+		);
 	}
 
-	const statusEmoji = body.status === "success" ? "✅" : body.status === "error" ? "❌" : "⚠️";
+	const statusEmoji =
+		body.status === "success" ? "✅" : body.status === "error" ? "❌" : "⚠️";
 	const actionsLog = body.actions
 		?.map((a) => `  ${a.status === "success" ? "✓" : "✗"} ${a.tool}`)
 		.join("\n");

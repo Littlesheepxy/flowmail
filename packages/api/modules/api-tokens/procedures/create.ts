@@ -1,8 +1,8 @@
 import { db } from "@repo/database";
-import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { writeAuditLog } from "../../../lib/audit-log";
+import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
-import { generateRawToken, hashToken, extractPrefix } from "../lib/token-utils";
+import { extractPrefix, generateRawToken, hashToken } from "../lib/token-utils";
 import { createApiTokenSchema } from "../types";
 
 export const createApiToken = protectedProcedure

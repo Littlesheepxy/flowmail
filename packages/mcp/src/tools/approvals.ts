@@ -41,16 +41,34 @@ export function registerApprovalTools(server: McpServer) {
 		"Approve a pending approval request. When the user says 'approve', 'agree', 'pass', or 'OK' for an approval item, call this. Automatically updates status and creates a timeline event. Use list_pending_approvals first to get the entityId.",
 		{
 			entityId: z.string().describe("Approval entity ID to approve"),
-			comment: z.string().optional().describe("Optional approval comment"),
+			comment: z
+				.string()
+				.optional()
+				.describe("Optional approval comment"),
 		},
 		async ({ entityId, comment }) => {
-			const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
+			const entity = await db.flowEntity.findUnique({
+				where: { id: entityId },
+			});
 
 			if (!entity) {
-				return { content: [{ type: "text" as const, text: "Entity not found" }], isError: true };
+				return {
+					content: [
+						{ type: "text" as const, text: "Entity not found" },
+					],
+					isError: true,
+				};
 			}
 			if (entity.type !== "APPROVAL" || entity.status !== "pending") {
-				return { content: [{ type: "text" as const, text: "Entity is not a pending approval" }], isError: true };
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: "Entity is not a pending approval",
+						},
+					],
+					isError: true,
+				};
 			}
 
 			const updated = await db.flowEntity.update({
@@ -90,13 +108,28 @@ export function registerApprovalTools(server: McpServer) {
 			reason: z.string().describe("Required reason for rejection"),
 		},
 		async ({ entityId, reason }) => {
-			const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
+			const entity = await db.flowEntity.findUnique({
+				where: { id: entityId },
+			});
 
 			if (!entity) {
-				return { content: [{ type: "text" as const, text: "Entity not found" }], isError: true };
+				return {
+					content: [
+						{ type: "text" as const, text: "Entity not found" },
+					],
+					isError: true,
+				};
 			}
 			if (entity.type !== "APPROVAL" || entity.status !== "pending") {
-				return { content: [{ type: "text" as const, text: "Entity is not a pending approval" }], isError: true };
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: "Entity is not a pending approval",
+						},
+					],
+					isError: true,
+				};
 			}
 
 			const updated = await db.flowEntity.update({

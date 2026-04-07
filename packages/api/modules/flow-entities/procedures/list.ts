@@ -42,8 +42,23 @@ export const listEntities = protectedProcedure
 			db.flowEntity.findMany({
 				where,
 				include: {
-					assignee: { select: { id: true, name: true, email: true, image: true } },
-					category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+					assignee: {
+						select: {
+							id: true,
+							name: true,
+							email: true,
+							image: true,
+						},
+					},
+					category: {
+						select: {
+							id: true,
+							name: true,
+							slug: true,
+							icon: true,
+							color: true,
+						},
+					},
 					_count: { select: { timeline: true, threads: true } },
 				},
 				orderBy: { updatedAt: "desc" },

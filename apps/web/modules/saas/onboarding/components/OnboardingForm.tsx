@@ -1,8 +1,8 @@
 "use client";
 import { authClient } from "@repo/auth/client";
 import { Progress } from "@repo/ui/components/progress";
-import { useConfetti } from "@shared/hooks/use-confetti";
 import { useRouter } from "@shared/hooks/router";
+import { useConfetti } from "@shared/hooks/use-confetti";
 import { clearCache } from "@shared/lib/cache";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";

@@ -72,11 +72,11 @@ export default async function SettingsLayout({
 						]
 					: []),
 				{
-				title: "Usage",
-				href: `${organizationSettingsBasePath}/usage`,
-				icon: <BarChart3Icon className="size-4 opacity-50" />,
-			},
-			...(userIsOrganizationAdmin
+					title: "Usage",
+					href: `${organizationSettingsBasePath}/usage`,
+					icon: <BarChart3Icon className="size-4 opacity-50" />,
+				},
+				...(userIsOrganizationAdmin
 					? [
 							{
 								title: t(

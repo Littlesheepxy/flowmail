@@ -13,7 +13,7 @@ export function hashToken(rawToken: string): string {
 }
 
 export function extractPrefix(rawToken: string): string {
-	return rawToken.slice(0, 7) + "..." + rawToken.slice(-4);
+	return `${rawToken.slice(0, 7)}...${rawToken.slice(-4)}`;
 }
 
 export async function verifyApiToken(bearerToken: string) {

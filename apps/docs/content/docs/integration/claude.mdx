@@ -1,0 +1,66 @@
+---
+title: Claude Desktop
+description: Connect Claude Desktop to Flowmail's MCP server for AI-powered email workflow management.
+---
+
+Claude Desktop natively supports MCP servers. This guide shows you how to connect Claude to Flowmail so it can manage approvals, search emails, and track entity timelines through natural conversation.
+
+## Prerequisites
+
+- [Claude Desktop](https://claude.ai/download) installed
+- A Flowmail account with an API token
+
+## Getting Your API Token
+
+1. Log in to your Flowmail dashboard
+2. Navigate to **Settings → API Tokens**
+3. Click **Create Token** and select the scopes you need
+4. Copy the generated token — you'll need it for the configuration
+
+## Configuration
+
+Add Flowmail to your Claude Desktop MCP configuration file.
+
+**macOS:** Edit `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+**Windows:** Edit `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "flowmail": {
+      "url": "https://your-domain.com/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+## Restart Claude
+
+After saving the configuration, restart Claude Desktop. You should see "flowmail" listed in the MCP tools panel.
+
+## Usage Examples
+
+Once connected, you can interact with Flowmail through natural conversation:
+
+**Check pending approvals:**
+> "What approvals are waiting for me?"
+
+**Approve a request:**
+> "Approve the Q2 budget request with a note that it looks good."
+
+**Search for emails:**
+> "Find all emails from finance@acme.co about the Q2 budget."
+
+**Analyze risk:**
+> "What's the risk level for the vendor contract approval?"
+
+## Security Notes
+
+- Your API token is stored locally on your machine
+- All operations are scoped to your organization
+- Every action is logged in the entity timeline with `via: "mcp"`
+- Claude never sees email content outside of what Flowmail's structured tools return

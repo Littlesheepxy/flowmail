@@ -16,15 +16,26 @@ export function createEntityTools(deps: {
 			description:
 				"获取业务事项的完整详情，包括 AI 摘要、抽取字段和时间线。分析事项时首先调用。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				entityId: z.string().describe("Entity ID"),
 			}),
-			execute: async (input: { entityId: string }) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: input.entityId },
+			execute: async (input: {
+				organizationId: string;
+				entityId: string;
+			}) => {
+				const entity = await db.flowEntity.findFirst({
+					where: {
+						id: input.entityId,
+						organizationId: input.organizationId,
+					},
 					include: {
 						timeline: { orderBy: { createdAt: "asc" }, take: 10 },
 						threads: {
-							select: { subject: true, sender: true, receivedAt: true },
+							select: {
+								subject: true,
+								sender: true,
+								receivedAt: true,
+							},
 							take: 3,
 						},
 					},
@@ -55,15 +66,26 @@ export function createEntityTools(deps: {
 		approve_entity: tool({
 			description: "批准待审批的请求。仅在用户明确要求批准时调用。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				entityId: z.string(),
-				comment: z.string().optional().describe("Optional approval comment"),
+				comment: z
+					.string()
+					.optional()
+					.describe("Optional approval comment"),
 			}),
-			execute: async (input: { entityId: string; comment?: string }) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: input.entityId },
+			execute: async (input: {
+				organizationId: string;
+				entityId: string;
+				comment?: string;
+			}) => {
+				const entity = await db.flowEntity.findFirst({
+					where: {
+						id: input.entityId,
+						organizationId: input.organizationId,
+					},
 				});
 				if (!entity) {
-					return { error: "Not found" };
+					return { error: "Not found or access denied" };
 				}
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
 					return { error: "Entity is not a pending approval" };
@@ -103,15 +125,23 @@ export function createEntityTools(deps: {
 		reject_entity: tool({
 			description: "拒绝待审批的请求。需要提供拒绝理由。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				entityId: z.string(),
 				reason: z.string().describe("Reason for rejection"),
 			}),
-			execute: async (input: { entityId: string; reason: string }) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: input.entityId },
+			execute: async (input: {
+				organizationId: string;
+				entityId: string;
+				reason: string;
+			}) => {
+				const entity = await db.flowEntity.findFirst({
+					where: {
+						id: input.entityId,
+						organizationId: input.organizationId,
+					},
 				});
 				if (!entity) {
-					return { error: "Not found" };
+					return { error: "Not found or access denied" };
 				}
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
 					return { error: "Entity is not a pending approval" };
@@ -149,22 +179,31 @@ export function createEntityTools(deps: {
 		}),
 
 		update_entity_status: tool({
-			description: "更新事项状态。用于状态变更，如调查中、进行中、已阻塞等。",
+			description:
+				"更新事项状态。用于状态变更，如调查中、进行中、已阻塞等。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				entityId: z.string(),
 				status: z.string().describe("New status value"),
-				reason: z.string().optional().describe("Reason for status change"),
+				reason: z
+					.string()
+					.optional()
+					.describe("Reason for status change"),
 			}),
 			execute: async (input: {
+				organizationId: string;
 				entityId: string;
 				status: string;
 				reason?: string;
 			}) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: input.entityId },
+				const entity = await db.flowEntity.findFirst({
+					where: {
+						id: input.entityId,
+						organizationId: input.organizationId,
+					},
 				});
 				if (!entity) {
-					return { error: "Not found" };
+					return { error: "Not found or access denied" };
 				}
 				const previousStatus = entity.status;
 				await db.flowEntity.update({
@@ -204,6 +243,7 @@ export function createEntityTools(deps: {
 			description:
 				"重新分类事项。当用户说'这不是审批，是报告'、'分类错了'、'改成 ISSUE' 时调用。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				entityId: z.string(),
 				newType: z
 					.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"])
@@ -211,15 +251,19 @@ export function createEntityTools(deps: {
 				reason: z.string().optional().describe("重新分类的原因"),
 			}),
 			execute: async (input: {
+				organizationId: string;
 				entityId: string;
 				newType: "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK";
 				reason?: string;
 			}) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: input.entityId },
+				const entity = await db.flowEntity.findFirst({
+					where: {
+						id: input.entityId,
+						organizationId: input.organizationId,
+					},
 				});
 				if (!entity) {
-					return { error: "Not found" };
+					return { error: "Not found or access denied" };
 				}
 				const previousType = entity.type;
 				await db.flowEntity.update({
@@ -252,21 +296,26 @@ export function createEntityTools(deps: {
 		add_note: tool({
 			description: "向事项时间线添加备注或里程碑。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				entityId: z.string(),
 				content: z.string().describe("Note content"),
 				type: z.enum(["note", "milestone"]).default("note"),
 			}),
 			execute: async (input: {
+				organizationId: string;
 				entityId: string;
 				content: string;
 				type: "note" | "milestone";
 			}) => {
-				const entity = await db.flowEntity.findUnique({
-					where: { id: input.entityId },
+				const entity = await db.flowEntity.findFirst({
+					where: {
+						id: input.entityId,
+						organizationId: input.organizationId,
+					},
 					select: { id: true, title: true },
 				});
 				if (!entity) {
-					return { error: "Not found" };
+					return { error: "Not found or access denied" };
 				}
 				await db.timelineEvent.create({
 					data: {
@@ -276,7 +325,11 @@ export function createEntityTools(deps: {
 						metadata: JSON.stringify({ via: "agent" }),
 					},
 				});
-				return { success: true, content: input.content, type: input.type };
+				return {
+					success: true,
+					content: input.content,
+					type: input.type,
+				};
 			},
 		}),
 	};

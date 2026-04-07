@@ -2,11 +2,7 @@
 
 import { BlurFade } from "@repo/ui/components/blur-fade";
 import { MagicCard } from "@repo/ui/components/magic-card";
-import {
-	BellRingIcon,
-	AlertTriangleIcon,
-	GitBranchIcon,
-} from "lucide-react";
+import { AlertTriangleIcon, BellRingIcon, GitBranchIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const cards = [
@@ -57,7 +53,11 @@ export function NotificationSection() {
 					{cards.map((card, i) => {
 						const Icon = card.icon;
 						return (
-							<BlurFade key={card.titleKey} delay={0.1 + i * 0.1} inView>
+							<BlurFade
+								key={card.titleKey}
+								delay={0.1 + i * 0.1}
+								inView
+							>
 								<MagicCard
 									className="rounded-xl p-6 h-full"
 									gradientFrom={card.gradientFrom}

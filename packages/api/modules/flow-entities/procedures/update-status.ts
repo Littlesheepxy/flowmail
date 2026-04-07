@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
-import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { writeAuditLog } from "../../../lib/audit-log";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { updateEntityStatusSchema } from "../types";
 
@@ -22,7 +22,10 @@ export const updateEntityStatus = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			entity.organizationId,
+			context.user.id,
+		);
 
 		const previousStatus = entity.status;
 
@@ -47,14 +50,22 @@ export const updateEntityStatus = protectedProcedure
 
 		const isApproval = input.status === "approved";
 		const isRejection = input.status === "rejected";
-		const action = isApproval ? "ENTITY_APPROVE" : isRejection ? "ENTITY_REJECT" : "ENTITY_STATUS_CHANGE";
+		const action = isApproval
+			? "ENTITY_APPROVE"
+			: isRejection
+				? "ENTITY_REJECT"
+				: "ENTITY_STATUS_CHANGE";
 		writeAuditLog({
 			organizationId: entity.organizationId,
 			userId: context.user.id,
 			action,
 			targetType: "FlowEntity",
 			targetId: input.entityId,
-			metadata: { previousStatus, newStatus: input.status, reason: input.reason },
+			metadata: {
+				previousStatus,
+				newStatus: input.status,
+				reason: input.reason,
+			},
 		});
 
 		return updated;

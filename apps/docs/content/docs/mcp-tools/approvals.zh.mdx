@@ -1,0 +1,47 @@
+---
+title: 审批工具
+description: 用于管理待审批请求的 MCP 工具 — 列出、通过和拒绝。
+---
+
+审批工具提供完整的审批请求管理工作流。
+
+## list_pending_approvals
+
+列出组织内所有待审批的请求。
+
+### 参数
+
+无需参数。组织由认证 Token 决定。
+
+---
+
+## approve_request
+
+通过一个待审批请求。实体必须是 `APPROVAL` 类型且状态为 `pending`。
+
+**提示：** 先用 `list_pending_approvals` 获取实体 ID。
+
+### 参数
+
+| 名称 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| `entityId` | `string` | 是 | 审批实体 ID |
+| `comment` | `string` | 否 | 可选的审批备注 |
+
+### 错误
+
+- `"Entity not found"` — 无效的实体 ID 或不属于当前组织
+- `"Entity is not a pending approval"` — 实体不是 APPROVAL 类型或不在 pending 状态
+
+---
+
+## reject_request
+
+拒绝一个待审批请求，需要提供拒绝原因。
+
+### 参数
+
+| 名称 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| `entityId` | `string` | 是 | 审批实体 ID |
+| `reason` | `string` | 是 | 拒绝原因（必填） |

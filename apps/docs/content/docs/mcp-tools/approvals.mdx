@@ -1,0 +1,114 @@
+---
+title: Approval Tools
+description: MCP tools for managing pending approval requests — list, approve, and reject.
+---
+
+Approval tools provide a complete workflow for managing approval requests extracted from emails.
+
+## list_pending_approvals
+
+List all pending approval requests for the organization.
+
+### Parameters
+
+None required. The organization is determined by the authentication token.
+
+### Example
+
+```json
+{
+  "tool": "list_pending_approvals",
+  "arguments": {}
+}
+```
+
+### Response
+
+```json
+{
+  "count": 3,
+  "approvals": [
+    {
+      "id": "clx1234567890",
+      "title": "Q2 Budget Approval",
+      "status": "pending",
+      "extractedFields": "{\"requester\": \"finance@acme.co\", \"amount\": \"$45,000\"}",
+      "assignee": { "name": "John Doe", "email": "john@company.com" },
+      "createdAt": "2026-03-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## approve_request
+
+Approve a pending approval request. The entity must be of type `APPROVAL` with status `pending`.
+
+**Tip:** Use `list_pending_approvals` first to find the entity ID.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Approval entity ID |
+| `comment` | `string` | No | Optional approval comment |
+
+### Example
+
+```json
+{
+  "tool": "approve_request",
+  "arguments": {
+    "entityId": "clx1234567890",
+    "comment": "Approved for Q2. Please proceed with vendor payment."
+  }
+}
+```
+
+### Response
+
+Returns success confirmation with the updated entity. A timeline event is created:
+
+```
+Approved: Approved for Q2. Please proceed with vendor payment.
+```
+
+### Errors
+
+- `"Entity not found"` — Invalid entity ID or wrong organization
+- `"Entity is not a pending approval"` — Entity is not type APPROVAL or not in pending status
+
+---
+
+## reject_request
+
+Reject a pending approval request with a required reason.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Approval entity ID |
+| `reason` | `string` | Yes | Required reason for rejection |
+
+### Example
+
+```json
+{
+  "tool": "reject_request",
+  "arguments": {
+    "entityId": "clx1234567890",
+    "reason": "Budget exceeds quarterly limit. Please resubmit with revised numbers."
+  }
+}
+```
+
+### Response
+
+Returns success confirmation. A timeline event is created:
+
+```
+Rejected: Budget exceeds quarterly limit. Please resubmit with revised numbers.
+```

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import type { ChatMessage } from "../adapters/types";
 
 interface MessageListProps {
@@ -39,44 +39,48 @@ export function MessageList({
 				),
 			)}
 
-			{isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-				<div
-					style={{
-						display: "flex",
-						gap: 4,
-						padding: "12px 16px",
-						opacity: 0.5,
-					}}
-				>
-					<span
+			{isLoading &&
+				messages[messages.length - 1]?.role !== "assistant" && (
+					<div
 						style={{
-							width: 6,
-							height: 6,
-							borderRadius: "50%",
-							background: "currentColor",
-							animation: "ai-eyes-dot-bounce 1.2s ease-in-out infinite",
+							display: "flex",
+							gap: 4,
+							padding: "12px 16px",
+							opacity: 0.5,
 						}}
-					/>
-					<span
-						style={{
-							width: 6,
-							height: 6,
-							borderRadius: "50%",
-							background: "currentColor",
-							animation: "ai-eyes-dot-bounce 1.2s ease-in-out 0.2s infinite",
-						}}
-					/>
-					<span
-						style={{
-							width: 6,
-							height: 6,
-							borderRadius: "50%",
-							background: "currentColor",
-							animation: "ai-eyes-dot-bounce 1.2s ease-in-out 0.4s infinite",
-						}}
-					/>
-				</div>
-			)}
+					>
+						<span
+							style={{
+								width: 6,
+								height: 6,
+								borderRadius: "50%",
+								background: "currentColor",
+								animation:
+									"ai-eyes-dot-bounce 1.2s ease-in-out infinite",
+							}}
+						/>
+						<span
+							style={{
+								width: 6,
+								height: 6,
+								borderRadius: "50%",
+								background: "currentColor",
+								animation:
+									"ai-eyes-dot-bounce 1.2s ease-in-out 0.2s infinite",
+							}}
+						/>
+						<span
+							style={{
+								width: 6,
+								height: 6,
+								borderRadius: "50%",
+								background: "currentColor",
+								animation:
+									"ai-eyes-dot-bounce 1.2s ease-in-out 0.4s infinite",
+							}}
+						/>
+					</div>
+				)}
 
 			<div ref={bottomRef} />
 		</div>
@@ -97,7 +101,9 @@ function DefaultMessage({ message }: { message: ChatMessage }) {
 				style={{
 					maxWidth: "85%",
 					padding: "10px 14px",
-					borderRadius: isUser ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+					borderRadius: isUser
+						? "14px 14px 4px 14px"
+						: "14px 14px 14px 4px",
 					background: isUser
 						? "var(--ai-eyes-user-bg, #111)"
 						: "var(--ai-eyes-assistant-bg, #f5f5f5)",

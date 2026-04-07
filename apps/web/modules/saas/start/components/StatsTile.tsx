@@ -1,6 +1,11 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@repo/ui/components/card";
 import { TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -53,7 +58,9 @@ export function StatsTile({
 					{trendLabel && (
 						<span
 							className={`flex items-center gap-0.5 text-xs font-medium ${
-								isPositive ? "text-emerald-600" : "text-rose-500"
+								isPositive
+									? "text-emerald-600"
+									: "text-rose-500"
 							}`}
 						>
 							{isPositive ? (

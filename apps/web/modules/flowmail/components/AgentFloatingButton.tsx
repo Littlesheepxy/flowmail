@@ -1,12 +1,12 @@
 "use client";
 
-import { AiEyes, useAiEyes } from "@ai-eyes/react";
-import type { AiEyesPosition } from "@ai-eyes/react";
 import type { HelpSuggestion } from "@ai-eyes/core";
+import type { AiEyesPosition } from "@ai-eyes/react";
+import { AiEyes, useAiEyes } from "@ai-eyes/react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAgent } from "./AgentProvider";
 import { AgentPanel } from "./AgentPanel";
+import { useAgent } from "./AgentProvider";
 
 const PANEL_W = 360;
 const PANEL_H = 520;

@@ -42,7 +42,10 @@ export function buildPageContext(params: {
 		let extractedFields: Record<string, unknown> = {};
 		if (entity.extractedFields) {
 			try {
-				extractedFields = JSON.parse(entity.extractedFields) as Record<string, unknown>;
+				extractedFields = JSON.parse(entity.extractedFields) as Record<
+					string,
+					unknown
+				>;
 			} catch {
 				// ignore
 			}
@@ -62,7 +65,10 @@ export function buildPageContext(params: {
 			ctx.timelinePreview = entity.timeline.slice(-5).map((e) => ({
 				type: e.type,
 				content: e.content,
-				createdAt: typeof e.createdAt === "string" ? e.createdAt : e.createdAt.toISOString(),
+				createdAt:
+					typeof e.createdAt === "string"
+						? e.createdAt
+						: e.createdAt.toISOString(),
 			}));
 		}
 	}

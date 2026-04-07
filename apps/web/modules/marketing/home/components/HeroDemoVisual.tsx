@@ -1,9 +1,6 @@
 "use client";
 
 import { MagicCard } from "@repo/ui/components/magic-card";
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { useLocale, useTranslations } from "next-intl";
 import {
 	AlertTriangleIcon,
 	CheckCircle2Icon,
@@ -14,7 +11,10 @@ import {
 	XCircleIcon,
 	ZapIcon,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 const emailMeta = [
 	{
@@ -70,7 +70,10 @@ export function HeroDemoVisual() {
 	const executionItems: ExecItem[] =
 		locale === "zh"
 			? [
-					{ logoSrc: "/icons/integrations/gmail.svg", labelKey: "execEmail" },
+					{
+						logoSrc: "/icons/integrations/gmail.svg",
+						labelKey: "execEmail",
+					},
 					{
 						logoSrc: "/icons/integrations/google-calendar.svg",
 						labelKey: "execCalendar",
@@ -81,7 +84,10 @@ export function HeroDemoVisual() {
 					},
 				]
 			: [
-					{ logoSrc: "/icons/integrations/gmail.svg", labelKey: "execEmail" },
+					{
+						logoSrc: "/icons/integrations/gmail.svg",
+						labelKey: "execEmail",
+					},
 					{
 						logoSrc: "/icons/integrations/google-calendar.svg",
 						labelKey: "execCalendar",
@@ -188,12 +194,18 @@ export function HeroDemoVisual() {
 									<MagicCard
 										className="rounded-lg p-3"
 										gradientFrom={
-											isClassified ? item.gradientFrom : "#666"
+											isClassified
+												? item.gradientFrom
+												: "#666"
 										}
 										gradientTo={
-											isClassified ? item.gradientTo : "#888"
+											isClassified
+												? item.gradientTo
+												: "#888"
 										}
-										gradientOpacity={isClassified ? 0.4 : 0.15}
+										gradientOpacity={
+											isClassified ? 0.4 : 0.15
+										}
 									>
 										<div className="flex items-center gap-2.5">
 											<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground/5">
@@ -267,7 +279,8 @@ export function HeroDemoVisual() {
 												</AnimatePresence>
 												{showApprovalButtons && (
 													<AnimatePresence mode="wait">
-														{approvalState !== "approved" ? (
+														{approvalState !==
+														"approved" ? (
 															<motion.div
 																key="buttons"
 																className="flex gap-1"
@@ -283,14 +296,16 @@ export function HeroDemoVisual() {
 																		"hovering"
 																			? {
 																					scale: [
-																						1, 1.2,
+																						1,
+																						1.2,
 																						1,
 																					],
-																					boxShadow: [
-																						"0 0 0 0 rgba(34,197,94,0)",
-																						"0 0 0 4px rgba(34,197,94,0.3)",
-																						"0 0 0 0 rgba(34,197,94,0)",
-																					],
+																					boxShadow:
+																						[
+																							"0 0 0 0 rgba(34,197,94,0)",
+																							"0 0 0 4px rgba(34,197,94,0.3)",
+																							"0 0 0 0 rgba(34,197,94,0)",
+																						],
 																				}
 																			: {}
 																	}
@@ -344,7 +359,9 @@ export function HeroDemoVisual() {
 					{/* AI classifying indicator — always takes space, visibility toggled */}
 					<div className="flex justify-center pb-3 shrink-0">
 						<motion.div
-							animate={{ opacity: phase === "classifying" ? 1 : 0 }}
+							animate={{
+								opacity: phase === "classifying" ? 1 : 0,
+							}}
 							transition={{ duration: 0.2 }}
 							className="flex items-center gap-2 rounded-full bg-primary/5 border border-primary/10 px-3 py-1"
 						>
@@ -402,7 +419,9 @@ export function HeroDemoVisual() {
 										>
 											<motion.div
 												animate={{
-													scale: isItemVisible ? 1 : 0,
+													scale: isItemVisible
+														? 1
+														: 0,
 												}}
 												transition={{
 													type: "spring",

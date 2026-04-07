@@ -7,6 +7,7 @@ import {
 	CreditCardIcon,
 	LockKeyholeIcon,
 	SettingsIcon,
+	ShieldCheckIcon,
 	TriangleAlertIcon,
 } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -51,6 +52,11 @@ export default async function SettingsLayout({ children }: PropsWithChildren) {
 							},
 						]
 					: []),
+				{
+					title: t("settings.menu.account.privacy"),
+					href: "/app/settings/privacy",
+					icon: <ShieldCheckIcon className="size-4 opacity-50" />,
+				},
 				{
 					title: t("settings.menu.account.dangerZone"),
 					href: "/app/settings/danger-zone",

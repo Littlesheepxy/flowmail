@@ -1,7 +1,7 @@
 import { db } from "@repo/database";
 import type {
-	MemoryEntry,
 	MemoryCategory,
+	MemoryEntry,
 	MemoryScope,
 	RecallOptions,
 } from "../core/types";
@@ -73,77 +73,93 @@ export class MemoryManager {
 	// ─── Core Write ───
 
 	async write(params: WriteMemoryParams): Promise<string> {
-		const record = await db.agentMemory.create({
-			data: {
-				organizationId: params.organizationId,
-				category: params.category,
-				scope: params.scope ?? MEMORY_SCOPES.org,
-				scopeId: params.scopeId,
-				content: params.content,
-				metadata: params.metadata
-					? JSON.stringify(params.metadata)
-					: undefined,
-				importance: params.importance ?? 5,
-				expiresAt: params.expiresAt,
-			},
-		});
-		return record.id;
+		try {
+			const record = await db.agentMemory.create({
+				data: {
+					organizationId: params.organizationId,
+					category: params.category,
+					scope: params.scope ?? MEMORY_SCOPES.org,
+					scopeId: params.scopeId,
+					content: params.content,
+					metadata: params.metadata
+						? JSON.stringify(params.metadata)
+						: undefined,
+					importance: params.importance ?? 5,
+					expiresAt: params.expiresAt,
+				},
+			});
+			return record.id;
+		} catch (e: unknown) {
+			const code = (e as { code?: string })?.code;
+			if (code === "P2021" || code === "P2010") {
+				return "";
+			}
+			throw e;
+		}
 	}
 
 	// ─── Multi-dimensional Recall ───
 
 	async recall(options: RecallOptions): Promise<MemoryEntry[]> {
-		const where: Record<string, unknown> = {
-			organizationId: options.organizationId,
-		};
+		try {
+			const where: Record<string, unknown> = {
+				organizationId: options.organizationId,
+			};
 
-		if (options.categories && options.categories.length > 0) {
-			where.category = { in: options.categories };
-		}
-
-		if (options.scope) {
-			where.scope = options.scope.type;
-			where.scopeId = options.scope.id;
-		}
-
-		if (options.minImportance) {
-			where.importance = { gte: options.minImportance };
-		}
-
-		const now = new Date();
-		where.OR = [{ expiresAt: null }, { expiresAt: { gt: now } }];
-
-		if (options.query) {
-			const keywords = options.query
-				.split(/\s+/)
-				.filter((w) => w.length > 1);
-			if (keywords.length > 0) {
-				where.AND = keywords.map((kw) => ({
-					content: { contains: kw, mode: "insensitive" },
-				}));
+			if (options.categories && options.categories.length > 0) {
+				where.category = { in: options.categories };
 			}
+
+			if (options.scope) {
+				where.scope = options.scope.type;
+				where.scopeId = options.scope.id;
+			}
+
+			if (options.minImportance) {
+				where.importance = { gte: options.minImportance };
+			}
+
+			const now = new Date();
+			where.OR = [{ expiresAt: null }, { expiresAt: { gt: now } }];
+
+			if (options.query) {
+				const keywords = options.query
+					.split(/\s+/)
+					.filter((w) => w.length > 1);
+				if (keywords.length > 0) {
+					where.AND = keywords.map((kw) => ({
+						content: { contains: kw, mode: "insensitive" },
+					}));
+				}
+			}
+
+			const records = await db.agentMemory.findMany({
+				where,
+				orderBy: [{ importance: "desc" }, { createdAt: "desc" }],
+				take: options.limit ?? 10,
+			});
+
+			if (records.length > 0) {
+				const ids = records.map((r) => r.id);
+				await db.agentMemory
+					.updateMany({
+						where: { id: { in: ids } },
+						data: {
+							accessCount: { increment: 1 },
+							lastAccessedAt: now,
+						},
+					})
+					.catch(() => {});
+			}
+
+			return records.map((r) => this.toEntry(r));
+		} catch (e: unknown) {
+			const code = (e as { code?: string })?.code;
+			if (code === "P2021" || code === "P2010") {
+				return [];
+			}
+			throw e;
 		}
-
-		const records = await db.agentMemory.findMany({
-			where,
-			orderBy: [{ importance: "desc" }, { createdAt: "desc" }],
-			take: options.limit ?? 10,
-		});
-
-		if (records.length > 0) {
-			const ids = records.map((r) => r.id);
-			await db.agentMemory
-				.updateMany({
-					where: { id: { in: ids } },
-					data: {
-						accessCount: { increment: 1 },
-						lastAccessedAt: now,
-					},
-				})
-				.catch(() => {});
-		}
-
-		return records.map((r) => this.toEntry(r));
 	}
 
 	// ─── Focused Recall (for a specific entity/contact context) ───
@@ -207,7 +223,9 @@ export class MemoryManager {
 
 	// ─── Specialized Write Methods ───
 
-	async recordClassification(params: RecordClassificationParams): Promise<void> {
+	async recordClassification(
+		params: RecordClassificationParams,
+	): Promise<void> {
 		const content = params.userCorrected
 			? `用户将来自 ${params.sender} 的邮件 "${params.emailSubject}" 从 ${params.classification} 修正为 ${params.correctedTo}`
 			: `来自 ${params.sender} 的邮件 "${params.emailSubject}" 被分类为 ${params.classification}（置信度: ${Math.round(params.confidence * 100)}%）`;
@@ -230,7 +248,9 @@ export class MemoryManager {
 		});
 	}
 
-	async recordContactProfile(params: RecordContactProfileParams): Promise<void> {
+	async recordContactProfile(
+		params: RecordContactProfileParams,
+	): Promise<void> {
 		await this.write({
 			organizationId: params.organizationId,
 			category: MEMORY_CATEGORIES.contact_profile,
@@ -309,36 +329,47 @@ export class MemoryManager {
 	// ─── Importance Decay ───
 
 	async applyDecay(organizationId: string): Promise<number> {
-		const cutoff = new Date();
-		cutoff.setDate(cutoff.getDate() - DECAY_THRESHOLD_DAYS);
+		try {
+			const cutoff = new Date();
+			cutoff.setDate(cutoff.getDate() - DECAY_THRESHOLD_DAYS);
 
-		const stale = await db.agentMemory.findMany({
-			where: {
-				organizationId,
-				importance: { gt: MIN_IMPORTANCE },
-				lastAccessedAt: { lt: cutoff },
-				accessCount: { lt: 3 },
-			},
-			select: { id: true, importance: true },
-		});
+			const stale = await db.agentMemory.findMany({
+				where: {
+					organizationId,
+					importance: { gt: MIN_IMPORTANCE },
+					lastAccessedAt: { lt: cutoff },
+					accessCount: { lt: 3 },
+				},
+				select: { id: true, importance: true },
+			});
 
-		if (stale.length === 0) {
-			return 0;
-		}
-
-		let decayed = 0;
-		for (const record of stale) {
-			const newImportance = Math.max(MIN_IMPORTANCE, record.importance - 1);
-			if (newImportance !== record.importance) {
-				await db.agentMemory.update({
-					where: { id: record.id },
-					data: { importance: newImportance },
-				});
-				decayed++;
+			if (stale.length === 0) {
+				return 0;
 			}
-		}
 
-		return decayed;
+			let decayed = 0;
+			for (const record of stale) {
+				const newImportance = Math.max(
+					MIN_IMPORTANCE,
+					record.importance - 1,
+				);
+				if (newImportance !== record.importance) {
+					await db.agentMemory.update({
+						where: { id: record.id },
+						data: { importance: newImportance },
+					});
+					decayed++;
+				}
+			}
+
+			return decayed;
+		} catch (e: unknown) {
+			const code = (e as { code?: string })?.code;
+			if (code === "P2021" || code === "P2010") {
+				return 0;
+			}
+			throw e;
+		}
 	}
 
 	// ─── Helpers ───

@@ -37,6 +37,8 @@ export function EyeSvg({
 			viewBox="0 0 48 48"
 			width={size}
 			height={size}
+			role="img"
+			aria-label="AI Eye"
 			style={{ overflow: "visible" }}
 		>
 			<g transform={`translate(0, ${bounceY})`}>
@@ -73,14 +75,22 @@ export function EyeSvg({
 						<>
 							<circle
 								cx={15 + pupilX * 0.9}
-								cy={22 + pupilY * 0.9 + (mood === "thinking" ? -2 : 0)}
+								cy={
+									22 +
+									pupilY * 0.9 +
+									(mood === "thinking" ? -2 : 0)
+								}
 								r={pupilR}
 								fill="currentColor"
 								style={{ transition: "r 0.2s" }}
 							/>
 							<circle
 								cx={13.5 + pupilX * 0.3}
-								cy={20 + pupilY * 0.3 + (mood === "thinking" ? -1 : 0)}
+								cy={
+									20 +
+									pupilY * 0.3 +
+									(mood === "thinking" ? -1 : 0)
+								}
 								r={highlightR}
 								fill="white"
 								opacity="0.9"
@@ -111,14 +121,22 @@ export function EyeSvg({
 						<>
 							<circle
 								cx={33 + pupilX * 0.9}
-								cy={22 + pupilY * 0.9 + (mood === "thinking" ? -2 : 0)}
+								cy={
+									22 +
+									pupilY * 0.9 +
+									(mood === "thinking" ? -2 : 0)
+								}
 								r={pupilR}
 								fill="currentColor"
 								style={{ transition: "r 0.2s" }}
 							/>
 							<circle
 								cx={31.5 + pupilX * 0.3}
-								cy={20 + pupilY * 0.3 + (mood === "thinking" ? -1 : 0)}
+								cy={
+									20 +
+									pupilY * 0.3 +
+									(mood === "thinking" ? -1 : 0)
+								}
 								r={highlightR}
 								fill="white"
 								opacity="0.9"
@@ -141,29 +159,75 @@ export function EyeSvg({
 				{mood === "thinking" && (
 					<g opacity="0.5">
 						<circle cx="40" cy="14" r="1.2" fill="currentColor">
-							<animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" repeatCount="indefinite" />
+							<animate
+								attributeName="opacity"
+								values="0.3;1;0.3"
+								dur="1.2s"
+								repeatCount="indefinite"
+							/>
 						</circle>
 						<circle cx="43" cy="11" r="1" fill="currentColor">
-							<animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" begin="0.2s" repeatCount="indefinite" />
+							<animate
+								attributeName="opacity"
+								values="0.3;1;0.3"
+								dur="1.2s"
+								begin="0.2s"
+								repeatCount="indefinite"
+							/>
 						</circle>
 						<circle cx="45.5" cy="8.5" r="0.8" fill="currentColor">
-							<animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" begin="0.4s" repeatCount="indefinite" />
+							<animate
+								attributeName="opacity"
+								values="0.3;1;0.3"
+								dur="1.2s"
+								begin="0.4s"
+								repeatCount="indefinite"
+							/>
 						</circle>
 					</g>
 				)}
 
 				{/* Sleeping zzz */}
 				{mood === "sleeping" && (
-					<g opacity="0.4" fontSize="6" fontWeight="bold" fill="currentColor">
+					<g
+						opacity="0.4"
+						fontSize="6"
+						fontWeight="bold"
+						fill="currentColor"
+					>
 						<text x="36" y="14">
 							z
-							<animate attributeName="opacity" values="0.2;0.6;0.2" dur="2s" repeatCount="indefinite" />
-							<animateTransform attributeName="transform" type="translate" values="0 0;2 -3;0 0" dur="2s" repeatCount="indefinite" />
+							<animate
+								attributeName="opacity"
+								values="0.2;0.6;0.2"
+								dur="2s"
+								repeatCount="indefinite"
+							/>
+							<animateTransform
+								attributeName="transform"
+								type="translate"
+								values="0 0;2 -3;0 0"
+								dur="2s"
+								repeatCount="indefinite"
+							/>
 						</text>
 						<text x="40" y="9" fontSize="5">
 							z
-							<animate attributeName="opacity" values="0.2;0.6;0.2" dur="2s" begin="0.5s" repeatCount="indefinite" />
-							<animateTransform attributeName="transform" type="translate" values="0 0;1.5 -2;0 0" dur="2s" begin="0.5s" repeatCount="indefinite" />
+							<animate
+								attributeName="opacity"
+								values="0.2;0.6;0.2"
+								dur="2s"
+								begin="0.5s"
+								repeatCount="indefinite"
+							/>
+							<animateTransform
+								attributeName="transform"
+								type="translate"
+								values="0 0;1.5 -2;0 0"
+								dur="2s"
+								begin="0.5s"
+								repeatCount="indefinite"
+							/>
 						</text>
 					</g>
 				)}
@@ -171,8 +235,24 @@ export function EyeSvg({
 				{/* Alert eyebrows */}
 				{mood === "alert" && (
 					<>
-						<line x1="9" y1="12" x2="17" y2="14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-						<line x1="31" y1="14" x2="39" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+						<line
+							x1="9"
+							y1="12"
+							x2="17"
+							y2="14"
+							stroke="currentColor"
+							strokeWidth="1.8"
+							strokeLinecap="round"
+						/>
+						<line
+							x1="31"
+							y1="14"
+							x2="39"
+							y2="12"
+							stroke="currentColor"
+							strokeWidth="1.8"
+							strokeLinecap="round"
+						/>
 					</>
 				)}
 			</g>

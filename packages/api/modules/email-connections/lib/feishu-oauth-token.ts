@@ -1,7 +1,8 @@
 import { ORPCError } from "@orpc/client";
-import { db } from "@repo/database";
+import { db, encryptSensitiveFields } from "@repo/database";
 
-const FEISHU_TOKEN_URL = "https://open.feishu.cn/open-apis/authen/v2/oauth/token";
+const FEISHU_TOKEN_URL =
+	"https://open.feishu.cn/open-apis/authen/v2/oauth/token";
 /** 提前刷新，避免边界时刻 401 */
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const DEFAULT_EXPIRES_SEC = 7200;
@@ -36,7 +37,11 @@ export async function refreshFeishuUserAccessToken(input: {
 	refreshToken: string;
 	appId: string;
 	appSecret: string;
-}): Promise<{ accessToken: string; refreshToken?: string; expiresIn?: number }> {
+}): Promise<{
+	accessToken: string;
+	refreshToken?: string;
+	expiresIn?: number;
+}> {
 	const res = await fetch(FEISHU_TOKEN_URL, {
 		method: "POST",
 		headers: { "Content-Type": "application/json; charset=utf-8" },
@@ -70,9 +75,9 @@ export async function refreshFeishuUserAccessToken(input: {
  * 若飞书 OAuth 连接临近过期或已过期，则刷新并写回数据库，返回最新连接行。
  * 非飞书或非 oauth2 连接原样返回。
  */
-export async function ensureFeishuOAuthAccessToken<T extends FeishuConnectionRow>(
-	connection: T,
-): Promise<T> {
+export async function ensureFeishuOAuthAccessToken<
+	T extends FeishuConnectionRow,
+>(connection: T): Promise<T> {
 	if (connection.provider !== "feishu" || connection.authType !== "oauth2") {
 		return connection;
 	}
@@ -86,8 +91,7 @@ export async function ensureFeishuOAuthAccessToken<T extends FeishuConnectionRow
 
 	const expiresAtMs = connection.tokenExpiresAt?.getTime();
 	const needsRefresh =
-		expiresAtMs == null ||
-		expiresAtMs <= Date.now() + REFRESH_BUFFER_MS;
+		expiresAtMs == null || expiresAtMs <= Date.now() + REFRESH_BUFFER_MS;
 
 	if (!needsRefresh) {
 		return connection;
@@ -102,14 +106,23 @@ export async function ensureFeishuOAuthAccessToken<T extends FeishuConnectionRow
 	const expiresIn = tokens.expiresIn ?? DEFAULT_EXPIRES_SEC;
 	const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
 
-	const updated = await db.emailConnection.update({
+	const dataToWrite = encryptSensitiveFields({
+		accessToken: tokens.accessToken,
+		...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+	});
+
+	await db.emailConnection.update({
 		where: { id: connection.id },
 		data: {
-			accessToken: tokens.accessToken,
-			...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+			...dataToWrite,
 			tokenExpiresAt,
 		},
 	});
 
-	return { ...connection, ...updated } as T;
+	return {
+		...connection,
+		accessToken: tokens.accessToken,
+		...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+		tokenExpiresAt,
+	} as T;
 }

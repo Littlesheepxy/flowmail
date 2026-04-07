@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@repo/ui/components/button";
-import { Badge } from "@repo/ui/components/badge";
-import { Card } from "@repo/ui/components/card";
 import { Spinner } from "@repo/ui";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
 import {
 	Table,
 	TableBody,
@@ -14,12 +14,8 @@ import {
 } from "@repo/ui/components/table";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-	CheckIcon,
-	XIcon,
-	ClockIcon,
-} from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckIcon, ClockIcon, XIcon } from "lucide-react";
 
 export function PendingApprovalsList() {
 	const { activeOrganization } = useActiveOrganization();
@@ -36,8 +32,12 @@ export function PendingApprovalsList() {
 	const approveMutation = useMutation(
 		orpc.approvals.approve.mutationOptions({
 			onSuccess: () => {
-				queryClient.invalidateQueries({ queryKey: orpc.approvals.listPending.key() });
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+				queryClient.invalidateQueries({
+					queryKey: orpc.approvals.listPending.key(),
+				});
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.list.key(),
+				});
 			},
 		}),
 	);
@@ -45,8 +45,12 @@ export function PendingApprovalsList() {
 	const rejectMutation = useMutation(
 		orpc.approvals.reject.mutationOptions({
 			onSuccess: () => {
-				queryClient.invalidateQueries({ queryKey: orpc.approvals.listPending.key() });
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+				queryClient.invalidateQueries({
+					queryKey: orpc.approvals.listPending.key(),
+				});
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.list.key(),
+				});
 			},
 		}),
 	);
@@ -76,11 +80,17 @@ export function PendingApprovalsList() {
 						</TableRow>
 					) : approvals.length === 0 ? (
 						<TableRow>
-							<TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+							<TableCell
+								colSpan={4}
+								className="h-32 text-center text-muted-foreground"
+							>
 								<div className="flex flex-col items-center gap-2">
 									<ClockIcon className="size-8 text-muted-foreground/50" />
 									<p>No pending approvals</p>
-									<p className="text-xs">All caught up! New approvals will appear here automatically.</p>
+									<p className="text-xs">
+										All caught up! New approvals will appear
+										here automatically.
+									</p>
 								</div>
 							</TableCell>
 						</TableRow>
@@ -89,14 +99,22 @@ export function PendingApprovalsList() {
 							const fields = approval.extractedFields
 								? JSON.parse(approval.extractedFields as string)
 								: {};
-							const isPending = approveMutation.isPending || rejectMutation.isPending;
-							const urgencyStatus = fields.urgency === "urgent" || fields.urgency === "high" ? "error" as const : "info" as const;
+							const isPending =
+								approveMutation.isPending ||
+								rejectMutation.isPending;
+							const urgencyStatus =
+								fields.urgency === "urgent" ||
+								fields.urgency === "high"
+									? ("error" as const)
+									: ("info" as const);
 
 							return (
 								<TableRow key={approval.id}>
 									<TableCell>
 										<div>
-											<p className="font-medium">{approval.title}</p>
+											<p className="font-medium">
+												{approval.title}
+											</p>
 											{approval.aiSummary && (
 												<p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
 													{approval.aiSummary}
@@ -106,9 +124,14 @@ export function PendingApprovalsList() {
 									</TableCell>
 									<TableCell>
 										{approval.assignee ? (
-											<span className="text-sm">{approval.assignee.name ?? approval.assignee.email}</span>
+											<span className="text-sm">
+												{approval.assignee.name ??
+													approval.assignee.email}
+											</span>
 										) : (
-											<span className="text-sm text-muted-foreground">—</span>
+											<span className="text-sm text-muted-foreground">
+												—
+											</span>
 										)}
 									</TableCell>
 									<TableCell>

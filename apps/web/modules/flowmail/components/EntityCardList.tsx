@@ -1,16 +1,16 @@
 "use client";
 
+import { cn, Spinner } from "@repo/ui";
 import { Badge } from "@repo/ui/components/badge";
-import { Spinner, cn } from "@repo/ui";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import {
+	AlertCircleIcon,
 	CheckCircle2Icon,
 	ClockIcon,
-	AlertCircleIcon,
-	XCircleIcon,
 	InboxIcon,
+	XCircleIcon,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<
@@ -80,8 +80,7 @@ export function EntityCardList({
 			{ category: CategoryInfo; items: typeof filteredEntities }
 		>();
 		for (const entity of filteredEntities) {
-			const cat = (entity as { category?: CategoryInfo | null })
-				.category;
+			const cat = (entity as { category?: CategoryInfo | null }).category;
 			const key = cat?.name ?? "未分类";
 			const color = cat?.color ?? "#94a3b8";
 			if (!groupMap.has(key)) {
@@ -90,7 +89,7 @@ export function EntityCardList({
 					items: [],
 				});
 			}
-			groupMap.get(key)!.items.push(entity);
+			groupMap.get(key)?.items.push(entity);
 		}
 		categoryGroups.push(...groupMap.values());
 	}

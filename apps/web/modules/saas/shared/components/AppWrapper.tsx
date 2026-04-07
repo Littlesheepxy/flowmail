@@ -1,13 +1,17 @@
 "use client";
 
-import { cn } from "@repo/ui";
-import { AiEyesProvider } from "@ai-eyes/react";
 import { AnalyzerEngine, createVercelAiAdapter } from "@ai-eyes/ai";
-import type { AiEyesCoreConfig, ConfusionEvent, HelpSuggestion } from "@ai-eyes/core";
+import type {
+	AiEyesCoreConfig,
+	ConfusionEvent,
+	HelpSuggestion,
+} from "@ai-eyes/core";
+import { AiEyesProvider } from "@ai-eyes/react";
 import { AgentFloatingButton } from "@flowmail/components/AgentFloatingButton";
 import { AgentProvider } from "@flowmail/components/AgentProvider";
+import { cn } from "@repo/ui";
 import { NavBar } from "@saas/shared/components/NavBar";
-import { useCallback, type PropsWithChildren } from "react";
+import { type PropsWithChildren, useCallback } from "react";
 import { config } from "@/config";
 import { SidebarProvider, useSidebar } from "../lib/sidebar-context";
 
@@ -35,12 +39,15 @@ function AppContent({ children }: PropsWithChildren) {
 		<div className="bg-background">
 			<NavBar />
 			<div
-				className={cn("flex transition-[margin] duration-300 ease-in-out", {
-				"min-h-[calc(100vh)] md:ml-[260px]":
-					useSidebarLayout && !isCollapsed,
-				"min-h-[calc(100vh)] md:ml-[64px]":
-					useSidebarLayout && isCollapsed,
-				})}
+				className={cn(
+					"flex transition-[margin] duration-300 ease-in-out",
+					{
+						"min-h-[calc(100vh)] md:ml-[260px]":
+							useSidebarLayout && !isCollapsed,
+						"min-h-[calc(100vh)] md:ml-[64px]":
+							useSidebarLayout && isCollapsed,
+					},
+				)}
 			>
 				<main
 					className={cn(
@@ -66,7 +73,10 @@ export function AppWrapper({ children }: PropsWithChildren) {
 	return (
 		<SidebarProvider>
 			<AgentProvider>
-				<AiEyesProvider config={AI_EYES_CONFIG} onConfusion={handleConfusion}>
+				<AiEyesProvider
+					config={AI_EYES_CONFIG}
+					onConfusion={handleConfusion}
+				>
 					<AppContent>{children}</AppContent>
 				</AiEyesProvider>
 			</AgentProvider>

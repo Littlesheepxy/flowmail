@@ -20,7 +20,9 @@ export const ReportExtractionSchema = z.object({
 	inProgressItems: z.array(z.string()).describe("In-progress items"),
 	blockers: z.array(z.string()).describe("Blockers or risks"),
 	nextActions: z.array(z.string()).describe("Next steps"),
-	overallStatus: z.enum(["on_track", "at_risk", "blocked"]).describe("Overall status"),
+	overallStatus: z
+		.enum(["on_track", "at_risk", "blocked"])
+		.describe("Overall status"),
 });
 
 export type ReportExtraction = z.infer<typeof ReportExtractionSchema>;

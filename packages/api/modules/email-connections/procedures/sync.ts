@@ -1,6 +1,12 @@
 import { ORPCError } from "@orpc/client";
 import { db, decryptSensitiveFields } from "@repo/database";
-import { getConnector, processEmail } from "@repo/email-processor";
+import {
+	getConnector,
+	processEmail,
+	storeEmailOnly,
+} from "@repo/email-processor";
+import { writeAuditLog } from "../../../lib/audit-log";
+import { checkRateLimit, RATE_LIMITS } from "../../../lib/rate-limit";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { triggerNotification } from "../../notifications/lib/trigger";
@@ -16,6 +22,16 @@ export const syncEmailConnection = protectedProcedure
 	})
 	.input(syncConnectionSchema)
 	.handler(async ({ input, context }) => {
+		const rl = checkRateLimit(
+			`email-sync:${input.connectionId}`,
+			RATE_LIMITS.emailSync,
+		);
+		if (!rl.allowed) {
+			throw new ORPCError("TOO_MANY_REQUESTS", {
+				message: `Sync rate limit exceeded. Try again in ${Math.ceil((rl.resetAt - Date.now()) / 1000)}s`,
+			});
+		}
+
 		const connection = await db.emailConnection.findUnique({
 			where: { id: input.connectionId },
 		});
@@ -24,10 +40,15 @@ export const syncEmailConnection = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			connection.organizationId,
+			context.user.id,
+		);
 
 		if (!connection.isActive) {
-			throw new ORPCError("BAD_REQUEST", { message: "Connection is inactive" });
+			throw new ORPCError("BAD_REQUEST", {
+				message: "Connection is inactive",
+			});
 		}
 
 		const decryptedConnection = decryptSensitiveFields(connection);
@@ -54,6 +75,7 @@ export const syncEmailConnection = protectedProcedure
 		);
 
 		let processed = 0;
+		let stored = 0;
 		let errors = 0;
 
 		for (const email of emails) {
@@ -67,6 +89,32 @@ export const syncEmailConnection = protectedProcedure
 			});
 
 			if (existing) {
+				continue;
+			}
+
+			if (input.skipClassification) {
+				const storeResult = await storeEmailOnly({
+					threadId: email.threadId ?? email.externalId,
+					subject: email.subject,
+					sender: email.sender,
+					senderEmail: email.senderEmail,
+					content: email.content,
+					bodyHtml: email.bodyHtml,
+					bodyText: email.bodyText,
+					toRecipients: email.toRecipients,
+					ccRecipients: email.ccRecipients,
+					attachments: email.attachments,
+					organizationId: connectionWithToken.organizationId,
+					connectionId: connectionWithToken.id,
+					externalThreadId: email.externalId,
+					receivedAt: email.receivedAt,
+					messageId: email.messageId,
+				});
+				if (storeResult.success) {
+					stored++;
+				} else {
+					errors++;
+				}
 				continue;
 			}
 
@@ -102,7 +150,10 @@ export const syncEmailConnection = protectedProcedure
 				}
 			} else {
 				errors++;
-				console.error("[Sync] Processing failed", { connectionId: connectionWithToken.id, error: result.error });
+				console.error("[Sync] Processing failed", {
+					connectionId: connectionWithToken.id,
+					error: result.error,
+				});
 			}
 		}
 
@@ -114,9 +165,26 @@ export const syncEmailConnection = protectedProcedure
 			},
 		});
 
+		writeAuditLog({
+			organizationId: connectionWithToken.organizationId,
+			userId: context.user.id,
+			action: "EMAIL_SYNC",
+			targetType: "EmailConnection",
+			targetId: connectionWithToken.id,
+			metadata: {
+				fetched: emails.length,
+				processed,
+				stored,
+				errors,
+				skipClassification: !!input.skipClassification,
+			},
+		});
+
 		return {
 			fetched: emails.length,
 			processed,
+			stored,
 			errors,
+			skipClassification: !!input.skipClassification,
 		};
 	});

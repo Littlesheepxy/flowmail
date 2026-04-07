@@ -25,7 +25,8 @@ const BLINK_DURATION = 150;
 
 export function useEyeAnimation(externalMood?: EyeMood): EyeAnimationState {
 	const [mood, setMood] = useState<EyeMood>(externalMood ?? "idle");
-	const [blinkPhase, setBlinkPhase] = useState<EyeAnimationState["blinkPhase"]>("open");
+	const [blinkPhase, setBlinkPhase] =
+		useState<EyeAnimationState["blinkPhase"]>("open");
 	const [bodyBounce, setBodyBounce] = useState(0);
 	const blinkTimerRef = useRef<ReturnType<typeof setTimeout>>();
 	const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -104,7 +105,10 @@ export function useEyeAnimation(externalMood?: EyeMood): EyeAnimationState {
 				setMood("sleeping");
 			}
 		};
-		sleepTimerRef.current = setInterval(check, 10000) as unknown as ReturnType<typeof setTimeout>;
+		sleepTimerRef.current = setInterval(
+			check,
+			10000,
+		) as unknown as ReturnType<typeof setTimeout>;
 		return () => {
 			if (sleepTimerRef.current) {
 				clearInterval(sleepTimerRef.current as unknown as number);

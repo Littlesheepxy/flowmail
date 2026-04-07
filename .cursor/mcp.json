@@ -1,14 +1,19 @@
 {
-  "mcpServers": {
-    "phone-agent": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with", "mcp[cli]",
-        "--with", "httpx",
-        "--with", "pydantic",
-        "mcp", "run", "mcp_server/server.py"
-      ]
-    }
-  }
+	"mcpServers": {
+		"phone-agent": {
+			"command": "uv",
+			"args": [
+				"run",
+				"--with",
+				"mcp[cli]",
+				"--with",
+				"httpx",
+				"--with",
+				"pydantic",
+				"mcp",
+				"run",
+				"mcp_server/server.py"
+			]
+		}
+	}
 }

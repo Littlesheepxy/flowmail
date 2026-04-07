@@ -59,7 +59,11 @@ export const submitFeedback = protectedProcedure
 			},
 		});
 
-		if (input.target === "classification" && !isPositive && input.correction) {
+		if (
+			input.target === "classification" &&
+			!isPositive &&
+			input.correction
+		) {
 			await db.agentMemory.create({
 				data: {
 					organizationId: entity.organizationId,

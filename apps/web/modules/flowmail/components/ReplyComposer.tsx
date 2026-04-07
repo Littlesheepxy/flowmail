@@ -1,28 +1,28 @@
 "use client";
 
-import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui";
-import {
-	Reply as ReplyIcon,
-	ReplyAllIcon,
-	ForwardIcon,
-	SendIcon,
-	XIcon,
-	BoldIcon,
-	ItalicIcon,
-	UnderlineIcon,
-	ListIcon,
-	ListOrderedIcon,
-	LinkIcon,
-	QuoteIcon,
-	PaperclipIcon,
-} from "lucide-react";
-import { useState, useCallback } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import TiptapUnderline from "@tiptap/extension-underline";
+import { Button } from "@repo/ui/components/button";
 import TiptapLink from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import TiptapUnderline from "@tiptap/extension-underline";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import {
+	BoldIcon,
+	ForwardIcon,
+	ItalicIcon,
+	LinkIcon,
+	ListIcon,
+	ListOrderedIcon,
+	PaperclipIcon,
+	QuoteIcon,
+	ReplyAllIcon,
+	Reply as ReplyIcon,
+	SendIcon,
+	UnderlineIcon,
+	XIcon,
+} from "lucide-react";
+import { useCallback, useState } from "react";
 
 export type ReplyMode = "reply" | "replyAll" | "forward";
 
@@ -33,7 +33,11 @@ interface ReplyComposerProps {
 	toRecipients?: Array<{ name?: string; address: string }>;
 	ccRecipients?: Array<{ name?: string; address: string }>;
 	defaultMode?: ReplyMode;
-	onSend?: (data: { mode: ReplyMode; html: string; text: string }) => void | Promise<void>;
+	onSend?: (data: {
+		mode: ReplyMode;
+		html: string;
+		text: string;
+	}) => void | Promise<void>;
 	onClose?: () => void;
 	isSending?: boolean;
 	className?: string;
@@ -73,20 +77,26 @@ export function ReplyComposer({
 		},
 	});
 
-	const recipientDisplay = mode === "reply"
-		? `${senderName || senderEmail}`
-		: mode === "replyAll"
-			? [
-				senderName || senderEmail,
-				...(toRecipients?.map((r) => r.name || r.address) ?? []),
-				...(ccRecipients?.map((r) => r.name || r.address) ?? []),
-			].filter(Boolean).join(", ")
-			: "";
+	const recipientDisplay =
+		mode === "reply"
+			? `${senderName || senderEmail}`
+			: mode === "replyAll"
+				? [
+						senderName || senderEmail,
+						...(toRecipients?.map((r) => r.name || r.address) ??
+							[]),
+						...(ccRecipients?.map((r) => r.name || r.address) ??
+							[]),
+					]
+						.filter(Boolean)
+						.join(", ")
+				: "";
 
 	const subjectPrefix = mode === "forward" ? "Fwd: " : "Re: ";
-	const displaySubject = subject.startsWith("Re:") || subject.startsWith("Fwd:")
-		? subject
-		: `${subjectPrefix}${subject}`;
+	const displaySubject =
+		subject.startsWith("Re:") || subject.startsWith("Fwd:")
+			? subject
+			: `${subjectPrefix}${subject}`;
 
 	const handleSend = useCallback(async () => {
 		if (!editor) {
@@ -102,7 +112,12 @@ export function ReplyComposer({
 		}
 	}, [editor, mode, onSend]);
 
-	const modeIcon = mode === "reply" ? ReplyIcon : mode === "replyAll" ? ReplyAllIcon : ForwardIcon;
+	const modeIcon =
+		mode === "reply"
+			? ReplyIcon
+			: mode === "replyAll"
+				? ReplyAllIcon
+				: ForwardIcon;
 	const ModeIcon = modeIcon;
 
 	return (
@@ -112,7 +127,11 @@ export function ReplyComposer({
 				<div className="flex items-center gap-1.5 text-sm text-muted-foreground shrink-0">
 					<ModeIcon className="size-3.5" />
 					<span className="text-xs font-medium">
-						{mode === "reply" ? "回复" : mode === "replyAll" ? "全部回复" : "转发"}
+						{mode === "reply"
+							? "回复"
+							: mode === "replyAll"
+								? "全部回复"
+								: "转发"}
 					</span>
 				</div>
 
@@ -122,9 +141,24 @@ export function ReplyComposer({
 
 				{/* Mode switcher */}
 				<div className="flex items-center gap-0.5 shrink-0">
-					<ModeButton active={mode === "reply"} onClick={() => setMode("reply")} icon={ReplyIcon} label="回复" />
-					<ModeButton active={mode === "replyAll"} onClick={() => setMode("replyAll")} icon={ReplyAllIcon} label="全部回复" />
-					<ModeButton active={mode === "forward"} onClick={() => setMode("forward")} icon={ForwardIcon} label="转发" />
+					<ModeButton
+						active={mode === "reply"}
+						onClick={() => setMode("reply")}
+						icon={ReplyIcon}
+						label="回复"
+					/>
+					<ModeButton
+						active={mode === "replyAll"}
+						onClick={() => setMode("replyAll")}
+						icon={ReplyAllIcon}
+						label="全部回复"
+					/>
+					<ModeButton
+						active={mode === "forward"}
+						onClick={() => setMode("forward")}
+						icon={ForwardIcon}
+						label="转发"
+					/>
 				</div>
 
 				{onClose && (
@@ -157,26 +191,77 @@ export function ReplyComposer({
 
 				{/* Format toolbar */}
 				<div className="flex items-center gap-0.5 flex-1">
-					<ToolbarButton onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive("bold")} icon={BoldIcon} title="加粗" />
-					<ToolbarButton onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive("italic")} icon={ItalicIcon} title="斜体" />
-					<ToolbarButton onClick={() => editor?.chain().focus().toggleUnderline().run()} active={editor?.isActive("underline")} icon={UnderlineIcon} title="下划线" />
+					<ToolbarButton
+						onClick={() =>
+							editor?.chain().focus().toggleBold().run()
+						}
+						active={editor?.isActive("bold")}
+						icon={BoldIcon}
+						title="加粗"
+					/>
+					<ToolbarButton
+						onClick={() =>
+							editor?.chain().focus().toggleItalic().run()
+						}
+						active={editor?.isActive("italic")}
+						icon={ItalicIcon}
+						title="斜体"
+					/>
+					<ToolbarButton
+						onClick={() =>
+							editor?.chain().focus().toggleUnderline().run()
+						}
+						active={editor?.isActive("underline")}
+						icon={UnderlineIcon}
+						title="下划线"
+					/>
 					<div className="w-px h-4 bg-border mx-1" />
-					<ToolbarButton onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive("bulletList")} icon={ListIcon} title="无序列表" />
-					<ToolbarButton onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive("orderedList")} icon={ListOrderedIcon} title="有序列表" />
-					<ToolbarButton onClick={() => editor?.chain().focus().toggleBlockquote().run()} active={editor?.isActive("blockquote")} icon={QuoteIcon} title="引用" />
+					<ToolbarButton
+						onClick={() =>
+							editor?.chain().focus().toggleBulletList().run()
+						}
+						active={editor?.isActive("bulletList")}
+						icon={ListIcon}
+						title="无序列表"
+					/>
+					<ToolbarButton
+						onClick={() =>
+							editor?.chain().focus().toggleOrderedList().run()
+						}
+						active={editor?.isActive("orderedList")}
+						icon={ListOrderedIcon}
+						title="有序列表"
+					/>
+					<ToolbarButton
+						onClick={() =>
+							editor?.chain().focus().toggleBlockquote().run()
+						}
+						active={editor?.isActive("blockquote")}
+						icon={QuoteIcon}
+						title="引用"
+					/>
 					<div className="w-px h-4 bg-border mx-1" />
 					<ToolbarButton
 						onClick={() => {
 							const url = window.prompt("链接地址:");
 							if (url) {
-								editor?.chain().focus().setLink({ href: url }).run();
+								editor
+									?.chain()
+									.focus()
+									.setLink({ href: url })
+									.run();
 							}
 						}}
 						active={editor?.isActive("link")}
 						icon={LinkIcon}
 						title="插入链接"
 					/>
-					<ToolbarButton onClick={() => {}} icon={PaperclipIcon} disabled title="附件（即将支持）" />
+					<ToolbarButton
+						onClick={() => {}}
+						icon={PaperclipIcon}
+						disabled
+						title="附件（即将支持）"
+					/>
 				</div>
 			</div>
 		</div>
@@ -200,7 +285,9 @@ function ModeButton({
 			onClick={onClick}
 			className={cn(
 				"flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors",
-				active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+				active
+					? "bg-muted text-foreground"
+					: "text-muted-foreground hover:text-foreground hover:bg-muted/50",
 			)}
 		>
 			<Icon className="size-3" />
@@ -230,7 +317,9 @@ function ToolbarButton({
 			title={title}
 			className={cn(
 				"size-7 flex items-center justify-center rounded transition-colors",
-				active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+				active
+					? "bg-muted text-foreground"
+					: "text-muted-foreground hover:text-foreground hover:bg-muted/50",
 				disabled && "opacity-40 cursor-not-allowed",
 			)}
 		>

@@ -1,0 +1,165 @@
+---
+title: Timeline Tools
+description: MCP tools for managing entity timelines — add events, compute AI diffs, and predict risks.
+---
+
+Timeline tools allow agents to track the history of business entities and leverage AI for analysis.
+
+## add_timeline_event
+
+Add a manual event to an entity's timeline. Use for recording milestones, notes, decisions, or any significant moment.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Entity ID to add event to |
+| `type` | `string` | Yes | One of: `"note"`, `"milestone"`, `"action_taken"`, `"status_changed"`, `"ai_summary"`, `"email_sent"` |
+| `content` | `string` | Yes | Event content / description |
+| `metadata` | `object` | No | Optional structured metadata |
+
+### Example
+
+```json
+{
+  "tool": "add_timeline_event",
+  "arguments": {
+    "entityId": "clx1234567890",
+    "type": "milestone",
+    "content": "Contract signed by both parties",
+    "metadata": { "signedBy": ["Company A", "Company B"] }
+  }
+}
+```
+
+---
+
+## get_entity_timeline
+
+Get the full timeline of events for a business entity, ordered chronologically.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Entity ID |
+| `types` | `string[]` | No | Filter by event types: `"email_received"`, `"email_sent"`, `"status_changed"`, `"action_taken"`, `"ai_summary"`, `"milestone"`, `"note"` |
+
+### Example
+
+```json
+{
+  "tool": "get_entity_timeline",
+  "arguments": {
+    "entityId": "clx1234567890",
+    "types": ["status_changed", "action_taken"]
+  }
+}
+```
+
+### Response
+
+Returns entity metadata, total event count, and the filtered timeline with actor information.
+
+---
+
+## get_timeline_diff
+
+Get an AI-powered semantic diff between two points in an entity's timeline. Useful for understanding what changed over a period of time.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Entity ID |
+| `fromEventId` | `string` | No | Starting event ID (defaults to first event) |
+| `toEventId` | `string` | No | Ending event ID (defaults to latest event) |
+
+### Example
+
+```json
+{
+  "tool": "get_timeline_diff",
+  "arguments": {
+    "entityId": "clx1234567890"
+  }
+}
+```
+
+### Response (with AI)
+
+```json
+{
+  "summary": "Entity progressed from pending review to approved with minor scope changes",
+  "changes": [
+    {
+      "field": "status",
+      "before": "pending",
+      "after": "approved",
+      "significance": "high"
+    },
+    {
+      "field": "budget",
+      "before": "$50,000",
+      "after": "$45,000",
+      "significance": "medium"
+    }
+  ],
+  "riskSignals": ["Budget was reduced by 10%"],
+  "progressDelta": 75,
+  "recommendation": "Proceed with updated budget. Monitor vendor deliverables closely."
+}
+```
+
+**Note:** AI-powered analysis requires an AI model key. Without it, the tool returns the raw events in the selected range.
+
+---
+
+## predict_entity_risk
+
+AI-powered risk prediction for a business entity. Analyzes timeline history, extracted fields, and current status to assess risk.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Entity ID to analyze |
+
+### Example
+
+```json
+{
+  "tool": "predict_entity_risk",
+  "arguments": {
+    "entityId": "clx1234567890"
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "riskLevel": "medium",
+  "riskFactors": [
+    "Approval deadline is in 2 days",
+    "No response from approver in 5 days",
+    "Similar past approvals took 3+ rounds"
+  ],
+  "predictedOutcome": "Likely to miss deadline without intervention",
+  "suggestedActions": [
+    "Send a reminder to the approver",
+    "Escalate to the approver's manager",
+    "Prepare an alternative proposal"
+  ],
+  "deadlineRisk": {
+    "hasDeadline": true,
+    "deadline": "2026-04-05",
+    "daysRemaining": 2,
+    "isAtRisk": true
+  },
+  "confidence": 0.78
+}
+```
+
+**Note:** Requires an AI model key for predictions. Without it, returns `{ "riskLevel": "unknown" }`.

@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
-import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { writeAuditLog } from "../../../lib/audit-log";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { revokeApiTokenSchema } from "../types";
 
@@ -22,7 +22,10 @@ export const revokeApiToken = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(token.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			token.organizationId,
+			context.user.id,
+		);
 
 		await db.apiToken.update({
 			where: { id: input.tokenId },

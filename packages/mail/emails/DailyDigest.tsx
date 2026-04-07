@@ -24,11 +24,18 @@ export function DailyDigest({
 }: DailyDigestProps) {
 	return (
 		<Wrapper>
-			<Text className="text-foreground text-lg font-semibold" style={{ margin: "0 0 4px" }}>
+			<Text
+				className="text-foreground text-lg font-semibold"
+				style={{ margin: "0 0 4px" }}
+			>
 				每日摘要
 			</Text>
-			<Text className="text-muted-foreground text-xs" style={{ margin: "0 0 16px" }}>
-				{organizationName ? `${organizationName} · ` : ""}{date}
+			<Text
+				className="text-muted-foreground text-xs"
+				style={{ margin: "0 0 16px" }}
+			>
+				{organizationName ? `${organizationName} · ` : ""}
+				{date}
 			</Text>
 
 			<Section
@@ -50,7 +57,10 @@ export function DailyDigest({
 							borderBottom: "1px solid #eaeaea",
 						}}
 					>
-						<Text className="text-foreground text-sm" style={{ margin: 0 }}>
+						<Text
+							className="text-foreground text-sm"
+							style={{ margin: 0 }}
+						>
 							{item.label}
 						</Text>
 						<Text

@@ -170,9 +170,7 @@ export function LoginForm() {
 				{t("auth.login.subtitle")}
 			</p>
 
-			{invitationId && (
-				<OrganizationInvitationAlert className="mb-6" />
-			)}
+			{invitationId && <OrganizationInvitationAlert className="mb-6" />}
 
 			<Form {...form}>
 				<form className="space-y-4" onSubmit={onSubmit}>
@@ -206,10 +204,7 @@ export function LoginForm() {
 							<FormItem>
 								<FormLabel>{t("auth.signup.email")}</FormLabel>
 								<FormControl>
-									<Input
-										{...field}
-										autoComplete="email"
-									/>
+									<Input {...field} autoComplete="email" />
 								</FormControl>
 							</FormItem>
 						)}
@@ -230,9 +225,7 @@ export function LoginForm() {
 												href="/auth/forgot-password"
 												className="text-foreground/60 text-xs"
 											>
-												{t(
-													"auth.login.forgotPassword",
-												)}
+												{t("auth.login.forgotPassword")}
 											</Link>
 										</div>
 										<FormControl>
@@ -283,8 +276,7 @@ export function LoginForm() {
 			</Form>
 
 			{(authConfig.enablePasskeys ||
-				(authConfig.enableSignup &&
-					authConfig.enableSocialLogin)) && (
+				(authConfig.enableSignup && authConfig.enableSocialLogin)) && (
 				<>
 					<div className="relative my-6 h-4">
 						<hr className="relative top-2" />
@@ -296,17 +288,13 @@ export function LoginForm() {
 					<div className="flex flex-col items-stretch gap-2">
 						{authConfig.enableSignup &&
 							authConfig.enableSocialLogin &&
-							Object.keys(oAuthProviders).map(
-								(providerId) => (
-									<SocialSigninButton
-										key={providerId}
-										className="w-full"
-										provider={
-											providerId as OAuthProvider
-										}
-									/>
-								),
-							)}
+							Object.keys(oAuthProviders).map((providerId) => (
+								<SocialSigninButton
+									key={providerId}
+									className="w-full"
+									provider={providerId as OAuthProvider}
+								/>
+							))}
 
 						{authConfig.enablePasskeys && (
 							<Button

@@ -1,0 +1,114 @@
+---
+title: Stdio（本地）
+description: 使用 stdio 传输在本地运行 Flowmail 的 MCP Server，适用于开发和自托管部署。
+---
+
+stdio 传输将 Flowmail 的 MCP Server 作为本地进程运行，通过标准输入/输出通信。适用于开发、测试和自托管环境。
+
+## 何时使用 Stdio
+
+| 场景 | 传输方式 |
+|------|---------|
+| 云托管 Flowmail | HTTP (SSE) |
+| 本地开发 | **Stdio** |
+| 自托管 / 内网隔离 | **Stdio** |
+| CI/CD 管线集成 | **Stdio** |
+
+## 快速开始
+
+```bash
+npx flowmail-mcp
+```
+
+服务器将启动并通过 MCP stdio 协议在 stdin/stdout 上监听。
+
+## 环境变量
+
+stdio 服务器需要数据库访问和组织上下文：
+
+```bash
+# 必填
+DATABASE_URL="postgresql://user:password@localhost:5432/flowmail"
+FLOWMAIL_ORG_ID="your-organization-id"
+
+# 可选 — 启用 AI 工具（时间线差异分析、风险预测）
+OPENAI_API_KEY="sk-..."
+```
+
+## MCP 客户端配置
+
+### Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "flowmail-local": {
+      "command": "npx",
+      "args": ["flowmail-mcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://user:password@localhost:5432/flowmail",
+        "FLOWMAIL_ORG_ID": "org_abc123"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+```json
+{
+  "mcpServers": {
+    "flowmail-local": {
+      "command": "npx",
+      "args": ["flowmail-mcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://user:password@localhost:5432/flowmail",
+        "FLOWMAIL_ORG_ID": "org_abc123"
+      }
+    }
+  }
+}
+```
+
+### 代码调用
+
+使用 MCP SDK 以编程方式连接 stdio 服务器：
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const transport = new StdioClientTransport({
+  command: "npx",
+  args: ["flowmail-mcp"],
+  env: {
+    DATABASE_URL: process.env.DATABASE_URL!,
+    FLOWMAIL_ORG_ID: process.env.FLOWMAIL_ORG_ID!,
+  },
+});
+
+const client = new Client({ name: "my-app", version: "1.0.0" });
+await client.connect(transport);
+
+const result = await client.callTool({
+  name: "list_pending_approvals",
+  arguments: {},
+});
+```
+
+## 使用 MCP Inspector 测试
+
+```bash
+npx @modelcontextprotocol/inspector npx flowmail-mcp
+```
+
+这会打开一个 Web UI，你可以在其中调用每个工具并查看响应。
+
+## 故障排除
+
+**`DATABASE_URL` 错误：** 确保 PostgreSQL 正在运行且连接字符串正确。
+
+**`FLOWMAIL_ORG_ID` 错误：** 组织 ID 是多租户数据隔离所必需的，在 Flowmail 控制台的 设置 → 组织 中查找。
+
+**AI 工具返回 "unknown"：** AI 工具（`get_timeline_diff`、`predict_entity_risk`）需要 `OPENAI_API_KEY`。

@@ -16,8 +16,18 @@ export const getEntity = protectedProcedure
 		const entity = await db.flowEntity.findUnique({
 			where: { id: input.entityId },
 			include: {
-				assignee: { select: { id: true, name: true, email: true, image: true } },
-				category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+				assignee: {
+					select: { id: true, name: true, email: true, image: true },
+				},
+				category: {
+					select: {
+						id: true,
+						name: true,
+						slug: true,
+						icon: true,
+						color: true,
+					},
+				},
 				threads: {
 					orderBy: { receivedAt: "desc" },
 					select: {
@@ -48,7 +58,9 @@ export const getEntity = protectedProcedure
 				timeline: {
 					orderBy: { createdAt: "asc" },
 					include: {
-						actor: { select: { id: true, name: true, image: true } },
+						actor: {
+							select: { id: true, name: true, image: true },
+						},
 					},
 				},
 			},
@@ -58,7 +70,10 @@ export const getEntity = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			entity.organizationId,
+			context.user.id,
+		);
 
 		return entity;
 	});

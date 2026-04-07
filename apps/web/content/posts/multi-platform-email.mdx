@@ -1,0 +1,104 @@
+---
+title: "Connect Gmail, Outlook & Feishu in One Dashboard — Why Multi-Platform Email Matters"
+date: 2026-03-01
+image: /images/blog/multi-platform-email.jpg
+authorName: Flowmail Team
+authorImage: /images/blog/flowmail-avatar.png
+excerpt: Your team uses Gmail. Your client uses Outlook. Your China office uses Feishu. Here's why multi-platform email support is critical for cross-company collaboration.
+tags: [integration, gmail, outlook, feishu]
+published: true
+---
+
+## The Multi-Platform Reality
+
+Here's a scenario that plays out in thousands of companies every day:
+
+- Your **headquarters** runs on Google Workspace (Gmail)
+- Your **US client** uses Microsoft 365 (Outlook)
+- Your **China team** communicates via Feishu (Lark)
+- Your **freelance contractor** uses a personal IMAP email
+
+Everyone sends email to each other, but each person lives in their own email silo. There's no single place to see the full picture of a project that spans all these platforms.
+
+## Why This Is a Problem
+
+### 1. Information Fragmentation
+
+When approvals, reports, and updates are scattered across 4 different email platforms, no single person has complete visibility. The project manager has to check multiple inboxes — or worse, rely on others to forward relevant emails.
+
+### 2. Missed Context
+
+Thread A in Gmail references Thread B in Outlook. But you can only see Thread A. You're making decisions with incomplete information.
+
+### 3. Platform-Specific Limitations
+
+Each platform has different capabilities:
+- Gmail has great search but limited organizational features
+- Outlook has powerful rules but a complex interface
+- Feishu integrates well with Chinese business tools but is isolated from Western platforms
+- IMAP clients vary wildly in features and reliability
+
+### 4. Compliance Complexity
+
+If your email data lives across 4 different providers in 4 different jurisdictions, demonstrating GDPR or CCPA compliance becomes significantly harder.
+
+## The Solution: One Business Layer, Many Platforms
+
+Flowmail connects to all major email platforms through secure OAuth and IMAP protocols:
+
+| Platform | Connection Method | Features |
+|----------|------------------|----------|
+| **Gmail** | OAuth 2.0 + Push Notifications | Real-time sync, full API access |
+| **Microsoft 365 / Outlook** | Microsoft OAuth + Graph API | Calendar integration, org-level access |
+| **Feishu / Lark** | OAuth 2.0 + Event Subscription | Native Chinese business tool support |
+| **QQ Mail** | IMAP/SMTP | Wide consumer/SMB coverage in China |
+| **163 Mail (NetEase)** | IMAP/SMTP | Enterprise email in China |
+| **Any IMAP Server** | IMAP/SMTP | Universal compatibility |
+
+Once connected, Flowmail treats all emails the same — regardless of which platform they came from. An approval request from a Gmail user looks identical to one from an Outlook user.
+
+## How It Works
+
+### Step 1: Connect Your Accounts
+
+In Flowmail's settings, click "Add Connection" and choose your platform. For OAuth-based platforms (Gmail, Outlook, Feishu), you'll be redirected to authorize access. For IMAP, you'll enter your server details.
+
+All credentials are encrypted with **AES-256-GCM** and never stored in plaintext.
+
+### Step 2: Sync Your Email
+
+Flowmail pulls your recent emails and starts classifying them. New emails are synced automatically via push notifications (Gmail, Feishu) or periodic polling (IMAP).
+
+### Step 3: See Everything in One Place
+
+Your Smart Inbox shows emails from all connected accounts, organized by business intent — not by which email platform they came from.
+
+## Real-World Use Case: Cross-Border Project
+
+A Chinese tech company working with a US client:
+
+1. **Feishu**: Internal team discusses the project in Chinese
+2. **Gmail**: Project manager communicates with the US client in English
+3. **Outlook**: The US client's legal team sends contract amendments
+
+Without Flowmail, the project manager juggles three apps. With Flowmail:
+
+- All approval requests surface in one Approvals dashboard
+- Weekly reports from both sides auto-structure into a unified timeline
+- Deadline alerts fire regardless of which platform the original email came from
+
+## Security Across Platforms
+
+Connecting multiple email accounts raises legitimate security questions. Here's how Flowmail handles it:
+
+- **OAuth tokens are encrypted** at rest with AES-256-GCM
+- **Each connection is scoped** — Flowmail only requests the minimum permissions needed
+- **Connections can be revoked** at any time from the settings page
+- **Audit logs track** every sync, send, and access event per connection
+- **Data stays in your organization** — no cross-tenant data sharing
+
+## Getting Started
+
+Connecting your first email account takes about 30 seconds. Most teams start with their primary business email (usually Gmail or Outlook), then add additional platforms as needed.
+
+The goal isn't to replace any of these platforms — it's to give you a unified business layer that works across all of them.

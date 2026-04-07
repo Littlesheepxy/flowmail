@@ -65,7 +65,9 @@ export function UserMenu({ showUserName = true }: { showUserName?: boolean }) {
 						type="button"
 						className={cn(
 							"flex cursor-pointer items-center gap-2 rounded-lg py-1.5 outline-hidden focus-visible:ring-2 focus-visible:ring-primary hover:bg-muted/60 transition-colors",
-							showUserName ? "w-full justify-between px-2" : "justify-center p-1.5",
+							showUserName
+								? "w-full justify-between px-2"
+								: "justify-center p-1.5",
 						)}
 						aria-label="User menu"
 					>
@@ -73,19 +75,27 @@ export function UserMenu({ showUserName = true }: { showUserName?: boolean }) {
 							<UserAvatar name={name ?? ""} avatarUrl={image} />
 							{showUserName && (
 								<span className="text-left leading-tight">
-									<span className="font-medium text-sm">{name}</span>
-									<span className="block text-xs opacity-70">{email}</span>
+									<span className="font-medium text-sm">
+										{name}
+									</span>
+									<span className="block text-xs opacity-70">
+										{email}
+									</span>
 								</span>
 							)}
 						</span>
-						{showUserName && <MoreVerticalIcon className="size-4 shrink-0 text-muted-foreground" />}
+						{showUserName && (
+							<MoreVerticalIcon className="size-4 shrink-0 text-muted-foreground" />
+						)}
 					</button>
 				</DropdownMenuTrigger>
 
 				<DropdownMenuContent align="end" className="w-52">
 					<DropdownMenuLabel>
 						{name}
-						<span className="block font-normal text-xs opacity-70">{email}</span>
+						<span className="block font-normal text-xs opacity-70">
+							{email}
+						</span>
 					</DropdownMenuLabel>
 
 					<DropdownMenuSeparator />
@@ -101,27 +111,29 @@ export function UserMenu({ showUserName = true }: { showUserName?: boolean }) {
 
 					<DropdownMenuSeparator />
 
-				{/* Account Settings → Modal */}
-				<DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-					<SettingsIcon className="mr-2 size-4" />
-					{t("app.userMenu.accountSettings")}
-				</DropdownMenuItem>
-
-				{/* Organization Settings → Modal (org admin only) */}
-				{activeOrganization && isOrganizationAdmin && (
-					<DropdownMenuItem onClick={() => setOrgSettingsOpen(true)}>
-						<BuildingIcon className="mr-2 size-4" />
-						{t("app.menu.organizationSettings")}
+					{/* Account Settings → Modal */}
+					<DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+						<SettingsIcon className="mr-2 size-4" />
+						{t("app.userMenu.accountSettings")}
 					</DropdownMenuItem>
-				)}
 
-				{/* Admin → Modal (admin only) */}
-				{isAdmin && (
-					<DropdownMenuItem onClick={() => setAdminOpen(true)}>
-						<UserCogIcon className="mr-2 size-4" />
-						{t("app.menu.admin")}
-					</DropdownMenuItem>
-				)}
+					{/* Organization Settings → Modal (org admin only) */}
+					{activeOrganization && isOrganizationAdmin && (
+						<DropdownMenuItem
+							onClick={() => setOrgSettingsOpen(true)}
+						>
+							<BuildingIcon className="mr-2 size-4" />
+							{t("app.menu.organizationSettings")}
+						</DropdownMenuItem>
+					)}
+
+					{/* Admin → Modal (admin only) */}
+					{isAdmin && (
+						<DropdownMenuItem onClick={() => setAdminOpen(true)}>
+							<UserCogIcon className="mr-2 size-4" />
+							{t("app.menu.admin")}
+						</DropdownMenuItem>
+					)}
 
 					<DropdownMenuSeparator />
 
@@ -141,11 +153,19 @@ export function UserMenu({ showUserName = true }: { showUserName?: boolean }) {
 				</DropdownMenuContent>
 			</DropdownMenu>
 
-		<AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
-		{isAdmin && <AdminModal open={adminOpen} onOpenChange={setAdminOpen} />}
-		{activeOrganization && (
-			<OrgSettingsModal open={orgSettingsOpen} onOpenChange={setOrgSettingsOpen} />
-		)}
-	</>
+			<AccountSettingsModal
+				open={settingsOpen}
+				onOpenChange={setSettingsOpen}
+			/>
+			{isAdmin && (
+				<AdminModal open={adminOpen} onOpenChange={setAdminOpen} />
+			)}
+			{activeOrganization && (
+				<OrgSettingsModal
+					open={orgSettingsOpen}
+					onOpenChange={setOrgSettingsOpen}
+				/>
+			)}
+		</>
 	);
 }

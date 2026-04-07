@@ -1,0 +1,88 @@
+---
+title: "How AI Email Classification Works (And Why Accuracy Matters)"
+date: 2026-03-20
+image: /images/blog/ai-classification.jpg
+authorName: Flowmail Team
+authorImage: /images/blog/flowmail-avatar.png
+excerpt: Not all email classification is created equal. Learn how modern AI classifies emails by business intent — and why the difference between 90% and 98% accuracy is bigger than you think.
+tags: [ai, classification, technology]
+published: true
+---
+
+## Beyond Folders and Rules
+
+For decades, email organization has relied on the same primitives: folders, labels, and rule-based filters. You create a rule that says "if subject contains 'invoice', move to Finance folder." It works — until it doesn't.
+
+The problem with rules is that they're **brittle**. Real business emails don't follow templates:
+
+- "Can you take a look at the attached and let me know if we're good to proceed?" — Is this an approval request? A review request? Feedback?
+- "Quick update on the Henderson project" — Is this a status report? A risk escalation? A request for resources?
+
+Humans understand the *intent* behind these emails instantly. Rules don't.
+
+## How AI Classification Works
+
+Modern AI email classification uses Large Language Models (LLMs) to understand email content the way humans do — by reading the full text and understanding context, not just matching keywords.
+
+### Step 1: Content Analysis
+
+The AI reads the email subject, body, and metadata (sender, recipients, thread context). It considers:
+
+- **Linguistic cues**: "Please approve", "here's my weekly update", "we have a problem"
+- **Structural patterns**: Bullet points with status items, attached documents, forwarded chains
+- **Sender context**: Is this from a known vendor? An internal team member? A client?
+
+### Step 2: Intent Classification
+
+Based on its understanding, the AI assigns the email to a business category:
+
+- **Approval** — Someone is requesting a decision
+- **Report** — Someone is sharing status or progress
+- **Issue** — Someone is raising a problem or blocker
+- **Feedback** — Someone is providing input or review comments
+- **Informational** — FYI only, no action needed
+
+Each classification comes with a **confidence score** — a measure of how certain the AI is about its judgment.
+
+### Step 3: Field Extraction
+
+Beyond classification, the AI extracts structured fields relevant to each category:
+
+- For approvals: requester, amount, deadline, urgency
+- For reports: milestones completed, blockers, next steps, owner
+- For issues: severity, affected system, proposed resolution
+
+## Why Accuracy Matters More Than You Think
+
+The difference between 90% and 98.5% accuracy might seem small, but in practice it's enormous.
+
+### The Math
+
+If you receive 100 emails per day:
+
+- **90% accuracy** = 10 misclassified emails per day = **50 per week**
+- **98.5% accuracy** = 1.5 misclassified emails per day = **~8 per week**
+
+That's a 6x difference in errors. And each misclassified email means a missed approval, an overlooked blocker, or an ignored deadline.
+
+### How Flowmail Achieves 98.5%
+
+Flowmail uses a **two-pass classification strategy**:
+
+1. **Fast pass**: A lightweight model quickly classifies the email based on subject and the first 500 characters. This handles the ~85% of emails that are clearly one category.
+
+2. **Deep read**: For emails where the fast pass confidence is below the threshold, a more powerful model reads the full email body (up to 2,000 characters) with a detailed prompt that considers context, tone, and structural cues.
+
+This approach balances speed (most emails classified in under 1 second) with accuracy (ambiguous emails get the attention they deserve).
+
+## The Business Impact
+
+When email classification is accurate and automatic:
+
+- **Nothing falls through the cracks**: Every approval request is tracked, every report is structured
+- **Faster response times**: Important emails surface immediately instead of getting buried
+- **Less cognitive load**: Your team stops spending mental energy on sorting and starts spending it on decisions
+
+## Try It Yourself
+
+Flowmail classifies emails across 8+ business domains — from legal contracts to financial approvals to engineering operations. Connect your inbox and see the difference AI-powered classification makes.

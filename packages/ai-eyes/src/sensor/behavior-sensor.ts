@@ -39,7 +39,10 @@ function isInteractive(el: Element): boolean {
 		return true;
 	}
 	const role = el.getAttribute("role");
-	if (role && ["button", "link", "tab", "menuitem", "option"].includes(role)) {
+	if (
+		role &&
+		["button", "link", "tab", "menuitem", "option"].includes(role)
+	) {
 		return true;
 	}
 	if (el.getAttribute("tabindex") !== null) {
@@ -80,21 +83,35 @@ export class BehaviorSensor {
 	private lastMouseElement: Element | null = null;
 	private hoverMap = new Map<string, { count: number; lastTime: number }>();
 	private clickLog: Array<{ x: number; y: number; time: number }> = [];
-	private scrollLog: Array<{ y: number; time: number; direction: number }> = [];
-	private pageEnteredAt = 0;
+	private scrollLog: Array<{ y: number; time: number; direction: number }> =
+		[];
 	private emptyStateTimer: ReturnType<typeof setTimeout> | null = null;
 	private longStayTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(config?: SensorConfig, recorderConfig?: RecorderConfig) {
 		this.config = {
-			idleThreshold: config?.idleThreshold ?? DEFAULT_SENSOR_CONFIG.idleThreshold,
-			hoverHesitationCount: config?.hoverHesitationCount ?? DEFAULT_SENSOR_CONFIG.hoverHesitationCount,
-			rageClickWindow: config?.rageClickWindow ?? DEFAULT_SENSOR_CONFIG.rageClickWindow,
-			rageClickCount: config?.rageClickCount ?? DEFAULT_SENSOR_CONFIG.rageClickCount,
-			scrollBounceWindow: config?.scrollBounceWindow ?? DEFAULT_SENSOR_CONFIG.scrollBounceWindow,
-			scrollBounceCount: config?.scrollBounceCount ?? DEFAULT_SENSOR_CONFIG.scrollBounceCount,
-			emptyStateDelay: config?.emptyStateDelay ?? DEFAULT_SENSOR_CONFIG.emptyStateDelay,
-			longPageStayDelay: config?.longPageStayDelay ?? DEFAULT_SENSOR_CONFIG.longPageStayDelay,
+			idleThreshold:
+				config?.idleThreshold ?? DEFAULT_SENSOR_CONFIG.idleThreshold,
+			hoverHesitationCount:
+				config?.hoverHesitationCount ??
+				DEFAULT_SENSOR_CONFIG.hoverHesitationCount,
+			rageClickWindow:
+				config?.rageClickWindow ??
+				DEFAULT_SENSOR_CONFIG.rageClickWindow,
+			rageClickCount:
+				config?.rageClickCount ?? DEFAULT_SENSOR_CONFIG.rageClickCount,
+			scrollBounceWindow:
+				config?.scrollBounceWindow ??
+				DEFAULT_SENSOR_CONFIG.scrollBounceWindow,
+			scrollBounceCount:
+				config?.scrollBounceCount ??
+				DEFAULT_SENSOR_CONFIG.scrollBounceCount,
+			emptyStateDelay:
+				config?.emptyStateDelay ??
+				DEFAULT_SENSOR_CONFIG.emptyStateDelay,
+			longPageStayDelay:
+				config?.longPageStayDelay ??
+				DEFAULT_SENSOR_CONFIG.longPageStayDelay,
 		};
 		this.recorder = new ActionRecorder(recorderConfig);
 	}
@@ -237,7 +254,8 @@ export class BehaviorSensor {
 
 		const nearbyClicks = this.clickLog.filter(
 			(c) =>
-				Math.abs(c.x - e.clientX) < 50 && Math.abs(c.y - e.clientY) < 50,
+				Math.abs(c.x - e.clientX) < 50 &&
+				Math.abs(c.y - e.clientY) < 50,
 		);
 		if (nearbyClicks.length >= this.config.rageClickCount && el) {
 			this.emit({

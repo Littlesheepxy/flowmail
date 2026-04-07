@@ -1,0 +1,43 @@
+---
+title: 汇报工具
+description: 用于列出汇报和生成 AI 摘要的 MCP 工具。
+---
+
+汇报工具帮助 Agent 访问从邮件中提取的状态汇报和进展更新。
+
+## list_reports
+
+列出组织的汇报实体。
+
+### 参数
+
+| 名称 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| `status` | `string` | 否 | 按状态筛选（如 `"received"`、`"in_progress"`、`"completed"`） |
+
+---
+
+## get_report_summary
+
+获取汇报实体的 AI 生成摘要，包括抽取的结构化字段。
+
+### 参数
+
+| 名称 | 类型 | 必填 | 描述 |
+|------|------|------|------|
+| `entityId` | `string` | 是 | 汇报实体 ID |
+
+### 返回值示例
+
+```json
+{
+  "title": "工程周报 - 第 13 周",
+  "status": "received",
+  "summary": "团队完成了 5 项计划功能中的 3 项。CI 管线超时是主要阻塞项。",
+  "fields": {
+    "completedItems": ["功能 A", "功能 B", "功能 C"],
+    "blockers": ["CI 管线超时", "API 限流"],
+    "progressPercent": 60
+  }
+}
+```

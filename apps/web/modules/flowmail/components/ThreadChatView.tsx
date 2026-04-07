@@ -1,39 +1,43 @@
 "use client";
 
-import { Spinner, cn } from "@repo/ui";
+import { cn, Spinner } from "@repo/ui";
 import { Button } from "@repo/ui/components/button";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@repo/ui/components/tabs";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@repo/ui/components/tooltip";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/components/tabs";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import DOMPurify from "isomorphic-dompurify";
 import {
-	InboxIcon,
-	MailIcon,
-	ClockIcon,
 	ChevronDownIcon,
 	ChevronUpIcon,
-	PaperclipIcon,
+	ClockIcon,
+	DownloadIcon,
 	FileIcon,
 	FileTextIcon,
-	ImageIcon,
-	DownloadIcon,
-	Reply as ReplyIcon,
-	ReplyAllIcon,
 	ForwardIcon,
+	ImageIcon,
+	InboxIcon,
+	MailIcon,
+	PaperclipIcon,
+	ReplyAllIcon,
+	Reply as ReplyIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useState, useMemo, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EntityTimeline } from "./EntityTimeline";
 import type { ReplyMode } from "./ReplyComposer";
 import { ReplyComposer } from "./ReplyComposer";
-
-import DOMPurify from "isomorphic-dompurify";
 
 const Letter = dynamic(() => import("react-letter").then((m) => m.Letter), {
 	ssr: false,
@@ -42,7 +46,6 @@ const Letter = dynamic(() => import("react-letter").then((m) => m.Letter), {
 interface ThreadChatViewProps {
 	entityId: string | null;
 }
-
 
 export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 	const queryClient = useQueryClient();
@@ -70,7 +73,8 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 				return;
 			}
 
-			const connectionId = (latestThread as { connectionId?: string }).connectionId;
+			const connectionId = (latestThread as { connectionId?: string })
+				.connectionId;
 			if (!connectionId) {
 				toast.error("找不到邮箱连接，无法发送");
 				return;
@@ -104,7 +108,8 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 					? rawSubject
 					: `${subjectPrefix}${rawSubject}`;
 
-			const messageId = (latestThread as { messageId?: string | null }).messageId;
+			const messageId = (latestThread as { messageId?: string | null })
+				.messageId;
 
 			try {
 				await sendMutation.mutateAsync({
@@ -174,7 +179,9 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 	return (
 		<div className="flex flex-col h-full">
 			<div className="px-5 py-3 border-b shrink-0">
-				<h2 className="text-base font-semibold truncate">{entity.title}</h2>
+				<h2 className="text-base font-semibold truncate">
+					{entity.title}
+				</h2>
 				{entity.aiSummary && (
 					<p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
 						{entity.aiSummary}
@@ -182,88 +189,109 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 				)}
 			</div>
 
-		<Tabs defaultValue="emails" className="flex flex-col flex-1 min-h-0">
-			<div className="px-5 shrink-0">
-				<TabsList className="w-full justify-start gap-0 border-b-0 bg-transparent">
-					<TabsTrigger value="emails" className="gap-1.5 text-xs">
-						<MailIcon className="size-3.5" />
-						邮件
-						{threads.length > 0 && (
-							<span className="ml-0.5 text-[10px] text-muted-foreground">
-								{threads.length}
-							</span>
-						)}
-					</TabsTrigger>
-					<TabsTrigger value="timeline" className="gap-1.5 text-xs">
-						<ClockIcon className="size-3.5" />
-						时间线
-						{timeline.length > 0 && (
-							<span className="ml-0.5 text-[10px] text-muted-foreground">
-								{timeline.length}
-							</span>
-						)}
-					</TabsTrigger>
-				</TabsList>
-			</div>
+			<Tabs
+				defaultValue="emails"
+				className="flex flex-col flex-1 min-h-0"
+			>
+				<div className="px-5 shrink-0">
+					<TabsList className="w-full justify-start gap-0 border-b-0 bg-transparent">
+						<TabsTrigger value="emails" className="gap-1.5 text-xs">
+							<MailIcon className="size-3.5" />
+							邮件
+							{threads.length > 0 && (
+								<span className="ml-0.5 text-[10px] text-muted-foreground">
+									{threads.length}
+								</span>
+							)}
+						</TabsTrigger>
+						<TabsTrigger
+							value="timeline"
+							className="gap-1.5 text-xs"
+						>
+							<ClockIcon className="size-3.5" />
+							时间线
+							{timeline.length > 0 && (
+								<span className="ml-0.5 text-[10px] text-muted-foreground">
+									{timeline.length}
+								</span>
+							)}
+						</TabsTrigger>
+					</TabsList>
+				</div>
 
-			<TabsContent value="emails" className="flex-1 overflow-y-auto mt-0 min-h-0">
-				<EmailListView threads={threads} onReply={openComposer} />
-			</TabsContent>
+				<TabsContent
+					value="emails"
+					className="flex-1 overflow-y-auto mt-0 min-h-0"
+				>
+					<EmailListView threads={threads} onReply={openComposer} />
+				</TabsContent>
 
-			<TabsContent value="timeline" className="flex-1 overflow-y-auto mt-0 min-h-0 px-5 py-4">
-				<EntityTimeline
-					entityId={entity.id}
-					entityTitle={entity.title}
-					events={timeline.map((e) => ({
-						...e,
-						createdAt: typeof e.createdAt === "string" ? e.createdAt : e.createdAt.toString(),
-						actor: e.actor
-							? { id: e.actor.id, name: e.actor.name ?? "", image: e.actor.image }
-							: null,
-					}))}
-					entityType={entity.type}
-					status={entity.status}
-					extractedFields={entity.extractedFields as string | null}
+				<TabsContent
+					value="timeline"
+					className="flex-1 overflow-y-auto mt-0 min-h-0 px-5 py-4"
+				>
+					<EntityTimeline
+						entityId={entity.id}
+						entityTitle={entity.title}
+						events={timeline.map((e) => ({
+							...e,
+							createdAt:
+								typeof e.createdAt === "string"
+									? e.createdAt
+									: e.createdAt.toString(),
+							actor: e.actor
+								? {
+										id: e.actor.id,
+										name: e.actor.name ?? "",
+										image: e.actor.image,
+									}
+								: null,
+						}))}
+						entityType={entity.type}
+						status={entity.status}
+						extractedFields={
+							entity.extractedFields as string | null
+						}
+					/>
+				</TabsContent>
+			</Tabs>
+
+			{/* Reply Composer */}
+			{showComposer && latestThread && (
+				<ReplyComposer
+					senderName={latestThread.senderName ?? undefined}
+					senderEmail={latestThread.sender ?? ""}
+					subject={latestThread.subject ?? ""}
+					toRecipients={parseRecipients(latestThread.toRecipients)}
+					ccRecipients={parseRecipients(latestThread.ccRecipients)}
+					defaultMode={composerMode}
+					onSend={handleSend}
+					onClose={() => setShowComposer(false)}
+					isSending={sendMutation.isPending}
 				/>
-			</TabsContent>
-		</Tabs>
+			)}
 
-		{/* Reply Composer */}
-		{showComposer && latestThread && (
-			<ReplyComposer
-				senderName={latestThread.senderName ?? undefined}
-				senderEmail={latestThread.sender ?? ""}
-				subject={latestThread.subject ?? ""}
-				toRecipients={parseRecipients(latestThread.toRecipients)}
-				ccRecipients={parseRecipients(latestThread.ccRecipients)}
-				defaultMode={composerMode}
-				onSend={handleSend}
-				onClose={() => setShowComposer(false)}
-				isSending={sendMutation.isPending}
-			/>
-		)}
-
-		{/* Bottom action buttons */}
-		{!showComposer && threads.length > 0 && (
-			<div className="border-t px-5 py-3 shrink-0 flex items-center gap-2">
-				<Button
-					variant="secondary"
-					className="gap-2"
-					onClick={() => openComposer("reply")}
-				>
-					<ReplyIcon className="size-4" />
-					回复
-				</Button>
-				<Button
-					variant="secondary"
-					className="gap-2"
-					onClick={() => openComposer("forward")}
-				>
-					<ForwardIcon className="size-4" />
-					转发
-				</Button>
-			</div>
-		)}
+			{/* Bottom action buttons */}
+			{!showComposer && threads.length > 0 && (
+				<div className="border-t px-5 py-3 shrink-0 flex items-center gap-2">
+					<Button
+						variant="secondary"
+						className="gap-2"
+						onClick={() => openComposer("reply")}
+					>
+						<ReplyIcon className="size-4" />
+						回复
+					</Button>
+					<Button
+						variant="secondary"
+						className="gap-2"
+						onClick={() => openComposer("forward")}
+					>
+						<ForwardIcon className="size-4" />
+						转发
+					</Button>
+				</div>
+			)}
 		</div>
 	);
 }
@@ -300,7 +328,13 @@ interface EmailRecipient {
 
 // ─── Email List ───
 
-function EmailListView({ threads, onReply }: { threads: ThreadItem[]; onReply?: (mode: ReplyMode) => void }) {
+function EmailListView({
+	threads,
+	onReply,
+}: {
+	threads: ThreadItem[];
+	onReply?: (mode: ReplyMode) => void;
+}) {
 	const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
 		if (threads.length > 0) {
 			return new Set([threads[0].id]);
@@ -369,11 +403,22 @@ function EmailMessage({
 	const attachments = thread.attachments ?? [];
 	const hasAttachments = attachments.length > 0;
 
-	const toRecipients = useMemo(() => parseRecipients(thread.toRecipients), [thread.toRecipients]);
-	const ccRecipients = useMemo(() => parseRecipients(thread.ccRecipients), [thread.ccRecipients]);
+	const toRecipients = useMemo(
+		() => parseRecipients(thread.toRecipients),
+		[thread.toRecipients],
+	);
+	const ccRecipients = useMemo(
+		() => parseRecipients(thread.ccRecipients),
+		[thread.ccRecipients],
+	);
 
 	return (
-		<div className={cn("transition-colors", isExpanded ? "bg-background" : "hover:bg-muted/30")}>
+		<div
+			className={cn(
+				"transition-colors",
+				isExpanded ? "bg-background" : "hover:bg-muted/30",
+			)}
+		>
 			{/* Message Header - always visible */}
 			{/* biome-ignore lint/a11y/useSemanticElements: cannot use <button> here because it would nest inside other buttons */}
 			<div
@@ -382,7 +427,9 @@ function EmailMessage({
 				aria-expanded={isExpanded}
 				onClick={onToggle}
 				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " ") { onToggle(); }
+					if (e.key === "Enter" || e.key === " ") {
+						onToggle();
+					}
 				}}
 				className="w-full text-left px-5 py-3.5 flex items-start gap-3 cursor-pointer"
 			>
@@ -428,47 +475,71 @@ function EmailMessage({
 						</>
 					)}
 
-				{isExpanded && toRecipients.length > 0 && (
-					<RecipientLine to={toRecipients} cc={ccRecipients} />
-				)}
+					{isExpanded && toRecipients.length > 0 && (
+						<RecipientLine to={toRecipients} cc={ccRecipients} />
+					)}
 
-				{isExpanded && (
-					<div className="flex items-center gap-1 mt-2 -ml-1">
-						<TooltipProvider delayDuration={300}>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.("reply"); }}>
-										<ReplyIcon className="size-3.5" />
-										回复
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>回复</TooltipContent>
-							</Tooltip>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.("replyAll"); }}>
-										<ReplyAllIcon className="size-3.5" />
-										全部回复
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>全部回复</TooltipContent>
-							</Tooltip>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button variant="secondary" size="sm" className="h-7 px-2.5 gap-1.5 text-xs" onClick={(e) => { e.stopPropagation(); onReply?.("forward"); }}>
-										<ForwardIcon className="size-3.5" />
-										转发
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>转发</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-					</div>
-				)}
+					{isExpanded && (
+						<div className="flex items-center gap-1 mt-2 -ml-1">
+							<TooltipProvider delayDuration={300}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="secondary"
+											size="sm"
+											className="h-7 px-2.5 gap-1.5 text-xs"
+											onClick={(e) => {
+												e.stopPropagation();
+												onReply?.("reply");
+											}}
+										>
+											<ReplyIcon className="size-3.5" />
+											回复
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>回复</TooltipContent>
+								</Tooltip>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="secondary"
+											size="sm"
+											className="h-7 px-2.5 gap-1.5 text-xs"
+											onClick={(e) => {
+												e.stopPropagation();
+												onReply?.("replyAll");
+											}}
+										>
+											<ReplyAllIcon className="size-3.5" />
+											全部回复
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>全部回复</TooltipContent>
+								</Tooltip>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="secondary"
+											size="sm"
+											className="h-7 px-2.5 gap-1.5 text-xs"
+											onClick={(e) => {
+												e.stopPropagation();
+												onReply?.("forward");
+											}}
+										>
+											<ForwardIcon className="size-3.5" />
+											转发
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>转发</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+						</div>
+					)}
+				</div>
 			</div>
-		</div>
 
-		{/* Expanded Content */}
+			{/* Expanded Content */}
 			{isExpanded && (
 				<div className="px-5 pb-5">
 					{/* Email Body */}
@@ -488,7 +559,13 @@ function EmailMessage({
 
 // ─── Recipient Line ───
 
-function RecipientLine({ to, cc }: { to: EmailRecipient[]; cc: EmailRecipient[] }) {
+function RecipientLine({
+	to,
+	cc,
+}: {
+	to: EmailRecipient[];
+	cc: EmailRecipient[];
+}) {
 	const [expanded, setExpanded] = useState(false);
 	const totalCount = to.length + cc.length;
 
@@ -502,11 +579,16 @@ function RecipientLine({ to, cc }: { to: EmailRecipient[]; cc: EmailRecipient[] 
 	return (
 		<div className="text-xs text-muted-foreground mt-0.5">
 			<span>发送给 </span>
-			<span className="text-foreground/70">{firstTo?.name || firstTo?.address}</span>
+			<span className="text-foreground/70">
+				{firstTo?.name || firstTo?.address}
+			</span>
 			{remaining > 0 && !expanded && (
 				<button
 					type="button"
-					onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+					onClick={(e) => {
+						e.stopPropagation();
+						setExpanded(true);
+					}}
 					className="ml-1 text-primary hover:underline"
 				>
 					+{remaining} 人
@@ -516,12 +598,16 @@ function RecipientLine({ to, cc }: { to: EmailRecipient[]; cc: EmailRecipient[] 
 				<span>
 					{to.slice(1).map((r) => (
 						<span key={r.address}>
-							, <span className="text-foreground/70">{r.name || r.address}</span>
+							,{" "}
+							<span className="text-foreground/70">
+								{r.name || r.address}
+							</span>
 						</span>
 					))}
 					{cc.length > 0 && (
 						<span className="ml-1">
-							| 抄送: {cc.map((r) => r.name || r.address).join(", ")}
+							| 抄送:{" "}
+							{cc.map((r) => r.name || r.address).join(", ")}
 						</span>
 					)}
 				</span>
@@ -571,9 +657,7 @@ function EmailBody({ thread }: { thread: ThreadItem }) {
 		);
 	}
 
-	return (
-		<p className="text-sm text-muted-foreground italic">(无预览内容)</p>
-	);
+	return <p className="text-sm text-muted-foreground italic">(无预览内容)</p>;
 }
 
 // ─── Attachment Bar ───
@@ -616,9 +700,13 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 		<div className="flex items-center gap-2 rounded-lg border px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors group max-w-[240px]">
 			<Icon className="size-4 text-muted-foreground shrink-0" />
 			<div className="flex-1 min-w-0">
-				<p className="text-xs font-medium truncate">{attachment.filename}</p>
+				<p className="text-xs font-medium truncate">
+					{attachment.filename}
+				</p>
 				{sizeStr && (
-					<p className="text-[10px] text-muted-foreground">{sizeStr}</p>
+					<p className="text-[10px] text-muted-foreground">
+						{sizeStr}
+					</p>
 				)}
 			</div>
 			<button
@@ -631,7 +719,6 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 		</div>
 	);
 }
-
 
 // ─── Utilities ───
 

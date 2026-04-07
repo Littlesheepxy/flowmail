@@ -1,0 +1,97 @@
+---
+title: Email Tools
+description: MCP tools for searching emails and managing email connections.
+---
+
+Email tools provide access to synced email threads and connection management.
+
+## list_email_connections
+
+List all connected email accounts for the organization.
+
+### Parameters
+
+None required.
+
+### Example
+
+```json
+{
+  "tool": "list_email_connections",
+  "arguments": {}
+}
+```
+
+### Response
+
+```json
+[
+  {
+    "id": "conn_abc123",
+    "provider": "gmail",
+    "email": "team@company.com",
+    "isActive": true,
+    "lastSyncAt": "2026-04-01T14:30:00Z"
+  },
+  {
+    "id": "conn_def456",
+    "provider": "outlook",
+    "email": "finance@company.com",
+    "isActive": true,
+    "lastSyncAt": "2026-04-01T14:25:00Z"
+  }
+]
+```
+
+---
+
+## search_emails
+
+Search emails by keyword, sender, or subject. Returns matching email threads with their associated entities.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `query` | `string` | No | Keyword to search in subject and body |
+| `sender` | `string` | No | Filter by sender email or name |
+| `limit` | `number` | No | Max results (default: 10) |
+
+### Example
+
+```json
+{
+  "tool": "search_emails",
+  "arguments": {
+    "query": "budget approval",
+    "sender": "finance@acme.co",
+    "limit": 5
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "count": 2,
+  "emails": [
+    {
+      "id": "thread_123",
+      "subject": "Q2 Budget Approval Request",
+      "sender": "Alice Chen",
+      "senderEmail": "finance@acme.co",
+      "snippet": "Please review and approve the Q2 budget of $45,000...",
+      "receivedAt": "2026-03-15T10:00:00Z",
+      "entity": {
+        "id": "clx1234567890",
+        "title": "Q2 Budget Approval",
+        "type": "APPROVAL",
+        "status": "pending"
+      }
+    }
+  ]
+}
+```
+
+The `entity` field links the email to its structured business entity, if one has been extracted.

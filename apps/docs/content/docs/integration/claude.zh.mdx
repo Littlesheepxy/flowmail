@@ -1,0 +1,65 @@
+---
+title: Claude Desktop
+description: 将 Claude Desktop 连接到 Flowmail 的 MCP Server，实现 AI 驱动的邮件工作流管理。
+---
+
+Claude Desktop 原生支持 MCP Server。本指南介绍如何将 Claude 连接到 Flowmail，让它通过自然对话管理审批、搜索邮件和追踪实体时间线。
+
+## 前提条件
+
+- 已安装 [Claude Desktop](https://claude.ai/download)
+- 拥有 Flowmail 账户和 API Token
+
+## 获取 API Token
+
+1. 登录 Flowmail 控制台
+2. 进入 **设置 → API Token**
+3. 点击 **创建 Token** 并选择所需权限
+4. 复制生成的 Token
+
+## 配置
+
+将 Flowmail 添加到 Claude Desktop 的 MCP 配置文件。
+
+**macOS：** 编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+**Windows：** 编辑 `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "flowmail": {
+      "url": "https://your-domain.com/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+## 重启 Claude
+
+保存配置后重启 Claude Desktop。你应该能在 MCP 工具面板中看到 "flowmail"。
+
+## 使用示例
+
+连接后，你可以通过自然对话与 Flowmail 交互：
+
+**查看待审批：**
+> "有哪些审批在等我处理？"
+
+**通过审批：**
+> "通过 Q2 预算审批，备注看起来没问题。"
+
+**搜索邮件：**
+> "找到所有 finance@acme.co 发来的关于 Q2 预算的邮件。"
+
+**分析风险：**
+> "供应商合同审批的风险等级是什么？"
+
+## 安全说明
+
+- API Token 仅存储在你的本地机器上
+- 所有操作限定在你的组织范围内
+- 每个操作都记录在实体时间线中（`via: "mcp"`）

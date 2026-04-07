@@ -50,7 +50,8 @@ export function ApprovalResult({
 			</Text>
 
 			<Text className="text-muted-foreground text-sm">
-				{actorName ? `${actorName} ` : ""}已将此审批标记为{statusLabel}。
+				{actorName ? `${actorName} ` : ""}已将此审批标记为{statusLabel}
+				。
 			</Text>
 
 			{comment && (
@@ -63,7 +64,10 @@ export function ApprovalResult({
 						marginBottom: "8px",
 					}}
 				>
-					<Text className="text-muted-foreground text-sm" style={{ margin: 0 }}>
+					<Text
+						className="text-muted-foreground text-sm"
+						style={{ margin: 0 }}
+					>
 						{isApproved ? "批注" : "拒绝原因"}：{comment}
 					</Text>
 				</Section>

@@ -1,7 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import type { ChatAdapter, ChatMessage, SuggestionChip } from "../adapters/types";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import type {
+	ChatAdapter,
+	ChatMessage,
+	SuggestionChip,
+} from "../adapters/types";
 import { ChatInput } from "./ChatInput";
 import { MessageList } from "./MessageList";
 
@@ -95,7 +99,9 @@ export function AiEyesPanel({
 		<>
 			{/* Backdrop for center position */}
 			{position === "center" && (
+				// biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay dismiss
 				<div
+					role="presentation"
 					style={{
 						position: "fixed",
 						inset: 0,
@@ -106,7 +112,6 @@ export function AiEyesPanel({
 					}}
 					onClick={onClose}
 					onKeyDown={() => {}}
-					role="presentation"
 				/>
 			)}
 
@@ -141,11 +146,14 @@ export function AiEyesPanel({
 							alignItems: "center",
 							justifyContent: "space-between",
 							padding: "14px 16px",
-							borderBottom: "1px solid var(--ai-eyes-border, #e5e5e5)",
+							borderBottom:
+								"1px solid var(--ai-eyes-border, #e5e5e5)",
 						}}
 					>
 						<div>
-							<div style={{ fontWeight: 600, fontSize: 14 }}>{title}</div>
+							<div style={{ fontWeight: 600, fontSize: 14 }}>
+								{title}
+							</div>
 							{subtitle && (
 								<div
 									style={{

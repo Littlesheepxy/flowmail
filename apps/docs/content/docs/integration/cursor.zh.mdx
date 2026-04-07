@@ -1,0 +1,72 @@
+---
+title: Cursor IDE
+description: 将 Flowmail 的 MCP Server 集成到 Cursor，在开发过程中访问 Agent 驱动的邮件工作流。
+---
+
+Cursor 原生支持 MCP Server。你可以在 IDE 内直接与 Flowmail 数据（审批、汇报、邮件）交互。
+
+## 前提条件
+
+- 已安装 [Cursor](https://cursor.com)
+- 拥有 Flowmail 账户和 API Token
+
+## 配置
+
+### 项目级（推荐）
+
+在项目根目录创建 `.cursor/mcp.json` 文件：
+
+```json
+{
+  "mcpServers": {
+    "flowmail": {
+      "url": "https://your-domain.com/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+### 全局配置
+
+要让 Flowmail 在所有 Cursor 项目中可用，通过 **Cursor 设置 → MCP Servers → 添加服务器** 进行配置。
+
+## 使用示例
+
+在 Cursor 的 Agent 或 Composer 模式下：
+
+- "检查是否有与 API 限流变更相关的待审批。"
+- "列出所有汇报实体，总结最新的工程周报。"
+- "通过测试环境的部署审批。"
+- "显示供应商入驻实体的时间线。"
+
+## 本地开发
+
+使用 stdio 传输连接自托管的 Flowmail 实例：
+
+```json
+{
+  "mcpServers": {
+    "flowmail-local": {
+      "command": "npx",
+      "args": ["flowmail-mcp"],
+      "env": {
+        "DATABASE_URL": "your-database-url",
+        "FLOWMAIL_ORG_ID": "your-org-id"
+      }
+    }
+  }
+}
+```
+
+详见 [Stdio 指南](/docs/integration/stdio)。
+
+## 故障排除
+
+**工具未显示：** 确保 URL 正确且服务器正在运行，检查 API Token 是否有效。
+
+**连接超时：** 检查网络连接，确认防火墙或 VPN 没有阻止 SSE 连接。
+
+**权限错误：** 确认 API Token 属于正确的组织。

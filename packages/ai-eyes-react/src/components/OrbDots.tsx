@@ -50,12 +50,13 @@ function getMouthPath(mood: OrbMood, isHovered: boolean): string | null {
 		case "sad":
 			return "M13 24 Q18 21 23 24";
 		case "watching":
-			return isHovered ? "M12 22.5 Q18 27 24 22.5" : "M13 23 Q18 26 23 23";
+			return isHovered
+				? "M12 22.5 Q18 27 24 22.5"
+				: "M13 23 Q18 26 23 23";
 		case "wink":
 			return "M12 22.5 Q18 27 24 22.5";
 		case "sleeping":
 			return null;
-		case "idle":
 		default:
 			return "M13 23 Q18 25.5 23 23";
 	}
@@ -87,7 +88,12 @@ function MoodExtras({ mood }: { mood: OrbMood }) {
 	}
 	if (mood === "confused") {
 		return (
-			<g opacity="0.4" fill="currentColor" fontSize="5.5" fontWeight="700">
+			<g
+				opacity="0.4"
+				fill="currentColor"
+				fontSize="5.5"
+				fontWeight="700"
+			>
 				<text x="27" y="10">
 					?
 					<animate
@@ -237,7 +243,8 @@ export function OrbDots({
 							r={leftEyeR}
 							fill={dotColor}
 							style={{
-								transition: "r 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+								transition:
+									"r 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
 							}}
 						/>
 					)}
@@ -263,7 +270,8 @@ export function OrbDots({
 							r={rightEyeR}
 							fill={dotColor}
 							style={{
-								transition: "r 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+								transition:
+									"r 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
 							}}
 						/>
 					)}

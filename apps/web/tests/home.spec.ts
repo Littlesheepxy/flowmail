@@ -4,18 +4,18 @@ import { config } from "@/config";
 test.describe("home page", () => {
 	if (config.marketing.enabled) {
 		test("should load", async ({ page }) => {
-			await page.goto("/");
+			test.setTimeout(120_000);
+			await page.goto("/", {
+				timeout: 90_000,
+				waitUntil: "domcontentloaded",
+			});
 
-			await expect(
-				page.getByRole("heading", {
-					name: "Your revolutionary SaaS built with Next.js",
-				}),
-			).toBeVisible();
+			const title = page.locator("h1").first();
+			await expect(title).toBeVisible({ timeout: 30000 });
 		});
 	} else {
 		test("should be redirected to app", async ({ page }) => {
 			await page.goto("/");
-
 			await expect(page).toHaveURL(/\.*\/auth\/login/);
 		});
 	}

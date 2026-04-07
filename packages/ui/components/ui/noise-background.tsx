@@ -1,16 +1,16 @@
 "use client";
 
-import { cn } from "../../lib";
 import {
+	type MotionValue,
 	motion,
 	useAnimationFrame,
 	useMotionTemplate,
 	useMotionValue,
 	useSpring,
 	useTransform,
-	type MotionValue,
 } from "motion/react";
 import { useEffect, useRef } from "react";
+import { cn } from "../../lib";
 
 function GradientLayer({
 	springX,
@@ -75,7 +75,9 @@ export const NoiseBackground = ({
 	const lastDirectionChangeRef = useRef(0);
 
 	useEffect(() => {
-		if (!containerRef.current) return;
+		if (!containerRef.current) {
+			return;
+		}
 		const rect = containerRef.current.getBoundingClientRect();
 		x.set(rect.width / 2);
 		y.set(rect.height / 2);
@@ -84,25 +86,36 @@ export const NoiseBackground = ({
 	const generateRandomVelocityRef = useRef(() => {
 		const angle = Math.random() * Math.PI * 2;
 		const magnitude = speed * (0.5 + Math.random() * 0.5);
-		return { x: Math.cos(angle) * magnitude, y: Math.sin(angle) * magnitude };
+		return {
+			x: Math.cos(angle) * magnitude,
+			y: Math.sin(angle) * magnitude,
+		};
 	});
 
 	useEffect(() => {
 		generateRandomVelocityRef.current = () => {
 			const angle = Math.random() * Math.PI * 2;
 			const magnitude = speed * (0.5 + Math.random() * 0.5);
-			return { x: Math.cos(angle) * magnitude, y: Math.sin(angle) * magnitude };
+			return {
+				x: Math.cos(angle) * magnitude,
+				y: Math.sin(angle) * magnitude,
+			};
 		};
 		velocityRef.current = generateRandomVelocityRef.current();
 	}, [speed]);
 
 	useAnimationFrame((time) => {
-		if (!animating || !containerRef.current) return;
+		if (!animating || !containerRef.current) {
+			return;
+		}
 		const rect = containerRef.current.getBoundingClientRect();
 		const maxX = rect.width;
 		const maxY = rect.height;
 
-		if (time - lastDirectionChangeRef.current > 1500 + Math.random() * 1500) {
+		if (
+			time - lastDirectionChangeRef.current >
+			1500 + Math.random() * 1500
+		) {
 			velocityRef.current = generateRandomVelocityRef.current();
 			lastDirectionChangeRef.current = time;
 		}
@@ -120,7 +133,10 @@ export const NoiseBackground = ({
 		) {
 			const angle = Math.random() * Math.PI * 2;
 			const magnitude = speed * (0.5 + Math.random() * 0.5);
-			velocityRef.current = { x: Math.cos(angle) * magnitude, y: Math.sin(angle) * magnitude };
+			velocityRef.current = {
+				x: Math.cos(angle) * magnitude,
+				y: Math.sin(angle) * magnitude,
+			};
 			lastDirectionChangeRef.current = time;
 			newX = Math.max(padding, Math.min(maxX - padding, newX));
 			newY = Math.max(padding, Math.min(maxY - padding, newY));
@@ -143,9 +159,27 @@ export const NoiseBackground = ({
 			)}
 			style={{ "--noise-opacity": noiseIntensity } as React.CSSProperties}
 		>
-			<GradientLayer springX={springX} springY={springY} gradientColor={gradientColors[0]} opacity={0.4} multiplier={1} />
-			<GradientLayer springX={springX} springY={springY} gradientColor={gradientColors[1]} opacity={0.3} multiplier={0.7} />
-			<GradientLayer springX={springX} springY={springY} gradientColor={gradientColors[2] || gradientColors[0]} opacity={0.25} multiplier={1.2} />
+			<GradientLayer
+				springX={springX}
+				springY={springY}
+				gradientColor={gradientColors[0]}
+				opacity={0.4}
+				multiplier={1}
+			/>
+			<GradientLayer
+				springX={springX}
+				springY={springY}
+				gradientColor={gradientColors[1]}
+				opacity={0.3}
+				multiplier={0.7}
+			/>
+			<GradientLayer
+				springX={springX}
+				springY={springY}
+				gradientColor={gradientColors[2] || gradientColors[0]}
+				opacity={0.25}
+				multiplier={1.2}
+			/>
 
 			<motion.div
 				className="absolute inset-x-0 top-0 h-1 rounded-t-2xl opacity-80 blur-sm"

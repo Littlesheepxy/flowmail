@@ -1,0 +1,121 @@
+---
+title: "GDPR & CCPA: A Practical Guide to Handling Business Email Data"
+date: 2026-03-08
+image: /images/blog/gdpr-ccpa-guide.jpg
+authorName: Flowmail Team
+authorImage: /images/blog/flowmail-avatar.png
+excerpt: If your business processes email data, you need to understand GDPR and CCPA compliance. Here's a practical guide to what the regulations require and how to meet them.
+tags: [compliance, gdpr, ccpa, privacy]
+published: true
+---
+
+## Why Email Data Is a Compliance Concern
+
+Every business email contains personal data — names, email addresses, job titles, and often sensitive business information. If your company processes email from EU residents (GDPR) or California consumers (CCPA), you have legal obligations about how that data is collected, stored, and used.
+
+This isn't just about marketing emails. **Any system that syncs, stores, or analyzes business email content** falls under these regulations — including email management tools, CRMs, and AI-powered email assistants.
+
+## GDPR: What You Need to Know
+
+The General Data Protection Regulation applies to any organization that processes personal data of EU residents, regardless of where the organization is based.
+
+### Key Requirements for Email Processing
+
+**1. Lawful Basis for Processing**
+
+You need a legal reason to process someone's email data. For business email tools, this is typically:
+
+- **Legitimate interest**: Processing business emails to manage approvals, track projects, and execute workflows is a legitimate business interest
+- **Consent**: For optional features like AI analysis, explicit consent strengthens your legal position
+
+**2. Data Minimization**
+
+Only collect and store the email data you actually need. If you only need email subjects for classification, don't store full email bodies indefinitely.
+
+**3. Right to Access (Article 15)**
+
+Data subjects can request a copy of all personal data you hold about them. Your system needs to be able to export this data in a machine-readable format.
+
+**4. Right to Erasure (Article 17)**
+
+Also known as the "right to be forgotten." Data subjects can request deletion of their personal data. Your system needs a way to purge specific user data.
+
+**5. Data Protection by Design**
+
+Privacy protections should be built into your system from the start, not bolted on later. This includes encryption, access controls, and audit logging.
+
+## CCPA: What You Need to Know
+
+The California Consumer Privacy Act (and its amendment, CPRA) gives California residents specific rights over their personal data.
+
+### Key Requirements
+
+**1. Right to Know**
+
+Consumers can ask what personal information you've collected about them, where it came from, and who you've shared it with.
+
+**2. Right to Delete**
+
+Similar to GDPR's right to erasure — consumers can request deletion of their personal information.
+
+**3. Right to Opt-Out of Sale**
+
+If you share personal data with third parties, consumers can opt out. For email processing tools, this typically means ensuring you don't share email content with third parties for their own purposes.
+
+**4. Non-Discrimination**
+
+You can't penalize users who exercise their privacy rights.
+
+## Practical Compliance Checklist
+
+Here's what your email processing system should have:
+
+### Encryption
+- [ ] **AES-256 encryption** for data at rest (stored email content, tokens, credentials)
+- [ ] **TLS 1.3** for data in transit
+- [ ] **Separate encryption keys** for different data types
+
+### Access Control
+- [ ] **Role-based access** — users only see their organization's data
+- [ ] **Multi-tenant isolation** — no data leakage between organizations
+- [ ] **OAuth tokens** instead of stored passwords
+
+### Audit Trail
+- [ ] **Login/logout events** logged with timestamps and IP addresses
+- [ ] **Data access events** logged (who accessed what email data, when)
+- [ ] **Data modification events** logged (status changes, approvals, deletions)
+
+### User Rights
+- [ ] **Data export** — users can download all their data in JSON/CSV format
+- [ ] **Data deletion** — users can request full account and data deletion
+- [ ] **Consent management** — record when and how users consented to data processing
+
+### Data Retention
+- [ ] **Defined retention periods** — don't keep email data forever
+- [ ] **Automatic cleanup** — expired data is purged on schedule
+- [ ] **Configurable per organization** — different clients may have different retention needs
+
+## How Flowmail Handles Compliance
+
+We built Flowmail with these requirements from day one:
+
+- **AES-256-GCM encryption** for all sensitive data at rest
+- **TLS 1.3** for all data in transit
+- **Organization-level isolation** — strict multi-tenant data boundaries
+- **Comprehensive audit logging** for all data access and modification events
+- **One-click data export** in the privacy settings dashboard
+- **Configurable data retention** with automatic cleanup
+- **Consent recording** — we track when and how each email connection was authorized
+- **Data Processing Agreement (DPA)** available for enterprise customers
+
+## Getting Started with Compliance
+
+If you're evaluating email processing tools, ask these questions:
+
+1. **Where is my data stored?** Look for providers with data centers in regions that match your compliance needs.
+2. **How is my data encrypted?** At minimum, you need AES-256 at rest and TLS in transit.
+3. **Can I export and delete my data?** If the vendor can't do this easily, that's a red flag.
+4. **Is there an audit trail?** You need to prove who accessed what data and when.
+5. **Is there a DPA available?** For GDPR compliance, you need a Data Processing Agreement with every sub-processor.
+
+Privacy compliance isn't just a legal checkbox — it's a trust signal to your customers that their data is safe with you.

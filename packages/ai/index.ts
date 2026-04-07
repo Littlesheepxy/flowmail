@@ -1,7 +1,8 @@
 import { createOpenAI } from "@ai-sdk/openai";
 
 const gatewayBaseURL = process.env.AI_GATEWAY_BASE_URL;
-const gatewayApiKey = process.env.AI_GATEWAY_API_KEY ?? process.env.OPENAI_API_KEY;
+const gatewayApiKey =
+	process.env.AI_GATEWAY_API_KEY ?? process.env.OPENAI_API_KEY;
 
 if (!gatewayBaseURL || !gatewayApiKey) {
 	console.warn(
@@ -14,9 +15,12 @@ const gateway = createOpenAI({
 	apiKey: gatewayApiKey ?? "",
 });
 
-const fastModelName = process.env.AI_FAST_MODEL || "gpt-4o-mini";
-const textModelName = process.env.AI_TEXT_MODEL || "gpt-4o";
-const reasoningModelName = process.env.AI_REASONING_MODEL || "o3-mini";
+const gatewayModel = process.env.AI_GATEWAY_MODEL;
+const fastModelName =
+	process.env.AI_FAST_MODEL || gatewayModel || "gpt-4o-mini";
+const textModelName = process.env.AI_TEXT_MODEL || gatewayModel || "gpt-4o";
+const reasoningModelName =
+	process.env.AI_REASONING_MODEL || gatewayModel || "o3-mini";
 
 export const fastModel = gateway.chat(fastModelName);
 export const textModel = gateway.chat(textModelName);

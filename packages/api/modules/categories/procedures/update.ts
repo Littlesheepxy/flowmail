@@ -16,7 +16,10 @@ export const updateCategory = protectedProcedure
 
 		const existing = await db.category.findUniqueOrThrow({ where: { id } });
 
-		await requireOrgMembershipForResource(existing.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			existing.organizationId,
+			context.user.id,
+		);
 
 		if (existing.isDefault && data.name !== undefined) {
 			throw new Error("Cannot rename a default category");

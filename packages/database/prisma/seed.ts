@@ -42,11 +42,31 @@ const BUILTIN_SKILLS = [
 - 如对方明确拒绝，尊重对方决定并礼貌结束
 - 通话时间控制在 3 分钟内`,
 		contextSchema: {
-			candidate_name: { type: "string", description: "候选人姓名", required: true },
-			interview_time: { type: "string", description: "面试时间，如：2024-03-15 14:00", required: true },
-			interview_location: { type: "string", description: "面试地点或视频会议链接", required: true },
-			position: { type: "string", description: "应聘职位", required: true },
-			interviewer_name: { type: "string", description: "面试官姓名", required: false },
+			candidate_name: {
+				type: "string",
+				description: "候选人姓名",
+				required: true,
+			},
+			interview_time: {
+				type: "string",
+				description: "面试时间，如：2024-03-15 14:00",
+				required: true,
+			},
+			interview_location: {
+				type: "string",
+				description: "面试地点或视频会议链接",
+				required: true,
+			},
+			position: {
+				type: "string",
+				description: "应聘职位",
+				required: true,
+			},
+			interviewer_name: {
+				type: "string",
+				description: "面试官姓名",
+				required: false,
+			},
 		},
 		testCases: [
 			{
@@ -102,10 +122,26 @@ const BUILTIN_SKILLS = [
 - 简洁高效，不超过 2 分钟
 - 尊重对方的日程安排`,
 		contextSchema: {
-			meeting_title: { type: "string", description: "会议主题", required: true },
-			meeting_time: { type: "string", description: "预定会议时间", required: true },
-			meeting_format: { type: "string", description: "会议形式：线下/视频/电话", required: true },
-			organizer_name: { type: "string", description: "会议组织者姓名", required: true },
+			meeting_title: {
+				type: "string",
+				description: "会议主题",
+				required: true,
+			},
+			meeting_time: {
+				type: "string",
+				description: "预定会议时间",
+				required: true,
+			},
+			meeting_format: {
+				type: "string",
+				description: "会议形式：线下/视频/电话",
+				required: true,
+			},
+			organizer_name: {
+				type: "string",
+				description: "会议组织者姓名",
+				required: true,
+			},
 		},
 		testCases: [
 			{
@@ -150,10 +186,26 @@ const BUILTIN_SKILLS = [
 - 语气友好，非催促
 - 重在了解和协助，而非施压`,
 		contextSchema: {
-			item_description: { type: "string", description: "需要跟进的事项描述", required: true },
-			deadline: { type: "string", description: "截止日期", required: true },
-			priority: { type: "string", description: "优先级：高/中/低", required: false },
-			follow_up_reason: { type: "string", description: "跟进原因", required: false },
+			item_description: {
+				type: "string",
+				description: "需要跟进的事项描述",
+				required: true,
+			},
+			deadline: {
+				type: "string",
+				description: "截止日期",
+				required: true,
+			},
+			priority: {
+				type: "string",
+				description: "优先级：高/中/低",
+				required: false,
+			},
+			follow_up_reason: {
+				type: "string",
+				description: "跟进原因",
+				required: false,
+			},
 		},
 		testCases: [
 			{
@@ -173,22 +225,33 @@ async function main() {
 	const organizations = await db.organization.findMany();
 
 	if (organizations.length === 0) {
-		console.log("⚠️  No organizations found. Please create an organization first, then run this seed.");
+		console.log(
+			"⚠️  No organizations found. Please create an organization first, then run this seed.",
+		);
 		return;
 	}
 
-	console.log(`Found ${organizations.length} organization(s). Seeding builtin skills...`);
+	console.log(
+		`Found ${organizations.length} organization(s). Seeding builtin skills...`,
+	);
 
 	for (const org of organizations) {
 		console.log(`\nOrg: ${org.name} (${org.id})`);
 
 		for (const skillData of BUILTIN_SKILLS) {
 			const existing = await db.skill.findUnique({
-				where: { organizationId_slug: { organizationId: org.id, slug: skillData.slug } },
+				where: {
+					organizationId_slug: {
+						organizationId: org.id,
+						slug: skillData.slug,
+					},
+				},
 			});
 
 			if (existing) {
-				console.log(`  ⏭  Skill "${skillData.name}" already exists, skipping`);
+				console.log(
+					`  ⏭  Skill "${skillData.name}" already exists, skipping`,
+				);
 				continue;
 			}
 

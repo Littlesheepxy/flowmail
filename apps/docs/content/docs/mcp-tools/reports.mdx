@@ -1,0 +1,70 @@
+---
+title: Report Tools
+description: MCP tools for listing reports and generating AI-powered summaries.
+---
+
+Report tools help agents access status reports and progress updates extracted from emails.
+
+## list_reports
+
+List report entities for the organization.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `status` | `string` | No | Filter by status (e.g., `"received"`, `"in_progress"`, `"completed"`) |
+
+### Example
+
+```json
+{
+  "tool": "list_reports",
+  "arguments": {
+    "status": "received"
+  }
+}
+```
+
+### Response
+
+Returns an array of report entities with assignee information, ordered by most recently updated.
+
+---
+
+## get_report_summary
+
+Get the AI-generated summary of a report entity, including extracted structured fields.
+
+### Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `entityId` | `string` | Yes | Report entity ID |
+
+### Example
+
+```json
+{
+  "tool": "get_report_summary",
+  "arguments": {
+    "entityId": "clx9876543210"
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "title": "Weekly Engineering Update - Week 13",
+  "status": "received",
+  "summary": "Team completed 3 of 5 planned features. CI pipeline timeout is the main blocker. API rate limiting issue under investigation.",
+  "fields": {
+    "completedItems": ["Feature A", "Feature B", "Feature C"],
+    "blockers": ["CI pipeline timeout", "API rate limit"],
+    "nextSteps": ["Fix CI config", "Investigate rate limit", "Update staging"],
+    "progressPercent": 60
+  }
+}
+```

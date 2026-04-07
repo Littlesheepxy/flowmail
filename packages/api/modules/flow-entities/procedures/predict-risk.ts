@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
+import { generateText, Output, textModel } from "@repo/ai";
 import { db } from "@repo/database";
-import { textModel, generateText, Output } from "@repo/ai";
 import { z } from "zod";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -45,7 +45,10 @@ export const predictEntityRisk = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			entity.organizationId,
+			context.user.id,
+		);
 
 		const hasAiKey = !!process.env.OPENAI_API_KEY;
 
@@ -65,9 +68,13 @@ export const predictEntityRisk = protectedProcedure
 			};
 		}
 
-		const fields = entity.extractedFields ? JSON.parse(entity.extractedFields) : {};
+		const fields = entity.extractedFields
+			? JSON.parse(entity.extractedFields)
+			: {};
 		const timelineText = entity.timeline
-			.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`)
+			.map(
+				(e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`,
+			)
 			.join("\n");
 
 		const today = new Date().toISOString().split("T")[0];

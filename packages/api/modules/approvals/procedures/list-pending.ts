@@ -26,7 +26,9 @@ export const listPendingApprovals = protectedProcedure
 		const approvals = await db.flowEntity.findMany({
 			where,
 			include: {
-				assignee: { select: { id: true, name: true, email: true, image: true } },
+				assignee: {
+					select: { id: true, name: true, email: true, image: true },
+				},
 				_count: { select: { threads: true } },
 			},
 			orderBy: { createdAt: "desc" },

@@ -12,7 +12,8 @@ export const MEMORY_CATEGORIES = {
 	org_insight: "org_insight",
 } as const;
 
-export type MemoryCategory = (typeof MEMORY_CATEGORIES)[keyof typeof MEMORY_CATEGORIES];
+export type MemoryCategory =
+	(typeof MEMORY_CATEGORIES)[keyof typeof MEMORY_CATEGORIES];
 
 export const MEMORY_SCOPES = {
 	org: "org",
@@ -59,6 +60,7 @@ export interface PageContext {
 	route?: string;
 	organizationId?: string;
 	entityId?: string;
+	unclassifiedEmailCount?: number;
 	entity?: {
 		id: string;
 		title: string;

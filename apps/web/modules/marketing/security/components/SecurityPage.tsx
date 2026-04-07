@@ -2,25 +2,25 @@
 
 import { BlurFade } from "@repo/ui/components/blur-fade";
 import { MagicCard } from "@repo/ui/components/magic-card";
+import type { LucideIcon } from "lucide-react";
 import {
+	BrainIcon,
 	DatabaseIcon,
 	EyeOffIcon,
+	FileOutputIcon,
 	FlagIcon,
+	GaugeIcon,
 	GlobeIcon,
 	KeyRoundIcon,
 	LockIcon,
 	MailIcon,
 	ScrollTextIcon,
+	SearchIcon,
 	ServerIcon,
 	ShieldCheckIcon,
 	ShieldIcon,
 	UserCheckIcon,
-	GaugeIcon,
-	FileOutputIcon,
-	BrainIcon,
-	SearchIcon,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { config } from "@/config";
 
@@ -43,9 +43,21 @@ const sections: SecuritySectionData[] = [
 		descriptionKey: "dataSecurity",
 		icon: LockIcon,
 		items: [
-			{ titleKey: "dataSecurity.items.encryptionAtRest", descriptionKey: "dataSecurity.items.encryptionAtRest", icon: LockIcon },
-			{ titleKey: "dataSecurity.items.encryptionInTransit", descriptionKey: "dataSecurity.items.encryptionInTransit", icon: GlobeIcon },
-			{ titleKey: "dataSecurity.items.oauthSecurity", descriptionKey: "dataSecurity.items.oauthSecurity", icon: MailIcon },
+			{
+				titleKey: "dataSecurity.items.encryptionAtRest",
+				descriptionKey: "dataSecurity.items.encryptionAtRest",
+				icon: LockIcon,
+			},
+			{
+				titleKey: "dataSecurity.items.encryptionInTransit",
+				descriptionKey: "dataSecurity.items.encryptionInTransit",
+				icon: GlobeIcon,
+			},
+			{
+				titleKey: "dataSecurity.items.oauthSecurity",
+				descriptionKey: "dataSecurity.items.oauthSecurity",
+				icon: MailIcon,
+			},
 		],
 	},
 	{
@@ -53,10 +65,26 @@ const sections: SecuritySectionData[] = [
 		descriptionKey: "accessControl",
 		icon: KeyRoundIcon,
 		items: [
-			{ titleKey: "accessControl.items.mfa", descriptionKey: "accessControl.items.mfa", icon: UserCheckIcon },
-			{ titleKey: "accessControl.items.orgIsolation", descriptionKey: "accessControl.items.orgIsolation", icon: ShieldIcon },
-			{ titleKey: "accessControl.items.apiTokens", descriptionKey: "accessControl.items.apiTokens", icon: KeyRoundIcon },
-			{ titleKey: "accessControl.items.rateLimiting", descriptionKey: "accessControl.items.rateLimiting", icon: GaugeIcon },
+			{
+				titleKey: "accessControl.items.mfa",
+				descriptionKey: "accessControl.items.mfa",
+				icon: UserCheckIcon,
+			},
+			{
+				titleKey: "accessControl.items.orgIsolation",
+				descriptionKey: "accessControl.items.orgIsolation",
+				icon: ShieldIcon,
+			},
+			{
+				titleKey: "accessControl.items.apiTokens",
+				descriptionKey: "accessControl.items.apiTokens",
+				icon: KeyRoundIcon,
+			},
+			{
+				titleKey: "accessControl.items.rateLimiting",
+				descriptionKey: "accessControl.items.rateLimiting",
+				icon: GaugeIcon,
+			},
 		],
 	},
 	{
@@ -64,9 +92,21 @@ const sections: SecuritySectionData[] = [
 		descriptionKey: "aiPrivacy",
 		icon: EyeOffIcon,
 		items: [
-			{ titleKey: "aiPrivacy.items.zeroTraining", descriptionKey: "aiPrivacy.items.zeroTraining", icon: BrainIcon },
-			{ titleKey: "aiPrivacy.items.minimalAccess", descriptionKey: "aiPrivacy.items.minimalAccess", icon: EyeOffIcon },
-			{ titleKey: "aiPrivacy.items.transparency", descriptionKey: "aiPrivacy.items.transparency", icon: SearchIcon },
+			{
+				titleKey: "aiPrivacy.items.zeroTraining",
+				descriptionKey: "aiPrivacy.items.zeroTraining",
+				icon: BrainIcon,
+			},
+			{
+				titleKey: "aiPrivacy.items.minimalAccess",
+				descriptionKey: "aiPrivacy.items.minimalAccess",
+				icon: EyeOffIcon,
+			},
+			{
+				titleKey: "aiPrivacy.items.transparency",
+				descriptionKey: "aiPrivacy.items.transparency",
+				icon: SearchIcon,
+			},
 		],
 	},
 	{
@@ -74,10 +114,26 @@ const sections: SecuritySectionData[] = [
 		descriptionKey: "compliance",
 		icon: FlagIcon,
 		items: [
-			{ titleKey: "compliance.items.soc2", descriptionKey: "compliance.items.soc2", icon: ShieldCheckIcon },
-			{ titleKey: "compliance.items.gdpr", descriptionKey: "compliance.items.gdpr", icon: FlagIcon },
-			{ titleKey: "compliance.items.auditLog", descriptionKey: "compliance.items.auditLog", icon: ScrollTextIcon },
-			{ titleKey: "compliance.items.dataExport", descriptionKey: "compliance.items.dataExport", icon: FileOutputIcon },
+			{
+				titleKey: "compliance.items.soc2",
+				descriptionKey: "compliance.items.soc2",
+				icon: ShieldCheckIcon,
+			},
+			{
+				titleKey: "compliance.items.gdpr",
+				descriptionKey: "compliance.items.gdpr",
+				icon: FlagIcon,
+			},
+			{
+				titleKey: "compliance.items.auditLog",
+				descriptionKey: "compliance.items.auditLog",
+				icon: ScrollTextIcon,
+			},
+			{
+				titleKey: "compliance.items.dataExport",
+				descriptionKey: "compliance.items.dataExport",
+				icon: FileOutputIcon,
+			},
 		],
 	},
 	{
@@ -85,9 +141,21 @@ const sections: SecuritySectionData[] = [
 		descriptionKey: "infrastructure",
 		icon: ServerIcon,
 		items: [
-			{ titleKey: "infrastructure.items.hosting", descriptionKey: "infrastructure.items.hosting", icon: GlobeIcon },
-			{ titleKey: "infrastructure.items.database", descriptionKey: "infrastructure.items.database", icon: DatabaseIcon },
-			{ titleKey: "infrastructure.items.securityHeaders", descriptionKey: "infrastructure.items.securityHeaders", icon: ShieldCheckIcon },
+			{
+				titleKey: "infrastructure.items.hosting",
+				descriptionKey: "infrastructure.items.hosting",
+				icon: GlobeIcon,
+			},
+			{
+				titleKey: "infrastructure.items.database",
+				descriptionKey: "infrastructure.items.database",
+				icon: DatabaseIcon,
+			},
+			{
+				titleKey: "infrastructure.items.securityHeaders",
+				descriptionKey: "infrastructure.items.securityHeaders",
+				icon: ShieldCheckIcon,
+			},
 		],
 	},
 ];
@@ -153,10 +221,14 @@ export function SecurityPage() {
 									</div>
 									<div>
 										<h2 className="text-2xl font-medium lg:text-3xl">
-											{t(`page.${section.titleKey}.title`)}
+											{t(
+												`page.${section.titleKey}.title`,
+											)}
 										</h2>
 										<p className="text-sm text-foreground/50 mt-0.5">
-											{t(`page.${section.descriptionKey}.description`)}
+											{t(
+												`page.${section.descriptionKey}.description`,
+											)}
 										</p>
 									</div>
 								</div>
@@ -177,10 +249,14 @@ export function SecurityPage() {
 														<Icon className="size-4 text-foreground/60" />
 													</div>
 													<h3 className="font-medium text-base">
-														{t(`page.${item.titleKey}.title`)}
+														{t(
+															`page.${item.titleKey}.title`,
+														)}
 													</h3>
 													<p className="mt-1.5 text-sm leading-relaxed text-foreground/50">
-														{t(`page.${item.descriptionKey}.description`)}
+														{t(
+															`page.${item.descriptionKey}.description`,
+														)}
 													</p>
 												</div>
 											</MagicCard>

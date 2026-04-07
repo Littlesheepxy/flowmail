@@ -17,7 +17,7 @@
  */
 
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join, relative, basename, extname } from "node:path";
+import { basename, extname, join, relative } from "node:path";
 
 const TARGET_EXTENSIONS = new Set([".tsx", ".jsx"]);
 const IGNORE_DIRS = new Set([
@@ -58,10 +58,14 @@ async function walk(dir) {
 	}
 
 	for (const entry of entries) {
-		if (IGNORE_DIRS.has(entry) || entry.startsWith(".")) continue;
+		if (IGNORE_DIRS.has(entry) || entry.startsWith(".")) {
+			continue;
+		}
 		const fullPath = join(dir, entry);
 		const s = await stat(fullPath).catch(() => null);
-		if (!s) continue;
+		if (!s) {
+			continue;
+		}
 
 		if (s.isDirectory()) {
 			results.push(...(await walk(fullPath)));
@@ -113,7 +117,8 @@ async function analyzeFile(filePath) {
 	const hasDataIgnore = content.includes("data-ai-eyes-ignore");
 	const hasJSXReturn = /return\s*\(?\s*</.test(content);
 	const isDefaultExport =
-		content.includes("export default") || content.includes("export function");
+		content.includes("export default") ||
+		content.includes("export function");
 	const lineCount = content.split("\n").length;
 
 	const sensitiveMatch = SENSITIVE_PATTERNS.some((p) => p.test(content));
@@ -161,7 +166,9 @@ async function main() {
 
 	// Report: Page components needing tags
 	if (pages.length > 0) {
-		console.log(`📄 Page components — SHOULD add data-module (${pages.length}):`);
+		console.log(
+			`📄 Page components — SHOULD add data-module (${pages.length}):`,
+		);
 		for (const f of pages) {
 			const suggested = inferModuleName(f.filePath, rootDir);
 			console.log(

@@ -38,7 +38,11 @@ export function checkRateLimit(
 
 	if (!entry || entry.resetAt < now) {
 		windowStore.set(key, { count: 1, resetAt: now + config.windowMs });
-		return { allowed: true, remaining: config.maxRequests - 1, resetAt: now + config.windowMs };
+		return {
+			allowed: true,
+			remaining: config.maxRequests - 1,
+			resetAt: now + config.windowMs,
+		};
 	}
 
 	entry.count++;
@@ -46,7 +50,11 @@ export function checkRateLimit(
 		return { allowed: false, remaining: 0, resetAt: entry.resetAt };
 	}
 
-	return { allowed: true, remaining: config.maxRequests - entry.count, resetAt: entry.resetAt };
+	return {
+		allowed: true,
+		remaining: config.maxRequests - entry.count,
+		resetAt: entry.resetAt,
+	};
 }
 
 export const RATE_LIMITS = {
@@ -55,6 +63,7 @@ export const RATE_LIMITS = {
 	signup: { windowMs: 60 * 60_000, maxRequests: 5 },
 	api: { windowMs: 60_000, maxRequests: 100 },
 	agentChat: { windowMs: 60_000, maxRequests: 30 },
+	emailSync: { windowMs: 60_000, maxRequests: 5 },
 } as const;
 
 export function getClientIp(request: Request): string {

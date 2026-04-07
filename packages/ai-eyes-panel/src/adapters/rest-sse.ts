@@ -96,7 +96,8 @@ export function useRestSseAdapter(config: RestSseConfig): ChatAdapter {
 										}>;
 									};
 									const delta =
-										parsed.choices?.[0]?.delta?.content ?? "";
+										parsed.choices?.[0]?.delta?.content ??
+										"";
 									content += delta;
 									setMessages((prev) =>
 										prev.map((m) =>

@@ -1,4 +1,9 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
+import {
+	createCipheriv,
+	createDecipheriv,
+	randomBytes,
+	scryptSync,
+} from "node:crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
@@ -100,6 +105,40 @@ export function decryptSensitiveFields<
 >(data: T): T {
 	const result = { ...data };
 	for (const field of SENSITIVE_EMAIL_FIELDS) {
+		const value = result[field];
+		if (value && isEncrypted(value)) {
+			(result as Record<string, string>)[field] = decryptField(value);
+		}
+	}
+	return result;
+}
+
+const SENSITIVE_EMAIL_CONTENT_FIELDS = [
+	"bodyText",
+	"bodyHtml",
+	"rawPayload",
+] as const;
+
+type EmailContentField = (typeof SENSITIVE_EMAIL_CONTENT_FIELDS)[number];
+
+export function encryptEmailContent<
+	T extends Partial<Record<EmailContentField, string | null>>,
+>(data: T): T {
+	const result = { ...data };
+	for (const field of SENSITIVE_EMAIL_CONTENT_FIELDS) {
+		const value = result[field];
+		if (value && !isEncrypted(value)) {
+			(result as Record<string, string>)[field] = encryptField(value);
+		}
+	}
+	return result;
+}
+
+export function decryptEmailContent<
+	T extends Partial<Record<EmailContentField, string | null>>,
+>(data: T): T {
+	const result = { ...data };
+	for (const field of SENSITIVE_EMAIL_CONTENT_FIELDS) {
 		const value = result[field];
 		if (value && isEncrypted(value)) {
 			(result as Record<string, string>)[field] = decryptField(value);

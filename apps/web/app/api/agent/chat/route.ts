@@ -1,25 +1,31 @@
-import { triggerNotification, checkRateLimit, getClientIp, RATE_LIMITS } from "@repo/api";
-import { auth } from "@repo/auth";
-import { getOrganizationMembership } from "@repo/database";
+import {
+	buildAgentConfig,
+	createAnalysisTools,
+	createClassificationTools,
+	createEmailTools,
+	createEntityTools,
+	createInboxTools,
+	MemoryManager,
+	type PageContext,
+	ToolRegistry,
+} from "@repo/agent";
 import {
 	convertToModelMessages,
-	textModel,
-	ToolLoopAgent,
 	stepCountIs,
-	type UIMessage,
+	ToolLoopAgent,
 	type ToolSet,
+	textModel,
+	type UIMessage,
 } from "@repo/ai";
-import { getConnector, processEmail } from "@repo/email-processor";
 import {
-	ToolRegistry,
-	MemoryManager,
-	buildAgentConfig,
-	createEntityTools,
-	createAnalysisTools,
-	createEmailTools,
-	createInboxTools,
-	type PageContext,
-} from "@repo/agent";
+	checkRateLimit,
+	getClientIp,
+	RATE_LIMITS,
+	triggerNotification,
+} from "@repo/api";
+import { auth } from "@repo/auth";
+import { db, getOrganizationMembership } from "@repo/database";
+import { getConnector, processEmail } from "@repo/email-processor";
 
 export const maxDuration = 60;
 
@@ -28,7 +34,13 @@ const memoryManager = new MemoryManager();
 function createAgentToolRegistry() {
 	const registry = new ToolRegistry();
 
-	const notify = (p: { organizationId: string; type: string; entityId: string; title: string; body: string }) =>
+	const notify = (p: {
+		organizationId: string;
+		type: string;
+		entityId: string;
+		title: string;
+		body: string;
+	}) =>
 		triggerNotification({
 			organizationId: p.organizationId,
 			type: p.type as Parameters<typeof triggerNotification>[0]["type"],
@@ -45,13 +57,25 @@ function createAgentToolRegistry() {
 
 	registry.registerBuiltin(
 		createEmailTools({
-			getConnector: getConnector as unknown as Parameters<typeof createEmailTools>[0]["getConnector"],
-			processEmail: processEmail as unknown as Parameters<typeof createEmailTools>[0]["processEmail"],
+			getConnector: getConnector as unknown as Parameters<
+				typeof createEmailTools
+			>[0]["getConnector"],
+			processEmail: processEmail as unknown as Parameters<
+				typeof createEmailTools
+			>[0]["processEmail"],
 			triggerNotification: notify,
 		}),
 	);
 
 	registry.registerBuiltin(createInboxTools());
+
+	registry.registerBuiltin(
+		createClassificationTools({
+			processEmail: processEmail as unknown as Parameters<
+				typeof createClassificationTools
+			>[0]["processEmail"],
+		}),
+	);
 
 	return registry;
 }
@@ -97,33 +121,51 @@ export async function POST(req: Request) {
 
 	const { messages, pageContext } = body;
 
-	const ctx: PageContext = pageContext ?? {
-		entityId: body.entityId,
-		organizationId: body.organizationId,
-	};
+	const orgId = pageContext?.organizationId ?? body.organizationId;
 
-	if (ctx.organizationId) {
-		const membership = await getOrganizationMembership(ctx.organizationId, session.user.id);
-		if (!membership) {
-			return new Response(JSON.stringify({ error: "Forbidden" }), {
-				status: 403,
+	if (!orgId) {
+		return new Response(
+			JSON.stringify({ error: "organizationId is required" }),
+			{
+				status: 400,
 				headers: { "Content-Type": "application/json" },
-			});
-		}
+			},
+		);
 	}
+
+	const membership = await getOrganizationMembership(orgId, session.user.id);
+	if (!membership) {
+		return new Response(JSON.stringify({ error: "Forbidden" }), {
+			status: 403,
+			headers: { "Content-Type": "application/json" },
+		});
+	}
+
+	const unclassifiedEmailCount = await db.emailThread
+		.count({ where: { organizationId: orgId, entityId: null } })
+		.catch(() => undefined);
+
+	const ctx: PageContext = pageContext
+		? { ...pageContext, organizationId: orgId, unclassifiedEmailCount }
+		: {
+				entityId: body.entityId,
+				organizationId: orgId,
+				unclassifiedEmailCount,
+			};
 
 	const lastMessage = messages[messages.length - 1];
 	const userMessage =
 		lastMessage?.role === "user"
-			? lastMessage.parts
-					?.filter((p): p is { type: "text"; text: string } => p.type === "text")
+			? (lastMessage.parts
+					?.filter(
+						(p): p is { type: "text"; text: string } =>
+							p.type === "text",
+					)
 					.map((p) => p.text)
-					.join(" ") ?? ""
+					.join(" ") ?? "")
 			: "";
 
-	const senderEmail = ctx.entity
-		? undefined
-		: undefined;
+	const senderEmail = ctx.entity ? undefined : undefined;
 
 	const memoryContext = ctx.organizationId
 		? await memoryManager.recallFocused({

@@ -1,0 +1,148 @@
+---
+title: Stdio (Local)
+description: Run Flowmail's MCP server locally using the stdio transport for development and self-hosted deployments.
+---
+
+The stdio transport runs Flowmail's MCP server as a local process, communicating via standard input/output. This is ideal for development, testing, and self-hosted environments.
+
+## When to Use Stdio
+
+| Scenario | Transport |
+|----------|-----------|
+| Cloud-hosted Flowmail | HTTP (SSE) |
+| Local development | **Stdio** |
+| Self-hosted / air-gapped | **Stdio** |
+| CI/CD pipeline integration | **Stdio** |
+
+## Quick Start
+
+```bash
+npx flowmail-mcp
+```
+
+The server will start and listen on stdin/stdout using the MCP stdio protocol.
+
+## Environment Variables
+
+The stdio server needs database access and organization context:
+
+```bash
+# Required
+DATABASE_URL="postgresql://user:password@localhost:5432/flowmail"
+FLOWMAIL_ORG_ID="your-organization-id"
+
+# Optional — enables AI-powered tools (timeline diff, risk prediction)
+OPENAI_API_KEY="sk-..."
+```
+
+You can set these in a `.env` file in your working directory, or pass them inline:
+
+```bash
+DATABASE_URL="..." FLOWMAIL_ORG_ID="..." npx flowmail-mcp
+```
+
+## MCP Client Configuration
+
+### Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "flowmail-local": {
+      "command": "npx",
+      "args": ["flowmail-mcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://user:password@localhost:5432/flowmail",
+        "FLOWMAIL_ORG_ID": "org_abc123"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+```json
+{
+  "mcpServers": {
+    "flowmail-local": {
+      "command": "npx",
+      "args": ["flowmail-mcp"],
+      "env": {
+        "DATABASE_URL": "postgresql://user:password@localhost:5432/flowmail",
+        "FLOWMAIL_ORG_ID": "org_abc123"
+      }
+    }
+  }
+}
+```
+
+### Programmatic Usage
+
+Use the MCP SDK to connect to a stdio server programmatically:
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const transport = new StdioClientTransport({
+  command: "npx",
+  args: ["flowmail-mcp"],
+  env: {
+    DATABASE_URL: process.env.DATABASE_URL!,
+    FLOWMAIL_ORG_ID: process.env.FLOWMAIL_ORG_ID!,
+  },
+});
+
+const client = new Client({ name: "my-app", version: "1.0.0" });
+await client.connect(transport);
+
+const result = await client.callTool({
+  name: "list_pending_approvals",
+  arguments: {},
+});
+
+console.log(result);
+```
+
+## Development Workflow
+
+### 1. Start the Database
+
+```bash
+docker compose up -d postgres
+pnpm db:push
+```
+
+### 2. Seed Test Data
+
+```bash
+pnpm db:seed
+```
+
+### 3. Run the MCP Server
+
+```bash
+npx flowmail-mcp
+```
+
+### 4. Test with MCP Inspector
+
+Use the MCP Inspector to test tools interactively:
+
+```bash
+npx @modelcontextprotocol/inspector npx flowmail-mcp
+```
+
+This opens a web UI where you can call each tool and inspect responses.
+
+## Troubleshooting
+
+**`DATABASE_URL` error:**
+Ensure PostgreSQL is running and the connection string is correct. The stdio server connects directly to the database.
+
+**`FLOWMAIL_ORG_ID` error:**
+The organization ID is required for multi-tenant data isolation. Find it in your Flowmail dashboard under Settings → Organization.
+
+**AI tools returning "unknown":**
+AI-powered tools (`get_timeline_diff`, `predict_entity_risk`) require `OPENAI_API_KEY`. Without it, they return basic results without AI analysis.

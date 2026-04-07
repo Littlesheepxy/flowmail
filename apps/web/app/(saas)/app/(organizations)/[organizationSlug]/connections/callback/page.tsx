@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@repo/ui/components/button";
 import { Spinner } from "@repo/ui";
+import { Button } from "@repo/ui/components/button";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2Icon, Loader2Icon, XCircleIcon } from "lucide-react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type CallbackStatus = "loading" | "success" | "syncing" | "error";
@@ -25,6 +25,9 @@ export default function OAuthCallbackPage() {
 
 	const gmailMutation = useMutation(
 		orpc.emailConnections.connectGmail.mutationOptions(),
+	);
+	const outlookMutation = useMutation(
+		orpc.emailConnections.connectOutlook.mutationOptions(),
 	);
 	const oauthMutation = useMutation(
 		orpc.emailConnections.connectOAuth.mutationOptions(),
@@ -111,16 +114,38 @@ export default function OAuthCallbackPage() {
 					},
 				},
 			);
+		} else if (oauthState.provider === "outlook") {
+			outlookMutation.mutate(
+				{
+					organizationId: oauthState.organizationId,
+					authCode: code,
+					redirectUri,
+				},
+				{
+					onSuccess: (data) => {
+						triggerSync(data.id, data.email);
+					},
+					onError: (err) => {
+						setStatus("error");
+						setMessage(err.message || "Outlook 连接失败");
+					},
+				},
+			);
 		} else if (oauthState.appId && oauthState.appSecret) {
 			oauthMutation.mutate(
 				{
 					organizationId: oauthState.organizationId,
-					provider: oauthState.provider as "feishu" | "dingtalk" | "wecom",
+					provider: oauthState.provider as
+						| "feishu"
+						| "dingtalk"
+						| "wecom",
 					appId: oauthState.appId,
 					appSecret: oauthState.appSecret,
 					authCode: code,
 					redirectUri,
-					...(oauthState.imapPassword ? { imapPassword: oauthState.imapPassword } : {}),
+					...(oauthState.imapPassword
+						? { imapPassword: oauthState.imapPassword }
+						: {}),
 				},
 				{
 					onSuccess: (data) => {
@@ -136,7 +161,7 @@ export default function OAuthCallbackPage() {
 			setStatus("error");
 			setMessage("缺少应用凭据，请重新连接。");
 		}
-	}, [code, organizationSlug, gmailMutation, oauthMutation]);
+	}, [code, organizationSlug, gmailMutation, outlookMutation, oauthMutation]);
 
 	return (
 		<div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -161,7 +186,9 @@ export default function OAuthCallbackPage() {
 					<h2 className="text-lg font-semibold">连接成功</h2>
 					<p className="text-sm text-muted-foreground">{message}</p>
 					{syncResult && (
-						<p className="text-xs text-muted-foreground">{syncResult}</p>
+						<p className="text-xs text-muted-foreground">
+							{syncResult}
+						</p>
 					)}
 					<Button
 						onClick={() =>

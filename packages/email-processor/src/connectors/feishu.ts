@@ -120,24 +120,38 @@ export const feishuConnector: EmailConnector = {
 						{ format: "full" },
 					);
 
-					const wrapper = detail as { message?: Record<string, unknown> };
+					const wrapper = detail as {
+						message?: Record<string, unknown>;
+					};
 					const raw = wrapper.message ?? detail;
 					const msg = raw as unknown as FeishuMessageDetail;
 
 					if (fetched === 0) {
-						console.log("[Feishu] First message subject:", msg.subject);
-						console.log("[Feishu] First message from:", JSON.stringify(msg.head_from));
+						console.log(
+							"[Feishu] First message subject:",
+							msg.subject,
+						);
+						console.log(
+							"[Feishu] First message from:",
+							JSON.stringify(msg.head_from),
+						);
 					}
 
 					const from = msg.head_from ?? {};
 					const toAddrs = msg.to ?? [];
 					const ccAddrs = msg.cc ?? [];
 
-					const rawHtml = msg.body_html ? decodeBase64(msg.body_html) : undefined;
-					const rawText = msg.body_plain_text ? decodeBase64(msg.body_plain_text) : undefined;
+					const rawHtml = msg.body_html
+						? decodeBase64(msg.body_html)
+						: undefined;
+					const rawText = msg.body_plain_text
+						? decodeBase64(msg.body_plain_text)
+						: undefined;
 					const content = rawText || stripHtml(rawHtml ?? "") || "";
 
-					const attachments: RawEmailAttachment[] = (msg.attachments ?? [])
+					const attachments: RawEmailAttachment[] = (
+						msg.attachments ?? []
+					)
 						.filter((a) => a.id)
 						.map((a) => ({
 							filename: a.filename ?? "attachment",
@@ -155,22 +169,32 @@ export const feishuConnector: EmailConnector = {
 						recipients: toAddrs.map((a) => a.mail_address ?? ""),
 						toRecipients: toAddrs
 							.filter((a) => a.mail_address)
-							.map((a) => ({ name: a.name, address: a.mail_address as string })),
+							.map((a) => ({
+								name: a.name,
+								address: a.mail_address as string,
+							})),
 						ccRecipients: ccAddrs
 							.filter((a) => a.mail_address)
-							.map((a) => ({ name: a.name, address: a.mail_address as string })),
+							.map((a) => ({
+								name: a.name,
+								address: a.mail_address as string,
+							})),
 						content,
 						snippet: content.slice(0, 200),
 						bodyHtml: rawHtml,
 						bodyText: rawText,
-						attachments: attachments.length > 0 ? attachments : undefined,
+						attachments:
+							attachments.length > 0 ? attachments : undefined,
 						receivedAt: msg.internal_date
 							? new Date(Number(msg.internal_date))
 							: new Date(),
 					});
 					fetched++;
 				} catch (err) {
-					console.error(`[Feishu] Failed to fetch message ${messageId}:`, err);
+					console.error(
+						`[Feishu] Failed to fetch message ${messageId}:`,
+						err,
+					);
 				}
 			}
 

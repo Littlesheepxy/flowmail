@@ -1,5 +1,4 @@
-import { generateText, textModel } from "@repo/ai";
-import { Output } from "@repo/ai";
+import { generateText, Output, textModel } from "@repo/ai";
 import { z } from "zod";
 
 export const SuggestionsOutputSchema = z.object({

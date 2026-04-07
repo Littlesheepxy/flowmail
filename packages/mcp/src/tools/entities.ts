@@ -17,8 +17,12 @@ export function registerEntityTools(server: McpServer) {
 		},
 		async ({ organizationId, type, status, limit }) => {
 			const where: Record<string, unknown> = { organizationId };
-			if (type) where.type = type;
-			if (status) where.status = status;
+			if (type) {
+				where.type = type;
+			}
+			if (status) {
+				where.status = status;
+			}
 
 			const entities = await db.flowEntity.findMany({
 				where,
@@ -72,7 +76,9 @@ export function registerEntityTools(server: McpServer) {
 
 			if (!entity) {
 				return {
-					content: [{ type: "text" as const, text: "Entity not found" }],
+					content: [
+						{ type: "text" as const, text: "Entity not found" },
+					],
 					isError: true,
 				};
 			}
@@ -103,7 +109,9 @@ export function registerEntityTools(server: McpServer) {
 
 			if (!entity) {
 				return {
-					content: [{ type: "text" as const, text: "Entity not found" }],
+					content: [
+						{ type: "text" as const, text: "Entity not found" },
+					],
 					isError: true,
 				};
 			}
@@ -118,7 +126,11 @@ export function registerEntityTools(server: McpServer) {
 					entityId,
 					type: "status_changed",
 					content: `Status changed from ${entity.status} to ${status}${reason ? `: ${reason}` : ""}`,
-					metadata: JSON.stringify({ previousStatus: entity.status, newStatus: status, reason }),
+					metadata: JSON.stringify({
+						previousStatus: entity.status,
+						newStatus: status,
+						reason,
+					}),
 				},
 			});
 
@@ -126,7 +138,10 @@ export function registerEntityTools(server: McpServer) {
 				content: [
 					{
 						type: "text" as const,
-						text: JSON.stringify({ success: true, entity: updated }),
+						text: JSON.stringify({
+							success: true,
+							entity: updated,
+						}),
 					},
 				],
 			};

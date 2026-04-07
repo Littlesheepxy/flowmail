@@ -1,5 +1,5 @@
-import { PageHeader } from "@saas/shared/components/PageHeader";
 import { CategoryManager } from "@flowmail/components/CategoryManager";
+import { PageHeader } from "@saas/shared/components/PageHeader";
 
 export const metadata = { title: "分类管理" };
 

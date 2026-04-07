@@ -86,6 +86,73 @@ export const auth = betterAuth({
 
 				await updateSeatsInOrganizationSubscription(organizationId);
 			}
+
+			const forwarded = ctx.request?.headers.get("x-forwarded-for");
+			const ipAddress = forwarded
+				? forwarded.split(",")[0].trim()
+				: (ctx.request?.headers.get("x-real-ip") ?? undefined);
+			const userAgent =
+				ctx.request?.headers.get("user-agent") ?? undefined;
+
+			const writeAudit = (
+				action: string,
+				userId?: string,
+				metadata?: Record<string, unknown>,
+			) => {
+				db.auditLog
+					.create({
+						data: {
+							action: action as import("@prisma/client").AuditAction,
+							userId: userId ?? null,
+							ipAddress: ipAddress ?? null,
+							userAgent: userAgent ?? null,
+							metadata: metadata
+								? JSON.stringify(metadata)
+								: null,
+						},
+					})
+					.catch((err: unknown) =>
+						logger.error("Audit log write failed", { err }),
+					);
+			};
+
+			if (ctx.path.startsWith("/sign-in")) {
+				const userId = ctx.context?.session?.session?.userId;
+				if (userId) {
+					writeAudit("LOGIN", userId, { method: "password" });
+				}
+			} else if (ctx.path.startsWith("/sign-up")) {
+				const userId =
+					ctx.context?.session?.session?.userId ??
+					ctx.context?.newUser?.id;
+				if (userId) {
+					writeAudit("SIGNUP", userId);
+				}
+			} else if (
+				ctx.path.startsWith("/email-otp/send-verification-otp")
+			) {
+				const email = ctx.body?.email;
+				writeAudit("OTP_REQUEST", undefined, { email });
+			} else if (ctx.path.startsWith("/email-otp/verify-email")) {
+				const userId = ctx.context?.session?.session?.userId;
+				if (userId) {
+					writeAudit("OTP_VERIFY", userId);
+				}
+			} else if (ctx.path.startsWith("/forget-password")) {
+				writeAudit("PASSWORD_RESET", undefined, {
+					email: ctx.body?.email,
+				});
+			} else if (ctx.path.startsWith("/organization/create")) {
+				const userId = ctx.context?.session?.session?.userId;
+				writeAudit("ORGANIZATION_CREATE", userId, {
+					name: ctx.body?.name,
+				});
+			} else if (ctx.path.startsWith("/organization/delete")) {
+				const userId = ctx.context?.session?.session?.userId;
+				writeAudit("ORGANIZATION_DELETE", userId, {
+					organizationId: ctx.body?.organizationId,
+				});
+			}
 		}),
 		before: createAuthMiddleware(async (ctx) => {
 			if (

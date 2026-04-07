@@ -1,5 +1,5 @@
-import { db } from "@repo/database";
 import type { NotificationType } from "@repo/database";
+import { db } from "@repo/database";
 
 interface TriggerNotificationParams {
 	organizationId: string;

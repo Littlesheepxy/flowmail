@@ -66,9 +66,15 @@ export const imapConnector: EmailConnector = {
 
 				if (cursor) {
 					const since = new Date(cursor);
-					searchResult = await client.search({ since }, { uid: true }) as number[];
+					searchResult = (await client.search(
+						{ since },
+						{ uid: true },
+					)) as number[];
 				} else {
-					searchResult = await client.search({ all: true }, { uid: true }) as number[];
+					searchResult = (await client.search(
+						{ all: true },
+						{ uid: true },
+					)) as number[];
 				}
 
 				const uidList = Array.isArray(searchResult) ? searchResult : [];
@@ -77,64 +83,102 @@ export const imapConnector: EmailConnector = {
 					return { emails: [], newCursor: new Date().toISOString() };
 				}
 
-				const uids = uidList.length <= maxCount
-					? uidList
-					: uidList.slice(-maxCount);
+				const uids =
+					uidList.length <= maxCount
+						? uidList
+						: uidList.slice(-maxCount);
 
 				for (const uid of uids) {
 					try {
-					const rawMsg = await client.fetchOne(
-						String(uid),
-						{ envelope: true, bodyStructure: true, source: true },
-						{ uid: true },
-					);
-					const msg = rawMsg && typeof rawMsg === "object" ? rawMsg : null;
+						const rawMsg = await client.fetchOne(
+							String(uid),
+							{
+								envelope: true,
+								bodyStructure: true,
+								source: true,
+							},
+							{ uid: true },
+						);
+						const msg =
+							rawMsg && typeof rawMsg === "object"
+								? rawMsg
+								: null;
 
-					if (!msg || !("envelope" in msg) || !msg.envelope) {
-						continue;
-					}
+						if (!msg || !("envelope" in msg) || !msg.envelope) {
+							continue;
+						}
 
-					const env = msg.envelope as unknown as Record<string, unknown>;
-					const msgAny = msg as unknown as Record<string, unknown>;
-					const from = parseAddress(
-						(env.from as Array<{ name?: string; address?: string }> | undefined)?.[0],
-					);
-					const toAddrs = (
-						env.to as Array<{ name?: string; address?: string }> | undefined
-					) ?? [];
-					const ccAddrs = (
-						env.cc as Array<{ name?: string; address?: string }> | undefined
-					) ?? [];
+						const env = msg.envelope as unknown as Record<
+							string,
+							unknown
+						>;
+						const msgAny = msg as unknown as Record<
+							string,
+							unknown
+						>;
+						const from = parseAddress(
+							(
+								env.from as
+									| Array<{ name?: string; address?: string }>
+									| undefined
+							)?.[0],
+						);
+						const toAddrs =
+							(env.to as
+								| Array<{ name?: string; address?: string }>
+								| undefined) ?? [];
+						const ccAddrs =
+							(env.cc as
+								| Array<{ name?: string; address?: string }>
+								| undefined) ?? [];
 
-					const sourceObj = msgAny.source as { toString(enc: string): string } | undefined;
-					const rawSource = sourceObj?.toString("utf-8") ?? "";
-					const { text: bodyText, html: bodyHtml } =
-						extractPartsFromSource(rawSource);
-					const content = bodyText || stripHtml(bodyHtml) || rawSource.slice(0, 5000);
+						const sourceObj = msgAny.source as
+							| { toString(enc: string): string }
+							| undefined;
+						const rawSource = sourceObj?.toString("utf-8") ?? "";
+						const { text: bodyText, html: bodyHtml } =
+							extractPartsFromSource(rawSource);
+						const content =
+							bodyText ||
+							stripHtml(bodyHtml) ||
+							rawSource.slice(0, 5000);
 
-					const toRecipients: EmailRecipient[] = toAddrs
-						.filter((a) => a.address)
-						.map((a) => ({ name: a.name, address: a.address as string }));
-					const ccRecipients: EmailRecipient[] = ccAddrs
-						.filter((a) => a.address)
-						.map((a) => ({ name: a.name, address: a.address as string }));
+						const toRecipients: EmailRecipient[] = toAddrs
+							.filter((a) => a.address)
+							.map((a) => ({
+								name: a.name,
+								address: a.address as string,
+							}));
+						const ccRecipients: EmailRecipient[] = ccAddrs
+							.filter((a) => a.address)
+							.map((a) => ({
+								name: a.name,
+								address: a.address as string,
+							}));
 
-					const rfcMessageId = env.messageId as string | undefined;
-					emails.push({
-						externalId: rfcMessageId ?? `uid-${uid}`,
-						subject: (env.subject as string) ?? "(no subject)",
-						sender: from.name,
-						senderEmail: from.email,
-						recipients: toAddrs.map((a) => a.address ?? ""),
-						toRecipients,
-						ccRecipients: ccRecipients.length > 0 ? ccRecipients : undefined,
-						content,
-						snippet: content.slice(0, 200),
-						bodyHtml: bodyHtml || undefined,
-						bodyText: bodyText || undefined,
-						receivedAt: env.date ? new Date(env.date as string) : new Date(),
-						messageId: rfcMessageId || undefined,
-					});
+						const rfcMessageId = env.messageId as
+							| string
+							| undefined;
+						emails.push({
+							externalId: rfcMessageId ?? `uid-${uid}`,
+							subject: (env.subject as string) ?? "(no subject)",
+							sender: from.name,
+							senderEmail: from.email,
+							recipients: toAddrs.map((a) => a.address ?? ""),
+							toRecipients,
+							ccRecipients:
+								ccRecipients.length > 0
+									? ccRecipients
+									: undefined,
+							content,
+							snippet: content.slice(0, 200),
+							bodyHtml: bodyHtml || undefined,
+							bodyText: bodyText || undefined,
+							receivedAt: env.date
+								? new Date(env.date as string)
+								: new Date(),
+							messageId: rfcMessageId || undefined,
+						});
 					} catch {
 						// skip individual message errors
 					}
@@ -145,7 +189,11 @@ export const imapConnector: EmailConnector = {
 
 			await client.logout();
 		} catch (err) {
-			try { await client.logout(); } catch { /* ignore */ }
+			try {
+				await client.logout();
+			} catch {
+				/* ignore */
+			}
 			throw err;
 		}
 
@@ -162,7 +210,11 @@ export const imapConnector: EmailConnector = {
 			await client.logout();
 			return true;
 		} catch {
-			try { await client.logout(); } catch { /* ignore */ }
+			try {
+				await client.logout();
+			} catch {
+				/* ignore */
+			}
 			return false;
 		}
 	},

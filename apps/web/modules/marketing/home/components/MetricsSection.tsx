@@ -2,11 +2,16 @@
 
 import { BlurFade } from "@repo/ui/components/blur-fade";
 import { NumberTicker } from "@repo/ui/components/number-ticker";
-import { ClockIcon, TargetIcon, MailIcon, LockIcon } from "lucide-react";
+import { MailIcon, ShieldCheckIcon, TargetIcon, TimerIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const metrics = [
-	{ labelKey: "speed", valueKey: "speedValue", icon: ClockIcon, ticker: null },
+	{
+		labelKey: "speed",
+		valueKey: "speedValue",
+		icon: TimerIcon,
+		ticker: { value: 5, suffix: "h+", decimals: 0 },
+	},
 	{
 		labelKey: "accuracy",
 		valueKey: "accuracyValue",
@@ -22,7 +27,7 @@ const metrics = [
 	{
 		labelKey: "encryption",
 		valueKey: "encryptionValue",
-		icon: LockIcon,
+		icon: ShieldCheckIcon,
 		ticker: null,
 	},
 ] as const;
@@ -37,7 +42,11 @@ export function MetricsSection() {
 					{metrics.map((metric, i) => {
 						const Icon = metric.icon;
 						return (
-							<BlurFade key={metric.labelKey} delay={i * 0.1} inView>
+							<BlurFade
+								key={metric.labelKey}
+								delay={i * 0.1}
+								inView
+							>
 								<div className="text-center">
 									<div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
 										<Icon className="h-5 w-5 text-primary" />
@@ -47,7 +56,9 @@ export function MetricsSection() {
 											<>
 												<NumberTicker
 													value={metric.ticker.value}
-													decimalPlaces={metric.ticker.decimals}
+													decimalPlaces={
+														metric.ticker.decimals
+													}
 												/>
 												{metric.ticker.suffix}
 											</>

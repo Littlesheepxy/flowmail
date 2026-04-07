@@ -24,7 +24,8 @@ export function DeadlineWarning({
 			? "紧急：剩余不到 24 小时"
 			: "提醒：剩余不到 48 小时";
 
-	const urgencyColor = isOverdue || hoursRemaining <= 24 ? "#ef4444" : "#f59e0b";
+	const urgencyColor =
+		isOverdue || hoursRemaining <= 24 ? "#ef4444" : "#f59e0b";
 
 	return (
 		<Wrapper>

@@ -308,15 +308,49 @@
 			"description": "Approve requests, track reports, and trigger actions — all from one place."
 		}
 	},
+	"useCases": {
+		"label": "Built for cross-company collaboration",
+		"title": "The scenarios that consume your email time most",
+		"description": "Flowmail turns the highest-friction email workflows into structured, trackable items.",
+		"approval": {
+			"title": "Cross-Company Approvals",
+			"description": "Budget requests, contract sign-offs, deliverable approvals — extracted and tracked automatically.",
+			"example": "Vendor sends quote → CFO approves → status auto-updates → both sides notified"
+		},
+		"tracking": {
+			"title": "Project Progress Tracking",
+			"description": "Weekly updates from vendors and partners auto-structured into timelines with risk alerts.",
+			"example": "Vendor PM sends weekly update → AI extracts milestones & blockers → client PM sees timeline"
+		},
+		"classification": {
+			"title": "Intelligent Classification",
+			"description": "Every email auto-classified by business intent — approval, report, issue — with 98.5% accuracy.",
+			"example": "50 cross-company emails → classified in 3 seconds → sorted by priority"
+		},
+		"domainsLabel": "AI understands your business context",
+		"domains": {
+			"legal": "Legal Contracts",
+			"finance": "Finance & Expenses",
+			"investment": "Investment DD",
+			"pm": "Project Management",
+			"supply": "Supply Chain",
+			"client": "Client Follow-up",
+			"hr": "HR & Admin",
+			"engineering": "Engineering Ops"
+		}
+	},
+	"platformLogos": {
+		"title": "Works with the email platforms your team already uses"
+	},
 	"metrics": {
-		"speed": "Processing Time",
-		"speedValue": "< 3s",
+		"speed": "Hours Saved Weekly",
+		"speedValue": "5h+",
 		"accuracy": "Classification Accuracy",
 		"accuracyValue": "98.5%",
-		"platforms": "Email Platforms",
+		"platforms": "Email Platforms Supported",
 		"platformsValue": "6+",
-		"encryption": "Encryption Standard",
-		"encryptionValue": "AES-256"
+		"encryption": "Privacy Compliance",
+		"encryptionValue": "GDPR & CCPA"
 	},
 	"notifications": {
 		"label": "Smart Notifications",
@@ -1006,6 +1040,18 @@
 			"subtitle": "Manage the settings of your personal account.",
 			"title": "Account settings"
 		},
+		"privacy": {
+			"title": "Privacy & Data",
+			"exportData": {
+				"title": "Export your data",
+				"description": "Download a copy of all your personal data in JSON format. This includes your profile, email threads, entities, timeline events, and categories. (GDPR Art. 20 / CCPA §1798.100)",
+				"submit": "Export data",
+				"notifications": {
+					"success": "Your data has been exported successfully.",
+					"error": "Failed to export data. Please try again."
+				}
+			}
+		},
 		"billing": {
 			"createCustomerPortal": {
 				"label": "Manage billing",
@@ -1039,6 +1085,7 @@
 				"billing": "Billing",
 				"dangerZone": "Danger zone",
 				"general": "General",
+				"privacy": "Privacy",
 				"security": "Security",
 				"title": "Account"
 			},

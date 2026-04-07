@@ -18,12 +18,21 @@ export const rejectRequest = protectedProcedure
 			where: { id: input.entityId },
 		});
 
-		if (!entity) throw new ORPCError("NOT_FOUND");
+		if (!entity) {
+			throw new ORPCError("NOT_FOUND");
+		}
 
-		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			entity.organizationId,
+			context.user.id,
+		);
 
-		if (entity.type !== "APPROVAL") throw new ORPCError("BAD_REQUEST");
-		if (entity.status !== "pending") throw new ORPCError("BAD_REQUEST");
+		if (entity.type !== "APPROVAL") {
+			throw new ORPCError("BAD_REQUEST");
+		}
+		if (entity.status !== "pending") {
+			throw new ORPCError("BAD_REQUEST");
+		}
 
 		const updated = await db.flowEntity.update({
 			where: { id: input.entityId },

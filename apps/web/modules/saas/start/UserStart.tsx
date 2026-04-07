@@ -93,7 +93,8 @@ export default function UserStart() {
 
 			<Card className="mt-6">
 				<div className="flex h-40 items-center justify-center p-8 text-foreground/50 text-sm">
-					Connect your first mailbox to start processing emails automatically.
+					Connect your first mailbox to start processing emails
+					automatically.
 				</div>
 			</Card>
 		</div>

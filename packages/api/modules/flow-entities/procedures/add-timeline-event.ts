@@ -6,7 +6,15 @@ import { protectedProcedure } from "../../../orpc/procedures";
 
 export const addTimelineEventSchema = z.object({
 	entityId: z.string(),
-	type: z.enum(["email_received", "email_sent", "status_changed", "action_taken", "ai_summary", "milestone", "note"]),
+	type: z.enum([
+		"email_received",
+		"email_sent",
+		"status_changed",
+		"action_taken",
+		"ai_summary",
+		"milestone",
+		"note",
+	]),
 	content: z.string().min(1).max(2000),
 	metadata: z.record(z.string(), z.unknown()).optional(),
 });
@@ -29,14 +37,19 @@ export const addTimelineEvent = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			entity.organizationId,
+			context.user.id,
+		);
 
 		const event = await db.timelineEvent.create({
 			data: {
 				entityId: input.entityId,
 				type: input.type,
 				content: input.content,
-				metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+				metadata: input.metadata
+					? JSON.stringify(input.metadata)
+					: null,
 				actorId: context.user.id,
 			},
 			include: {

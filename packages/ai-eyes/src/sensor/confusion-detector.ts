@@ -30,9 +30,11 @@ export class ConfusionDetector {
 			...config?.signalWeights,
 		};
 		this.threshold =
-			config?.confusionThreshold ?? DEFAULT_SENSOR_CONFIG.confusionThreshold;
+			config?.confusionThreshold ??
+			DEFAULT_SENSOR_CONFIG.confusionThreshold;
 		this.windowMs = config?.windowMs ?? DEFAULT_SENSOR_CONFIG.windowMs;
-		this.cooldownMs = config?.cooldownMs ?? DEFAULT_SENSOR_CONFIG.cooldownMs;
+		this.cooldownMs =
+			config?.cooldownMs ?? DEFAULT_SENSOR_CONFIG.cooldownMs;
 	}
 
 	onConfusion(handler: ConfusionHandler): () => void {
@@ -57,7 +59,10 @@ export class ConfusionDetector {
 
 		const score = this.calculateScore();
 
-		if (score >= this.threshold && now - this.lastTriggerAt > this.cooldownMs) {
+		if (
+			score >= this.threshold &&
+			now - this.lastTriggerAt > this.cooldownMs
+		) {
 			this.lastTriggerAt = now;
 			const event: ConfusionEvent = {
 				score,
@@ -94,7 +99,7 @@ export class ConfusionDetector {
 
 		for (const signal of this.signals) {
 			const prevCount = typeCounts.get(signal.type) ?? 0;
-			const decay = Math.pow(REPEAT_DECAY, prevCount);
+			const decay = REPEAT_DECAY ** prevCount;
 			total += this.weights[signal.type] * decay;
 			typeCounts.set(signal.type, prevCount + 1);
 		}

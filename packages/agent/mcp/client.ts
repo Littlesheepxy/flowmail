@@ -1,5 +1,5 @@
 import type { ToolSet } from "@repo/ai";
-import type { MCPClientConfig, MCPServerInfo } from "./types";
+import type { MCPServerInfo } from "./types";
 
 /**
  * Flowmail MCP Client — future integration point for @ai-sdk/mcp.
@@ -9,8 +9,6 @@ import type { MCPClientConfig, MCPServerInfo } from "./types";
  * tools to the Agent via the ToolRegistry.
  */
 export class FlowmailMCPClient {
-	constructor(_config: MCPClientConfig) {}
-
 	async connect(): Promise<MCPServerInfo> {
 		return {
 			name: "stub",

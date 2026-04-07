@@ -36,23 +36,24 @@ export function createInboxTools() {
 					updatedAt: e.updatedAt.toISOString(),
 				}));
 
-				return { total: entities.length, byType, byStatus, recentItems: recent };
+				return {
+					total: entities.length,
+					byType,
+					byStatus,
+					recentItems: recent,
+				};
 			},
 		}),
 
 		list_entities: tool({
-			description:
-				"列出组织内的事项，支持按类型、状态筛选和关键词搜索。",
+			description: "列出组织内的事项，支持按类型、状态筛选和关键词搜索。",
 			inputSchema: z.object({
 				organizationId: z.string(),
 				type: z
 					.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"])
 					.optional()
 					.describe("按事项类型筛选"),
-				status: z
-					.string()
-					.optional()
-					.describe("按状态筛选"),
+				status: z.string().optional().describe("按状态筛选"),
 				search: z.string().optional().describe("按标题关键词搜索"),
 				limit: z.number().default(15).describe("最多返回条数"),
 			}),
@@ -73,7 +74,10 @@ export function createInboxTools() {
 					where.status = input.status;
 				}
 				if (input.search) {
-					where.title = { contains: input.search, mode: "insensitive" };
+					where.title = {
+						contains: input.search,
+						mode: "insensitive",
+					};
 				}
 
 				const items = await db.flowEntity.findMany({

@@ -87,21 +87,61 @@ If you are in the European Economic Area (EEA), we process your data under the f
 - **Legitimate interests**: To improve our service and ensure security
 - **Consent**: For optional features and marketing communications
 
-We offer Data Processing Agreements (DPA) for enterprise customers.
+**Data Processing Agreements (DPA)**: We offer DPAs for enterprise customers. Contact us at dpa@flowmail.ai or see our [Data Processing Agreement](/legal/dpa) for details.
 
-## 8. Cookies
+**Data Transfers**: When your email content is processed by our AI providers (OpenAI, Anthropic), data may be transferred outside the EEA. These transfers are protected by Standard Contractual Clauses (SCCs) and the providers' own GDPR commitments.
+
+**Consent for Email Processing**: When you connect an email account, you explicitly consent to Flowmail syncing, classifying, and extracting structured data from your emails. You can withdraw consent at any time by disconnecting the email account in Settings, which stops all future processing. Previously processed data can be deleted via the data export or account deletion features.
+
+## 8. CCPA (California Residents)
+
+If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA):
+
+### 8.1 Right to Know
+You have the right to know what personal information we collect, use, and disclose. See Sections 1–3 of this policy for details.
+
+### 8.2 Right to Delete
+You can request deletion of your personal information. Use the **Delete Account** feature in Settings > Danger Zone, or contact us at privacy@flowmail.ai.
+
+### 8.3 Right to Opt-Out of Sale
+**We do not sell your personal information.** We do not share personal information for cross-context behavioral advertising.
+
+### 8.4 Right to Non-Discrimination
+We will not discriminate against you for exercising your CCPA rights.
+
+### 8.5 Categories of Personal Information Collected
+
+| Category | Examples | Collected |
+|----------|----------|-----------|
+| Identifiers | Name, email address, IP address | Yes |
+| Commercial Information | Subscription plan, payment history | Yes |
+| Internet Activity | Feature usage, access logs | Yes |
+| Professional Information | Email content related to business activities | Yes |
+| Inferences | AI-generated classifications and summaries | Yes |
+
+### 8.6 Data Portability
+You can export all your personal data in machine-readable JSON format via Settings > Privacy > Export Data.
+
+### 8.7 Authorized Agents
+You may designate an authorized agent to make CCPA requests on your behalf. The agent must provide written authorization and verify their identity.
+
+### 8.8 Contact for CCPA Requests
+- Email: privacy@flowmail.ai
+- Response time: Within 45 days of receiving a verifiable request
+
+## 9. Cookies
 
 Flowmail uses essential cookies for authentication and session management. We do not use third-party tracking cookies.
 
-## 9. Children's Privacy
+## 10. Children's Privacy
 
 Flowmail is not intended for use by individuals under 16 years of age. We do not knowingly collect data from children.
 
-## 10. Changes to This Policy
+## 11. Changes to This Policy
 
 We may update this Privacy Policy from time to time. We will notify you of material changes via email or in-app notification.
 
-## 11. Contact Us
+## 12. Contact Us
 
 For privacy-related inquiries:
 - Email: privacy@flowmail.ai

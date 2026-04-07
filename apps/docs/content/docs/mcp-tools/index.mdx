@@ -1,0 +1,82 @@
+---
+title: MCP Tool Reference
+description: Complete reference for Flowmail's MCP (Model Context Protocol) tools — enabling any AI agent to manage emails, approvals, reports, and timelines.
+---
+
+Flowmail exposes **15 MCP tools** that allow any compatible AI agent to interact with your business data. These tools cover the full lifecycle of email-driven workflows.
+
+## What is MCP?
+
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open standard for connecting AI agents to external tools and data sources. Flowmail implements an MCP server that lets agents like Claude, Cursor, and OpenClaw execute business operations on your behalf.
+
+## Dual API Architecture
+
+Flowmail provides two API layers that share the same core business logic:
+
+| Layer | Protocol | Audience | Use Case |
+|-------|----------|----------|----------|
+| **oRPC** | Type-safe RPC over HTTP | Web UI (dashboard) | Human users interacting via browser |
+| **MCP** | Model Context Protocol | AI Agents | Automated workflows, agent-driven operations |
+
+Both layers enforce the same multi-tenant isolation, encryption, and audit logging.
+
+## Connection Methods
+
+### HTTP (Remote)
+
+Connect to Flowmail's hosted MCP server via Server-Sent Events (SSE):
+
+```
+URL: https://your-domain.com/mcp/sse
+Authorization: Bearer <your-api-token>
+```
+
+### Stdio (Local)
+
+Run the MCP server locally for development or private deployments:
+
+```bash
+npx flowmail-mcp
+```
+
+See the [Integration Guide](/docs/integration) for platform-specific setup instructions.
+
+## Authentication
+
+All MCP tools require a valid API token. The token is scoped to an organization and determines which data the agent can access.
+
+```
+Authorization: Bearer <api-token>
+```
+
+The token provides:
+- **Organization scoping** — Agent can only access data within the token's organization
+- **Audit trail** — All operations are logged with the token identity
+- **Scope control** — Fine-grained permission control
+
+## Tool Categories
+
+| Category | Tools | Description |
+|----------|-------|-------------|
+| [Entity Tools](/docs/mcp-tools/entities) | 3 | List, get, and update business entities |
+| [Approval Tools](/docs/mcp-tools/approvals) | 3 | Manage pending approval requests |
+| [Report Tools](/docs/mcp-tools/reports) | 2 | Access and summarize reports |
+| [Email Tools](/docs/mcp-tools/emails) | 2 | Search emails and list connections |
+| [Timeline Tools](/docs/mcp-tools/timeline) | 5 | Track events, compute diffs, predict risks |
+
+## Error Handling
+
+All tools return a consistent response format:
+
+```json
+{
+  "content": [{ "type": "text", "text": "..." }],
+  "isError": false
+}
+```
+
+When an error occurs, `isError` is set to `true` and the text contains the error message. Common errors:
+
+- `"Entity not found"` — The ID doesn't exist or belongs to a different organization
+- `"Missing organizationId in auth context"` — Invalid or missing authentication token
+- `"Entity is not a pending approval"` — Attempting to approve/reject a non-approval or already-decided entity

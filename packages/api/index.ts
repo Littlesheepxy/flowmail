@@ -5,13 +5,13 @@ import { getBaseUrl } from "@repo/utils";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
-import { openApiHandler, rpcHandler } from "./orpc/handler";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
+import { openApiHandler, rpcHandler } from "./orpc/handler";
 
+export { extractRequestMeta, writeAuditLog } from "./lib/audit-log";
+export { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
 export { verifyApiToken } from "./modules/api-tokens/lib/token-utils";
 export { triggerNotification } from "./modules/notifications/lib/trigger";
-export { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
-export { writeAuditLog, extractRequestMeta } from "./lib/audit-log";
 
 export const app = new Hono()
 	.basePath("/api")
@@ -35,7 +35,11 @@ export const app = new Hono()
 
 		const isOtp = path.includes("otp") || path.includes("verify");
 		const isSignup = path.includes("sign-up");
-		const limit = isOtp ? RATE_LIMITS.otp : isSignup ? RATE_LIMITS.signup : RATE_LIMITS.auth;
+		const limit = isOtp
+			? RATE_LIMITS.otp
+			: isSignup
+				? RATE_LIMITS.signup
+				: RATE_LIMITS.auth;
 		const key = `auth:${ip}:${isOtp ? "otp" : isSignup ? "signup" : "login"}`;
 
 		const result = checkRateLimit(key, limit);
@@ -43,7 +47,10 @@ export const app = new Hono()
 		c.header("X-RateLimit-Reset", String(Math.ceil(result.resetAt / 1000)));
 
 		if (!result.allowed) {
-			return c.json({ error: "Too many requests. Please try again later." }, 429);
+			return c.json(
+				{ error: "Too many requests. Please try again later." },
+				429,
+			);
 		}
 
 		await next();

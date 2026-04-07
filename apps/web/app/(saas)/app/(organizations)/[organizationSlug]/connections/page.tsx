@@ -1,5 +1,5 @@
-import { PageHeader } from "@saas/shared/components/PageHeader";
 import { EmailConnectionsList } from "@flowmail/components/EmailConnectionsList";
+import { PageHeader } from "@saas/shared/components/PageHeader";
 
 export const metadata = { title: "Connections" };
 

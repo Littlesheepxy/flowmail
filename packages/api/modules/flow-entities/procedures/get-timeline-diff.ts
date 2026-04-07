@@ -1,27 +1,42 @@
 import { ORPCError } from "@orpc/client";
+import { generateText, Output, textModel } from "@repo/ai";
 import { db } from "@repo/database";
-import { textModel, generateText, Output } from "@repo/ai";
 import { z } from "zod";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 
 const getTimelineDiffSchema = z.object({
 	entityId: z.string(),
-	fromEventId: z.string().optional().describe("Start event ID for diff range"),
+	fromEventId: z
+		.string()
+		.optional()
+		.describe("Start event ID for diff range"),
 	toEventId: z.string().optional().describe("End event ID for diff range"),
 });
 
 const diffResultSchema = z.object({
 	summary: z.string().describe("Human-readable summary of changes"),
-	changes: z.array(z.object({
-		field: z.string(),
-		before: z.string().nullable(),
-		after: z.string().nullable(),
-		significance: z.enum(["low", "medium", "high", "critical"]),
-	})),
-	riskSignals: z.array(z.string()).describe("Risk signals detected between versions"),
-	progressDelta: z.number().min(-100).max(100).nullable().describe("Progress change as percentage, null if not applicable"),
-	recommendation: z.string().nullable().describe("AI recommendation based on changes"),
+	changes: z.array(
+		z.object({
+			field: z.string(),
+			before: z.string().nullable(),
+			after: z.string().nullable(),
+			significance: z.enum(["low", "medium", "high", "critical"]),
+		}),
+	),
+	riskSignals: z
+		.array(z.string())
+		.describe("Risk signals detected between versions"),
+	progressDelta: z
+		.number()
+		.min(-100)
+		.max(100)
+		.nullable()
+		.describe("Progress change as percentage, null if not applicable"),
+	recommendation: z
+		.string()
+		.nullable()
+		.describe("AI recommendation based on changes"),
 });
 
 export const getTimelineDiff = protectedProcedure
@@ -42,7 +57,10 @@ export const getTimelineDiff = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			entity.organizationId,
+			context.user.id,
+		);
 
 		const allEvents = await db.timelineEvent.findMany({
 			where: { entityId: input.entityId },
@@ -70,7 +88,10 @@ export const getTimelineDiff = protectedProcedure
 
 		const fromEvent = allEvents[Math.max(0, fromIdx)];
 		const toEvent = allEvents[Math.min(allEvents.length - 1, toIdx)];
-		const rangeEvents = allEvents.slice(Math.max(0, fromIdx), Math.min(allEvents.length, toIdx + 1));
+		const rangeEvents = allEvents.slice(
+			Math.max(0, fromIdx),
+			Math.min(allEvents.length, toIdx + 1),
+		);
 
 		const hasAiKey = !!process.env.OPENAI_API_KEY;
 
@@ -88,7 +109,9 @@ export const getTimelineDiff = protectedProcedure
 		}
 
 		const eventsText = rangeEvents
-			.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`)
+			.map(
+				(e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`,
+			)
 			.join("\n");
 
 		const { output: diff } = await generateText({

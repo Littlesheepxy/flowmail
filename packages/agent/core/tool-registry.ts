@@ -30,9 +30,6 @@ export class ToolRegistry {
 	}
 
 	getToolNames(): string[] {
-		return [
-			...this.builtinTools.keys(),
-			...this.mcpTools.keys(),
-		];
+		return [...this.builtinTools.keys(), ...this.mcpTools.keys()];
 	}
 }

@@ -3,9 +3,9 @@
 import { AnimatedBeam } from "@repo/ui/components/animated-beam";
 import { BlurFade } from "@repo/ui/components/blur-fade";
 import { MagicCard } from "@repo/ui/components/magic-card";
-import { InboxIcon, CpuIcon, ZapIcon } from "lucide-react";
-import { useRef } from "react";
+import { CpuIcon, InboxIcon, ZapIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 const steps = [
 	{

@@ -13,7 +13,10 @@ import { AiEyes } from "./AiEyes";
 import type { RadialMenuItem } from "./RadialMoodMenu";
 
 interface AnalyzerAdapter {
-	analyze(event: ConfusionEvent, appContext?: Record<string, unknown>): Promise<HelpSuggestion | null>;
+	analyze(
+		event: ConfusionEvent,
+		appContext?: Record<string, unknown>,
+	): Promise<HelpSuggestion | null>;
 }
 
 /**
@@ -84,7 +87,10 @@ export interface AiEyesKitProps {
 	appContext?: Record<string, unknown>;
 }
 
-function createFetchAdapter(url: string, headers?: Record<string, string>): AnalyzerAdapter {
+function createFetchAdapter(
+	url: string,
+	headers?: Record<string, string>,
+): AnalyzerAdapter {
 	return {
 		async analyze(event, appContext) {
 			const res = await fetch(url, {
@@ -131,7 +137,11 @@ export function AiEyesKit({
 	const config = useMemo<AiEyesCoreConfig>(
 		() => ({
 			enabled: !disabled,
-			recorder: recorderConfig ?? (recorderDuration ? { durationMs: recorderDuration } : undefined),
+			recorder:
+				recorderConfig ??
+				(recorderDuration
+					? { durationMs: recorderDuration }
+					: undefined),
 		}),
 		[disabled, recorderConfig, recorderDuration],
 	);
@@ -139,7 +149,10 @@ export function AiEyesKit({
 	const handleConfusion = useCallback(
 		async (event: ConfusionEvent): Promise<HelpSuggestion | null> => {
 			try {
-				return await effectiveAdapter.analyze(event, appContextRef.current);
+				return await effectiveAdapter.analyze(
+					event,
+					appContextRef.current,
+				);
 			} catch {
 				return null;
 			}

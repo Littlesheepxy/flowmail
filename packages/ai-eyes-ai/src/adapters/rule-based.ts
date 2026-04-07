@@ -1,4 +1,9 @@
-import type { AiAdapter, AnalyzeRequest, AnalyzeResponse, HelpRule } from "./types";
+import type {
+	AiAdapter,
+	AnalyzeRequest,
+	AnalyzeResponse,
+	HelpRule,
+} from "./types";
 
 export function createRuleBasedAdapter(rules: HelpRule[]): AiAdapter {
 	return {
@@ -8,12 +13,18 @@ export function createRuleBasedAdapter(rules: HelpRule[]): AiAdapter {
 			const signalTypes = confusionEvent.signals.map((s) => s.type);
 
 			for (const rule of rules) {
-				if (rule.signal && !signalTypes.includes(rule.signal as never)) {
+				if (
+					rule.signal &&
+					!signalTypes.includes(rule.signal as never)
+				) {
 					continue;
 				}
 
 				if (rule.page) {
-					if (typeof rule.page === "string" && !route.includes(rule.page)) {
+					if (
+						typeof rule.page === "string" &&
+						!route.includes(rule.page)
+					) {
 						continue;
 					}
 					if (rule.page instanceof RegExp && !rule.page.test(route)) {

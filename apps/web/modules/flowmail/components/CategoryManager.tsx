@@ -1,5 +1,6 @@
 "use client";
 
+import { cn, Spinner } from "@repo/ui";
 import { Button } from "@repo/ui/components/button";
 import {
 	Dialog,
@@ -10,10 +11,9 @@ import {
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
-import { Spinner, cn } from "@repo/ui";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	AlertTriangleIcon,
 	ArrowDownIcon,
@@ -21,6 +21,7 @@ import {
 	FileTextIcon,
 	GripVerticalIcon,
 	InboxIcon,
+	type LucideIcon,
 	MailIcon,
 	MessageSquareIcon,
 	PenIcon,
@@ -29,7 +30,6 @@ import {
 	ShieldCheckIcon,
 	TagIcon,
 	TrashIcon,
-	type LucideIcon,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { usePageGuide } from "../hooks/use-page-guide";
@@ -61,9 +61,7 @@ const AVAILABLE_COLORS = [
 ];
 
 function resolveIcon(iconName: string): LucideIcon {
-	return (
-		AVAILABLE_ICONS.find((i) => i.name === iconName)?.icon ?? TagIcon
-	);
+	return AVAILABLE_ICONS.find((i) => i.name === iconName)?.icon ?? TagIcon;
 }
 
 interface CategoryFormData {
@@ -89,9 +87,7 @@ export function CategoryManager() {
 	]);
 
 	const [dialogOpen, setDialogOpen] = useState(false);
-	const [editingCategory, setEditingCategory] = useState<string | null>(
-		null,
-	);
+	const [editingCategory, setEditingCategory] = useState<string | null>(null);
 
 	const orgId = activeOrganization?.id ?? "";
 
@@ -197,8 +193,7 @@ export function CategoryManager() {
 								createMutation.mutate(
 									{ ...data, organizationId: orgId },
 									{
-										onSuccess: () =>
-											setDialogOpen(false),
+										onSuccess: () => setDialogOpen(false),
 									},
 								);
 							}}
@@ -206,8 +201,7 @@ export function CategoryManager() {
 								updateMutation.mutate(
 									{ id, ...data },
 									{
-										onSuccess: () =>
-											setDialogOpen(false),
+										onSuccess: () => setDialogOpen(false),
 									},
 								);
 							}}
@@ -278,8 +272,7 @@ export function CategoryManager() {
 									size="icon"
 									className="size-7"
 									disabled={
-										index ===
-										(categories?.length ?? 1) - 1
+										index === (categories?.length ?? 1) - 1
 									}
 									onClick={() => handleMoveDown(index)}
 								>
@@ -301,9 +294,7 @@ export function CategoryManager() {
 										variant="ghost"
 										size="icon"
 										className="size-7 text-destructive hover:text-destructive"
-										onClick={() =>
-											handleDelete(cat.id)
-										}
+										onClick={() => handleDelete(cat.id)}
 										disabled={deleteMutation.isPending}
 									>
 										<TrashIcon className="size-3.5" />
@@ -321,7 +312,7 @@ export function CategoryManager() {
 function CategoryForm({
 	editId,
 	categories,
-	organizationId,
+	organizationId: _organizationId,
 	onCreate,
 	onUpdate,
 	isPending,
@@ -341,9 +332,7 @@ function CategoryForm({
 	onUpdate: (id: string, data: Partial<CategoryFormData>) => void;
 	isPending: boolean;
 }) {
-	const existing = editId
-		? categories.find((c) => c.id === editId)
-		: null;
+	const existing = editId ? categories.find((c) => c.id === editId) : null;
 
 	const [name, setName] = useState(existing?.name ?? "");
 	const [slug, setSlug] = useState(existing?.slug ?? "");
@@ -383,9 +372,7 @@ function CategoryForm({
 	return (
 		<>
 			<DialogHeader>
-				<DialogTitle>
-					{editId ? "编辑分类" : "新建分类"}
-				</DialogTitle>
+				<DialogTitle>{editId ? "编辑分类" : "新建分类"}</DialogTitle>
 			</DialogHeader>
 			<form onSubmit={handleSubmit} className="space-y-5 mt-2">
 				<div className="grid grid-cols-2 gap-4">
@@ -393,9 +380,7 @@ function CategoryForm({
 						<Label>名称</Label>
 						<Input
 							value={name}
-							onChange={(e) =>
-								handleNameChange(e.target.value)
-							}
+							onChange={(e) => handleNameChange(e.target.value)}
 							placeholder="例如：客服工单"
 							required
 							disabled={!!existing?.isDefault}
@@ -476,7 +461,8 @@ function CategoryForm({
 						className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/50 resize-none"
 					/>
 					<p className="text-[11px] text-muted-foreground">
-						AI 将使用此提示词来判断邮件是否属于该分类。请描述该分类邮件的关键特征和关键词。
+						AI
+						将使用此提示词来判断邮件是否属于该分类。请描述该分类邮件的关键特征和关键词。
 					</p>
 				</div>
 
@@ -506,9 +492,7 @@ function CategoryForm({
 						className="ml-auto"
 						disabled={isPending || !name || !slug}
 					>
-						{isPending && (
-							<Spinner className="size-3.5 mr-1.5" />
-						)}
+						{isPending && <Spinner className="size-3.5 mr-1.5" />}
 						{editId ? "保存" : "创建"}
 					</Button>
 				</div>

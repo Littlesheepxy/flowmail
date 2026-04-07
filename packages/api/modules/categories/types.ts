@@ -21,7 +21,10 @@ export const updateCategorySchema = z.object({
 	id: z.string(),
 	name: z.string().min(1).max(50).optional(),
 	icon: z.string().optional(),
-	color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+	color: z
+		.string()
+		.regex(/^#[0-9a-fA-F]{6}$/)
+		.optional(),
 	aiPrompt: z.string().max(2000).optional(),
 });
 

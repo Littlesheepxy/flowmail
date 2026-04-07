@@ -245,6 +245,9 @@ model EmailConnection {
   isActive       Boolean      @default(true)
   lastSyncAt     DateTime?
   syncCursor     String?      @db.Text
+  consentedAt    DateTime?    // GDPR: when user consented to email processing
+  consentScope   String?      // GDPR: what processing was consented to, e.g. "sync,classify,extract"
+  consentUserId  String?      // GDPR: which user gave consent
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   threads        EmailThread[]
@@ -279,11 +282,13 @@ model EmailThread {
   attachments      EmailAttachment[]
   receivedAt       DateTime
   processedAt      DateTime?
+  expiresAt        DateTime?
   createdAt        DateTime          @default(now())
 
   @@unique([connectionId, externalThreadId])
   @@index([organizationId])
   @@index([entityId])
+  @@index([expiresAt])
   @@map("email_thread")
 }
 

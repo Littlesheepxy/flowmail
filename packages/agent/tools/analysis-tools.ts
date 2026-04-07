@@ -1,4 +1,4 @@
-import { tool, Output, generateText, textModel, fastModel } from "@repo/ai";
+import { fastModel, generateText, Output, textModel, tool } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
 
@@ -22,7 +22,10 @@ export function createAnalysisTools() {
 					!process.env.AI_GATEWAY_API_KEY &&
 					!process.env.OPENAI_API_KEY
 				) {
-					return { riskLevel: "unknown", message: "AI key not configured" };
+					return {
+						riskLevel: "unknown",
+						message: "AI key not configured",
+					};
 				}
 
 				const fields = entity.extractedFields
@@ -39,7 +42,12 @@ export function createAnalysisTools() {
 					model: textModel,
 					output: Output.object({
 						schema: z.object({
-							riskLevel: z.enum(["low", "medium", "high", "critical"]),
+							riskLevel: z.enum([
+								"low",
+								"medium",
+								"high",
+								"critical",
+							]),
 							riskFactors: z.array(z.string()),
 							predictedOutcome: z.string(),
 							suggestedActions: z.array(z.string()),

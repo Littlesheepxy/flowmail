@@ -1,0 +1,218 @@
+---
+title: Architecture
+description: Flowmail's dual API architecture, data flow, security model, and multi-tenant isolation design.
+---
+
+Flowmail is designed as an AI-native business execution platform that sits between your email inbox and your business systems. This page covers the architectural decisions that make this possible.
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Email Providers                      │
+│               Gmail / Outlook / Exchange                 │
+└──────────────────────────┬──────────────────────────────┘
+                           │  OAuth 2.0 + Push Notifications
+                           v
+┌─────────────────────────────────────────────────────────┐
+│                   Flowmail Platform                       │
+│                                                          │
+│  ┌────────────────┐   ┌────────────────┐                │
+│  │ Email Processor │   │  AI Pipeline   │                │
+│  │ (parse, sync)   │-->│ (classify,     │                │
+│  │                 │   │  extract, rank)│                │
+│  └────────────────┘   └───────┬────────┘                │
+│                               │                          │
+│                               v                          │
+│  ┌──────────────────────────────────────┐                │
+│  │       Core Business Logic             │                │
+│  │  (packages/api + packages/database)   │                │
+│  └──────────┬───────────────┬───────────┘                │
+│             │               │                            │
+│       ┌─────v─────┐  ┌─────v──────┐                     │
+│       │   oRPC    │  │ MCP Server │                     │
+│       │ (Web UI)  │  │ (AI Agent) │                     │
+│       └───────────┘  └────────────┘                     │
+└─────────────────────────────────────────────────────────┘
+         │                     │
+         v                     v
+    Web Dashboard        Claude / Cursor / GPT
+    (Human users)        (AI Agents)
+```
+
+## Dual API Design
+
+Every business capability in Flowmail is exposed through **two parallel API layers** that share the same core logic:
+
+### oRPC — For Humans
+
+The oRPC layer powers the web dashboard. It provides:
+
+- Type-safe RPC procedures with Zod validation
+- TanStack Query integration for client-side caching
+- Session-based authentication via better-auth
+- Optimistic updates for responsive UI
+
+```
+Browser -> TanStack Query -> oRPC Client -> /api/orpc/[...path] -> Core Logic -> Database
+```
+
+### MCP — For Agents
+
+The MCP layer enables AI agent access. It provides:
+
+- Standard MCP protocol (compatible with Claude, Cursor, GPT, OpenClaw)
+- Bearer token authentication
+- Organization-scoped data access
+- Structured JSON responses optimized for LLM consumption
+
+```
+AI Agent -> MCP Client -> /mcp/[transport] -> Core Logic -> Database
+```
+
+### Why Two Layers?
+
+| Concern | oRPC | MCP |
+|---------|------|-----|
+| Authentication | Session cookie (better-auth) | Bearer API token |
+| Consumer | React components | AI agents |
+| Response format | TypeScript types | JSON text for LLM |
+| Real-time | TanStack Query polling | SSE streaming |
+| Discoverability | TypeScript intellisense | MCP tool listing |
+
+The critical invariant: **business logic lives in `packages/`**, never in the API layer itself. Both oRPC procedures and MCP tools are thin wrappers that call the same underlying functions.
+
+## Data Model
+
+### Core Entities
+
+```
+FlowEntity
+├── id, type, title, status
+├── organizationId (tenant isolation)
+├── extractedFields (AI-structured data)
+├── aiSummary
+├── assigneeId -> User
+├── threads[] -> EmailThread
+└── timeline[] -> TimelineEvent
+```
+
+### Entity Types and Status Machines
+
+**Approval:**
+```
+pending -> approved
+pending -> rejected
+pending -> cancelled
+```
+
+**Report:**
+```
+received -> in_progress -> completed
+received -> in_progress -> overdue
+```
+
+### Email Threads
+
+```
+EmailThread
+├── provider, externalId
+├── subject, sender, senderName
+├── bodyText, snippet
+├── organizationId (tenant isolation)
+└── entityId -> FlowEntity (nullable)
+```
+
+### Timeline Events
+
+Every action — human or AI — creates a timeline event:
+
+```
+TimelineEvent
+├── type: email_received | status_changed | action_taken | ai_summary | ...
+├── content (human-readable description)
+├── metadata (structured JSON: who, how, via)
+└── entityId -> FlowEntity
+```
+
+## Security Model
+
+### Multi-Tenant Isolation
+
+All data queries are scoped by `organizationId`:
+
+- **Database level** — Every query includes `WHERE organizationId = ?`
+- **API level** — oRPC reads org from session; MCP reads org from token
+- **Validation** — `assertOrgOwns()` guard prevents cross-tenant access even with valid entity IDs
+
+### Email Security
+
+| Layer | Protection |
+|-------|-----------|
+| **Transport** | OAuth 2.0 for email provider auth (never stores passwords) |
+| **Storage** | Email body text encrypted at rest (AES-256-GCM) |
+| **Access** | Email data only accessible within the owning organization |
+| **Retention** | Configurable data retention policies |
+| **Audit** | All access logged in timeline events |
+
+### Token Security
+
+- API tokens are hashed before storage (SHA-256)
+- Tokens are scoped to a single organization
+- Token rotation is supported without downtime
+- All MCP operations log the token identity in event metadata (`via: "mcp"`)
+
+### Compliance
+
+Flowmail is designed for GDPR and CCPA compliance:
+
+- **Data minimization** — Only processes email metadata and text needed for classification
+- **Right to deletion** — Full data purge per user or organization
+- **Consent tracking** — OAuth connection requires explicit user authorization
+- **Audit trail** — Complete timeline of all data access and modifications
+- **Data portability** — Export entities and timelines in standard JSON format
+
+## AI Pipeline
+
+The email processing pipeline runs as an async job (trigger.dev):
+
+```
+Email Received (Push Notification)
+  |
+  |-- 1. Parse email (subject, body, sender, attachments)
+  |
+  |-- 2. Classify (AI: approval / report / issue / feedback)
+  |      Multi-model sampling for confidence scoring
+  |
+  |-- 3. Extract fields (AI: structured data from email body)
+  |      Schema-based extraction with Zod validation
+  |
+  |-- 4. Link to entity (create new or append to existing)
+  |
+  └── 5. Generate summary (AI: brief description for timeline)
+```
+
+### Confidence-Based Processing
+
+- **High confidence (above 0.85):** Auto-classify and extract
+- **Medium confidence (0.6 to 0.85):** Classify with human review flag
+- **Low confidence (below 0.6):** Re-analyze with full email body (not just subject)
+
+## Monorepo Structure
+
+```
+apps/
+├── web/          # Next.js 16 — dashboard, oRPC routes, MCP endpoint
+└── docs/         # Fumadocs — developer documentation
+
+packages/
+├── api/          # oRPC procedures (thin layer over core logic)
+├── auth/         # better-auth configuration
+├── database/     # Prisma schema + queries
+├── ai/           # Vercel AI SDK integration
+├── email-processor/  # Email parsing, classification, extraction
+├── mail/         # React Email templates (Resend)
+├── i18n/         # Translations
+├── storage/      # S3-compatible file storage
+└── ui/           # shadcn/ui component library
+```

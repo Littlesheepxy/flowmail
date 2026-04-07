@@ -1,8 +1,8 @@
 "use client";
 
+import { Spinner } from "@repo/ui";
 import { Badge } from "@repo/ui/components/badge";
 import { Card } from "@repo/ui/components/card";
-import { Spinner } from "@repo/ui";
 import {
 	Table,
 	TableBody,
@@ -15,16 +15,22 @@ import { useActiveOrganization } from "@saas/organizations/hooks/use-active-orga
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import {
+	AlertCircleIcon,
 	CheckCircle2Icon,
 	ClockIcon,
-	AlertCircleIcon,
-	XCircleIcon,
 	InboxIcon,
+	XCircleIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const statusConfig: Record<string, { badgeStatus: "success" | "info" | "warning" | "error"; icon: typeof ClockIcon }> = {
+const statusConfig: Record<
+	string,
+	{
+		badgeStatus: "success" | "info" | "warning" | "error";
+		icon: typeof ClockIcon;
+	}
+> = {
 	pending: { badgeStatus: "warning", icon: ClockIcon },
 	approved: { badgeStatus: "success", icon: CheckCircle2Icon },
 	rejected: { badgeStatus: "error", icon: XCircleIcon },
@@ -39,7 +45,10 @@ function StatusBadge({ status }: { status: string }) {
 	const config = statusConfig[status] ?? statusConfig.pending;
 	const Icon = config.icon;
 	return (
-		<Badge status={config.badgeStatus} className="gap-1 inline-flex items-center">
+		<Badge
+			status={config.badgeStatus}
+			className="gap-1 inline-flex items-center"
+		>
 			<Icon className="size-3" />
 			{status}
 		</Badge>
@@ -51,7 +60,12 @@ function UrgencyDot({ urgency }: { urgency?: string }) {
 		return null;
 	}
 	const color = urgency === "urgent" ? "bg-red-500" : "bg-orange-400";
-	return <span className={`inline-block size-2 rounded-full ${color}`} title={urgency} />;
+	return (
+		<span
+			className={`inline-block size-2 rounded-full ${color}`}
+			title={urgency}
+		/>
+	);
 }
 
 export function EntityList({
@@ -89,13 +103,18 @@ export function EntityList({
 							<TableHead className="w-[50%]">{title}</TableHead>
 							<TableHead>Status</TableHead>
 							<TableHead>Assignee</TableHead>
-							<TableHead className="text-right">Updated</TableHead>
+							<TableHead className="text-right">
+								Updated
+							</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{isLoading ? (
 							<TableRow>
-								<TableCell colSpan={4} className="h-32 text-center">
+								<TableCell
+									colSpan={4}
+									className="h-32 text-center"
+								>
 									<div className="flex items-center justify-center gap-2">
 										<Spinner className="size-4 text-primary" />
 										Loading...
@@ -104,24 +123,34 @@ export function EntityList({
 							</TableRow>
 						) : entities.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+								<TableCell
+									colSpan={4}
+									className="h-32 text-center text-muted-foreground"
+								>
 									{emptyMessage}
 								</TableCell>
 							</TableRow>
 						) : (
 							entities.map((entity) => {
 								const fields = entity.extractedFields
-									? JSON.parse(entity.extractedFields as string)
+									? JSON.parse(
+											entity.extractedFields as string,
+										)
 									: {};
 
 								return (
-									<TableRow key={entity.id} className="group cursor-pointer">
+									<TableRow
+										key={entity.id}
+										className="group cursor-pointer"
+									>
 										<TableCell>
 											<Link
 												href={`${pathname}/${entity.id}`}
 												className="flex items-center gap-2"
 											>
-												<UrgencyDot urgency={fields.urgency} />
+												<UrgencyDot
+													urgency={fields.urgency}
+												/>
 												<div>
 													<p className="font-medium group-hover:underline">
 														{entity.title}
@@ -135,17 +164,26 @@ export function EntityList({
 											</Link>
 										</TableCell>
 										<TableCell>
-											<StatusBadge status={entity.status} />
+											<StatusBadge
+												status={entity.status}
+											/>
 										</TableCell>
 										<TableCell>
 											{entity.assignee ? (
-												<span className="text-sm">{entity.assignee.name ?? entity.assignee.email}</span>
+												<span className="text-sm">
+													{entity.assignee.name ??
+														entity.assignee.email}
+												</span>
 											) : (
-												<span className="text-sm text-muted-foreground">—</span>
+												<span className="text-sm text-muted-foreground">
+													—
+												</span>
 											)}
 										</TableCell>
 										<TableCell className="text-right text-sm text-muted-foreground">
-											{new Date(entity.updatedAt).toLocaleDateString()}
+											{new Date(
+												entity.updatedAt,
+											).toLocaleDateString()}
 										</TableCell>
 									</TableRow>
 								);

@@ -1,7 +1,7 @@
 "use client";
 
 import { BlurFade } from "@repo/ui/components/blur-fade";
-import { LockIcon, ShieldCheckIcon, FlagIcon, EyeOffIcon } from "lucide-react";
+import { EyeOffIcon, FlagIcon, LockIcon, ShieldCheckIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const badges = [

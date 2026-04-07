@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type ComponentPropsWithoutRef } from "react";
 import { useInView, useMotionValue, useSpring } from "motion/react";
+import { type ComponentPropsWithoutRef, useEffect, useRef } from "react";
 
 import { cn } from "../lib";
 
@@ -23,7 +23,9 @@ export function NumberTicker({
 	...props
 }: NumberTickerProps) {
 	const ref = useRef<HTMLSpanElement>(null);
-	const motionValue = useMotionValue(direction === "down" ? value : startValue);
+	const motionValue = useMotionValue(
+		direction === "down" ? value : startValue,
+	);
 	const springValue = useSpring(motionValue, {
 		damping: 60,
 		stiffness: 100,

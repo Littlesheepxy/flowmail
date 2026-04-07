@@ -1,9 +1,8 @@
-import { generateText, textModel } from "@repo/ai";
-import { Output } from "@repo/ai";
-import { ApprovalExtractionSchema } from "./schemas/approval";
+import { generateText, Output, textModel } from "@repo/ai";
 import type { ApprovalExtraction } from "./schemas/approval";
-import { ReportExtractionSchema } from "./schemas/report";
+import { ApprovalExtractionSchema } from "./schemas/approval";
 import type { ReportExtraction } from "./schemas/report";
+import { ReportExtractionSchema } from "./schemas/report";
 
 export async function extractApprovalFields(
 	emailContent: string,

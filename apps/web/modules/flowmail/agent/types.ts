@@ -124,7 +124,12 @@ export interface EmailSearchCardData {
 		senderEmail: string;
 		snippet: string | null;
 		receivedAt: string;
-		entity: { id: string; title: string; type: string; status: string } | null;
+		entity: {
+			id: string;
+			title: string;
+			type: string;
+			status: string;
+		} | null;
 	}>;
 	totalCount: number;
 }
@@ -132,17 +137,17 @@ export interface EmailSearchCardData {
 // ── UI 卡片联合类型（工具结果 → 渲染组件） ───────────────
 
 export type AgentUICard =
-	| { type: "approval_card";    data: ApprovalCardData }
-	| { type: "report_card";      data: ReportCardData }
-	| { type: "risk_card";        data: RiskCardData }
-	| { type: "timeline_diff";    data: TimelineDiffCardData }
-	| { type: "entity_list";      data: EntityListCardData }
-	| { type: "action_confirm";   data: ActionConfirmCardData }
-	| { type: "action_result";    data: ActionResultCardData }
-	| { type: "connection_list";  data: ConnectionListCardData }
-	| { type: "sync_result";      data: SyncResultCardData }
-	| { type: "send_result";      data: SendResultCardData }
-	| { type: "email_search";     data: EmailSearchCardData };
+	| { type: "approval_card"; data: ApprovalCardData }
+	| { type: "report_card"; data: ReportCardData }
+	| { type: "risk_card"; data: RiskCardData }
+	| { type: "timeline_diff"; data: TimelineDiffCardData }
+	| { type: "entity_list"; data: EntityListCardData }
+	| { type: "action_confirm"; data: ActionConfirmCardData }
+	| { type: "action_result"; data: ActionResultCardData }
+	| { type: "connection_list"; data: ConnectionListCardData }
+	| { type: "sync_result"; data: SyncResultCardData }
+	| { type: "send_result"; data: SendResultCardData }
+	| { type: "email_search"; data: EmailSearchCardData };
 
 // ── 页面上下文（前端发送给后端的当前页面状态） ────────────
 

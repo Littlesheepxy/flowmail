@@ -21,7 +21,6 @@ function createPrismaClient() {
 
 function getDb() {
 	if (process.env.NODE_ENV !== "production") {
-		// biome-ignore lint/suspicious/noRedeclare: This is a singleton
 		globalThis.prisma ??= createPrismaClient();
 		return globalThis.prisma;
 	}

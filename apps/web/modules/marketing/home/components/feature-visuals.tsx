@@ -1,20 +1,17 @@
 "use client";
 
 import { AnimatedBeam } from "@repo/ui/components/animated-beam";
+import { BlurFade } from "@repo/ui/components/blur-fade";
 import { MagicCard } from "@repo/ui/components/magic-card";
 import { NumberTicker } from "@repo/ui/components/number-ticker";
 import {
+	AnimatedSpan,
 	Terminal,
 	TypingAnimation,
-	AnimatedSpan,
 } from "@repo/ui/components/terminal";
-import { NoiseBackground } from "@repo/ui/components/ui/noise-background";
 import ColourfulText from "@repo/ui/components/ui/colourful-text";
-import { BlurFade } from "@repo/ui/components/blur-fade";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { useLocale, useTranslations } from "next-intl";
+import { NoiseBackground } from "@repo/ui/components/ui/noise-background";
+import type { LucideIcon } from "lucide-react";
 import {
 	AlertTriangleIcon,
 	BotIcon,
@@ -27,17 +24,56 @@ import {
 	XCircleIcon,
 	ZapIcon,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // 1. InboxVisual
 // ---------------------------------------------------------------------------
 
 const inboxMeta = [
-	{ fromKey: "inbox1from", subjectKey: "inbox1subject", tagKey: "tagApproval", color: "text-green-500", bg: "bg-green-500/10", icon: CheckCircle2Icon, gradientFrom: "#22c55e", gradientTo: "#4ade80" },
-	{ fromKey: "inbox2from", subjectKey: "inbox2subject", tagKey: "tagReport", color: "text-blue-500", bg: "bg-blue-500/10", icon: FileTextIcon, gradientFrom: "#3b82f6", gradientTo: "#60a5fa" },
-	{ fromKey: "inbox3from", subjectKey: "inbox3subject", tagKey: "tagIssue", color: "text-orange-500", bg: "bg-orange-500/10", icon: AlertTriangleIcon, gradientFrom: "#f97316", gradientTo: "#fb923c" },
-	{ fromKey: "inbox4from", subjectKey: "inbox4subject", tagKey: "tagApproval", color: "text-green-500", bg: "bg-green-500/10", icon: CheckCircle2Icon, gradientFrom: "#22c55e", gradientTo: "#4ade80" },
+	{
+		fromKey: "inbox1from",
+		subjectKey: "inbox1subject",
+		tagKey: "tagApproval",
+		color: "text-green-500",
+		bg: "bg-green-500/10",
+		icon: CheckCircle2Icon,
+		gradientFrom: "#22c55e",
+		gradientTo: "#4ade80",
+	},
+	{
+		fromKey: "inbox2from",
+		subjectKey: "inbox2subject",
+		tagKey: "tagReport",
+		color: "text-blue-500",
+		bg: "bg-blue-500/10",
+		icon: FileTextIcon,
+		gradientFrom: "#3b82f6",
+		gradientTo: "#60a5fa",
+	},
+	{
+		fromKey: "inbox3from",
+		subjectKey: "inbox3subject",
+		tagKey: "tagIssue",
+		color: "text-orange-500",
+		bg: "bg-orange-500/10",
+		icon: AlertTriangleIcon,
+		gradientFrom: "#f97316",
+		gradientTo: "#fb923c",
+	},
+	{
+		fromKey: "inbox4from",
+		subjectKey: "inbox4subject",
+		tagKey: "tagApproval",
+		color: "text-green-500",
+		bg: "bg-green-500/10",
+		icon: CheckCircle2Icon,
+		gradientFrom: "#22c55e",
+		gradientTo: "#4ade80",
+	},
 ] as const;
 
 export function InboxVisual() {
@@ -68,7 +104,11 @@ export function InboxVisual() {
 	return (
 		<NoiseBackground
 			containerClassName="w-full rounded-2xl p-1"
-			gradientColors={["rgb(59,130,246)", "rgb(139,92,246)", "rgb(236,72,153)"]}
+			gradientColors={[
+				"rgb(59,130,246)",
+				"rgb(139,92,246)",
+				"rgb(236,72,153)",
+			]}
 			noiseIntensity={0.06}
 			speed={0.04}
 		>
@@ -94,13 +134,27 @@ export function InboxVisual() {
 									key={`inbox-${i}`}
 									initial={{ opacity: 0, y: 20, scale: 0.95 }}
 									animate={{ opacity: 1, y: 0, scale: 1 }}
-									transition={{ type: "spring", stiffness: 300, damping: 30 }}
+									transition={{
+										type: "spring",
+										stiffness: 300,
+										damping: 30,
+									}}
 								>
 									<MagicCard
 										className="rounded-xl p-3.5"
-										gradientFrom={isClassified ? item.gradientFrom : "#666"}
-										gradientTo={isClassified ? item.gradientTo : "#888"}
-										gradientOpacity={isClassified ? 0.5 : 0.2}
+										gradientFrom={
+											isClassified
+												? item.gradientFrom
+												: "#666"
+										}
+										gradientTo={
+											isClassified
+												? item.gradientTo
+												: "#888"
+										}
+										gradientOpacity={
+											isClassified ? 0.5 : 0.2
+										}
 									>
 										<div className="flex items-center gap-3">
 											<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/5">
@@ -108,29 +162,63 @@ export function InboxVisual() {
 													{isClassified ? (
 														<motion.div
 															key="classified"
-															initial={{ scale: 0, rotate: -90 }}
-															animate={{ scale: 1, rotate: 0 }}
-															transition={{ type: "spring", stiffness: 400, damping: 15 }}
+															initial={{
+																scale: 0,
+																rotate: -90,
+															}}
+															animate={{
+																scale: 1,
+																rotate: 0,
+															}}
+															transition={{
+																type: "spring",
+																stiffness: 400,
+																damping: 15,
+															}}
 														>
-															<Icon className={`h-4 w-4 ${item.color}`} />
+															<Icon
+																className={`h-4 w-4 ${item.color}`}
+															/>
 														</motion.div>
 													) : (
-														<motion.div key="raw" exit={{ scale: 0, rotate: 90 }}>
+														<motion.div
+															key="raw"
+															exit={{
+																scale: 0,
+																rotate: 90,
+															}}
+														>
 															<MailIcon className="h-4 w-4 text-foreground/30" />
 														</motion.div>
 													)}
 												</AnimatePresence>
 											</div>
 											<div className="min-w-0 flex-1">
-												<p className="text-[11px] text-foreground/40 truncate">{t(item.fromKey)}</p>
-												<p className="text-sm font-medium text-foreground truncate">{t(item.subjectKey)}</p>
+												<p className="text-[11px] text-foreground/40 truncate">
+													{t(item.fromKey)}
+												</p>
+												<p className="text-sm font-medium text-foreground truncate">
+													{t(item.subjectKey)}
+												</p>
 											</div>
 											<AnimatePresence>
 												{isClassified && (
 													<motion.span
-														initial={{ opacity: 0, scale: 0.5, x: 20 }}
-														animate={{ opacity: 1, scale: 1, x: 0 }}
-														transition={{ type: "spring", stiffness: 400, damping: 20 }}
+														initial={{
+															opacity: 0,
+															scale: 0.5,
+															x: 20,
+														}}
+														animate={{
+															opacity: 1,
+															scale: 1,
+															x: 0,
+														}}
+														transition={{
+															type: "spring",
+															stiffness: 400,
+															damping: 20,
+														}}
 														className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${item.bg} ${item.color} shrink-0`}
 													>
 														{t(item.tagKey)}
@@ -149,14 +237,21 @@ export function InboxVisual() {
 					<div className="flex justify-center mt-4">
 						<NoiseBackground
 							containerClassName="rounded-full p-0.5"
-							gradientColors={["rgb(139,92,246)", "rgb(59,130,246)", "rgb(236,72,153)"]}
+							gradientColors={[
+								"rgb(139,92,246)",
+								"rgb(59,130,246)",
+								"rgb(236,72,153)",
+							]}
 							noiseIntensity={0.12}
 							speed={0.1}
 						>
 							<motion.div
 								className="rounded-full bg-background px-4 py-1.5 flex items-center gap-2"
 								animate={{ scale: [1, 1.03, 1] }}
-								transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
+								transition={{
+									duration: 1.5,
+									repeat: Number.POSITIVE_INFINITY,
+								}}
 							>
 								<CpuIcon className="h-3.5 w-3.5 text-primary" />
 								<span className="text-xs font-bold text-foreground/80">
@@ -168,7 +263,11 @@ export function InboxVisual() {
 											key={d}
 											className="h-1 w-1 rounded-full bg-primary"
 											animate={{ opacity: [0.3, 1, 0.3] }}
-											transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, delay: d * 0.2 }}
+											transition={{
+												duration: 1,
+												repeat: Number.POSITIVE_INFINITY,
+												delay: d * 0.2,
+											}}
 										/>
 									))}
 								</span>
@@ -230,14 +329,44 @@ export function ActionsVisual() {
 	const executionItems: ExecItem[] =
 		locale === "zh"
 			? [
-					{ logoSrc: "/icons/integrations/gmail.svg", labelKey: "execEmail", gradientFrom: "#3b82f6", gradientTo: "#60a5fa" },
-					{ logoSrc: "/icons/integrations/google-calendar.svg", labelKey: "execCalendar", gradientFrom: "#8b5cf6", gradientTo: "#a78bfa" },
-					{ logoSrc: "/icons/integrations/feishu.svg", labelKey: "execSlack", gradientFrom: "#00d6b9", gradientTo: "#3370ff" },
+					{
+						logoSrc: "/icons/integrations/gmail.svg",
+						labelKey: "execEmail",
+						gradientFrom: "#3b82f6",
+						gradientTo: "#60a5fa",
+					},
+					{
+						logoSrc: "/icons/integrations/google-calendar.svg",
+						labelKey: "execCalendar",
+						gradientFrom: "#8b5cf6",
+						gradientTo: "#a78bfa",
+					},
+					{
+						logoSrc: "/icons/integrations/feishu.svg",
+						labelKey: "execSlack",
+						gradientFrom: "#00d6b9",
+						gradientTo: "#3370ff",
+					},
 				]
 			: [
-					{ logoSrc: "/icons/integrations/gmail.svg", labelKey: "execEmail", gradientFrom: "#3b82f6", gradientTo: "#60a5fa" },
-					{ logoSrc: "/icons/integrations/google-calendar.svg", labelKey: "execCalendar", gradientFrom: "#8b5cf6", gradientTo: "#a78bfa" },
-					{ logoSrc: "/icons/integrations/slack.svg", labelKey: "execSlack", gradientFrom: "#f59e0b", gradientTo: "#fbbf24" },
+					{
+						logoSrc: "/icons/integrations/gmail.svg",
+						labelKey: "execEmail",
+						gradientFrom: "#3b82f6",
+						gradientTo: "#60a5fa",
+					},
+					{
+						logoSrc: "/icons/integrations/google-calendar.svg",
+						labelKey: "execCalendar",
+						gradientFrom: "#8b5cf6",
+						gradientTo: "#a78bfa",
+					},
+					{
+						logoSrc: "/icons/integrations/slack.svg",
+						labelKey: "execSlack",
+						gradientFrom: "#f59e0b",
+						gradientTo: "#fbbf24",
+					},
 				];
 
 	return (
@@ -250,8 +379,12 @@ export function ActionsVisual() {
 			>
 				<div className="flex items-center gap-4">
 					<div className="flex-1 min-w-0">
-						<p className="text-sm font-medium text-foreground">{t("approvalTitle")}</p>
-						<p className="text-[11px] text-foreground/40 mt-0.5">{t("approvalFrom")}</p>
+						<p className="text-sm font-medium text-foreground">
+							{t("approvalTitle")}
+						</p>
+						<p className="text-[11px] text-foreground/40 mt-0.5">
+							{t("approvalFrom")}
+						</p>
 					</div>
 					<div className="text-right shrink-0">
 						<p className="text-sm font-semibold text-foreground">
@@ -272,11 +405,25 @@ export function ActionsVisual() {
 									<motion.button
 										type="button"
 										className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10 transition-colors"
-										animate={phase >= 1 ? {
-											scale: [1, 1.15, 1],
-											boxShadow: ["0 0 0 0 rgba(34,197,94,0)", "0 0 0 6px rgba(34,197,94,0.3)", "0 0 0 0 rgba(34,197,94,0)"],
-										} : {}}
-										transition={{ duration: 1, repeat: phase >= 1 ? Number.POSITIVE_INFINITY : 0 }}
+										animate={
+											phase >= 1
+												? {
+														scale: [1, 1.15, 1],
+														boxShadow: [
+															"0 0 0 0 rgba(34,197,94,0)",
+															"0 0 0 6px rgba(34,197,94,0.3)",
+															"0 0 0 0 rgba(34,197,94,0)",
+														],
+													}
+												: {}
+										}
+										transition={{
+											duration: 1,
+											repeat:
+												phase >= 1
+													? Number.POSITIVE_INFINITY
+													: 0,
+										}}
 									>
 										<CheckCircle2Icon className="h-4 w-4 text-green-500" />
 									</motion.button>
@@ -292,7 +439,11 @@ export function ActionsVisual() {
 									key="approved"
 									initial={{ opacity: 0, scale: 0.5 }}
 									animate={{ opacity: 1, scale: 1 }}
-									transition={{ type: "spring", stiffness: 400, damping: 20 }}
+									transition={{
+										type: "spring",
+										stiffness: 400,
+										damping: 20,
+									}}
 									className="flex items-center gap-1 text-green-500 font-medium text-sm"
 								>
 									<CheckCircle2Icon className="h-4 w-4" />
@@ -314,14 +465,21 @@ export function ActionsVisual() {
 					>
 						<div className="flex items-center justify-center gap-1 mb-3">
 							<ZapIcon className="h-3 w-3 text-primary" />
-							<span className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium">{t("executing")}</span>
+							<span className="text-[10px] text-foreground/40 uppercase tracking-wider font-medium">
+								{t("executing")}
+							</span>
 						</div>
 						{executionItems.map((item, i) => (
 							<motion.div
 								key={item.labelKey}
 								initial={{ opacity: 0, y: 20, scale: 0.9 }}
 								animate={{ opacity: 1, y: 0, scale: 1 }}
-								transition={{ delay: i * 0.25, type: "spring", stiffness: 300, damping: 25 }}
+								transition={{
+									delay: i * 0.25,
+									type: "spring",
+									stiffness: 300,
+									damping: 25,
+								}}
 							>
 								<MagicCard
 									className="rounded-lg p-3"
@@ -333,13 +491,20 @@ export function ActionsVisual() {
 										<motion.div
 											initial={{ scale: 0 }}
 											animate={{ scale: 1 }}
-											transition={{ delay: i * 0.25 + 0.3, type: "spring", stiffness: 500, damping: 15 }}
+											transition={{
+												delay: i * 0.25 + 0.3,
+												type: "spring",
+												stiffness: 500,
+												damping: 15,
+											}}
 											className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500/10"
 										>
 											<CheckCircle2Icon className="h-3 w-3 text-green-500" />
 										</motion.div>
 										<ExecItemIcon item={item} />
-										<span className="text-sm text-foreground truncate">{t(item.labelKey)}</span>
+										<span className="text-sm text-foreground truncate">
+											{t(item.labelKey)}
+										</span>
 									</div>
 								</MagicCard>
 							</motion.div>
@@ -397,7 +562,10 @@ export function InsightsVisual() {
 				<AnimatedSpan delay={900} className="text-blue-500">
 					<span>{t("terminalTask3")}</span>
 				</AnimatedSpan>
-				<AnimatedSpan delay={1000} className="text-primary font-semibold">
+				<AnimatedSpan
+					delay={1000}
+					className="text-primary font-semibold"
+				>
 					<span>{t("terminalDone")}</span>
 				</AnimatedSpan>
 			</Terminal>
@@ -412,15 +580,26 @@ export function InsightsVisual() {
 							<NumberTicker value={342} />
 						</div>
 					</MagicCard>
-					<MagicCard className="rounded-xl p-4" gradientFrom="#22c55e" gradientTo="#16a34a" gradientOpacity={0.4}>
+					<MagicCard
+						className="rounded-xl p-4"
+						gradientFrom="#22c55e"
+						gradientTo="#16a34a"
+						gradientOpacity={0.4}
+					>
 						<p className="text-[11px] text-foreground/50 uppercase tracking-wider font-medium mb-1">
 							{t("onTrack")}
 						</p>
 						<div className="text-2xl font-semibold text-green-500">
-							<NumberTicker value={87} /><span>%</span>
+							<NumberTicker value={87} />
+							<span>%</span>
 						</div>
 					</MagicCard>
-					<MagicCard className="rounded-xl p-4" gradientFrom="#f97316" gradientTo="#ea580c" gradientOpacity={0.4}>
+					<MagicCard
+						className="rounded-xl p-4"
+						gradientFrom="#f97316"
+						gradientTo="#ea580c"
+						gradientOpacity={0.4}
+					>
 						<p className="text-[11px] text-foreground/50 uppercase tracking-wider font-medium mb-1">
 							{t("blockersFound")}
 						</p>
@@ -428,7 +607,12 @@ export function InsightsVisual() {
 							<NumberTicker value={18} />
 						</div>
 					</MagicCard>
-					<MagicCard className="rounded-xl p-4" gradientFrom="#3b82f6" gradientTo="#2563eb" gradientOpacity={0.4}>
+					<MagicCard
+						className="rounded-xl p-4"
+						gradientFrom="#3b82f6"
+						gradientTo="#2563eb"
+						gradientOpacity={0.4}
+					>
 						<p className="text-[11px] text-foreground/50 uppercase tracking-wider font-medium mb-1">
 							{t("tasksCreated")}
 						</p>
@@ -461,14 +645,26 @@ type ExecNode = {
 
 const agentNodesEn: AgentNode[] = [
 	{ nameKey: "agent1", logoSrc: "/icons/integrations/claude.svg" },
-	{ nameKey: "agent2", logoSrc: "/icons/integrations/cursor.svg", invertDark: true },
-	{ nameKey: "agent3", logoSrc: "/icons/integrations/openclaw.svg", invertDark: true },
+	{
+		nameKey: "agent2",
+		logoSrc: "/icons/integrations/cursor.svg",
+		invertDark: true,
+	},
+	{
+		nameKey: "agent3",
+		logoSrc: "/icons/integrations/openclaw.svg",
+		invertDark: true,
+	},
 ];
 
 const agentNodesZh: AgentNode[] = [
 	{ nameKey: "agent1", logoSrc: "/icons/integrations/claude.svg" },
 	{ nameKey: "agent2", lucideIcon: BotIcon },
-	{ nameKey: "agent3", logoSrc: "/icons/integrations/openclaw.svg", invertDark: true },
+	{
+		nameKey: "agent3",
+		logoSrc: "/icons/integrations/openclaw.svg",
+		invertDark: true,
+	},
 ];
 
 const execNodesEn: ExecNode[] = [
@@ -521,27 +717,35 @@ export function AgentsVisual() {
 			<div className="flex items-center justify-between w-full max-w-lg">
 				<div className="flex flex-col items-start gap-5">
 					{agentNodes.map((agent, i) => (
-						<div key={agent.nameKey} className="flex items-center gap-2">
-							<MagicCard className="rounded-full p-0" gradientOpacity={0.3}>
-							<div
-								ref={agentRefs[i]}
-									className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full bg-background p-2.5"
+						<div
+							key={agent.nameKey}
+							className="flex items-center gap-2"
+						>
+							<MagicCard
+								className="rounded-full p-0"
+								gradientOpacity={0.3}
 							>
+								<div
+									ref={agentRefs[i]}
+									className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full bg-background p-2.5"
+								>
 									{agent.logoSrc ? (
-								<Image
+										<Image
 											src={agent.logoSrc}
 											alt={t(agent.nameKey)}
-									width={20}
-									height={20}
+											width={20}
+											height={20}
 											className={`h-5 w-5 ${agent.invertDark ? "dark:invert" : ""}`}
 										/>
 									) : agent.lucideIcon ? (
 										(() => {
 											const Icon = agent.lucideIcon;
-											return <Icon className="h-5 w-5 text-foreground/70" />;
+											return (
+												<Icon className="h-5 w-5 text-foreground/70" />
+											);
 										})()
 									) : null}
-							</div>
+								</div>
 							</MagicCard>
 							<span className="text-[11px] text-foreground/50 font-medium hidden md:block">
 								{t(agent.nameKey)}
@@ -553,7 +757,11 @@ export function AgentsVisual() {
 				<div className="flex flex-col items-center gap-1.5">
 					<NoiseBackground
 						containerClassName="rounded-full p-1"
-						gradientColors={["rgb(99,102,241)", "rgb(168,85,247)", "rgb(236,72,153)"]}
+						gradientColors={[
+							"rgb(99,102,241)",
+							"rgb(168,85,247)",
+							"rgb(236,72,153)",
+						]}
 						noiseIntensity={0.08}
 						speed={0.06}
 					>
@@ -561,9 +769,13 @@ export function AgentsVisual() {
 							ref={hubRef}
 							className="relative z-10 flex h-18 w-18 items-center justify-center rounded-full bg-background"
 							animate={{ scale: [1, 1.06, 1] }}
-							transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-					>
-						<Image
+							transition={{
+								duration: 2.5,
+								repeat: Number.POSITIVE_INFINITY,
+								ease: "easeInOut",
+							}}
+						>
+							<Image
 								src="/logo-dark.png"
 								alt="Flowmail"
 								width={40}
@@ -589,7 +801,10 @@ export function AgentsVisual() {
 
 				<div className="flex flex-col items-end gap-5">
 					{executionNodes.map((node, i) => (
-						<div key={node.nameKey} className="flex items-center gap-2">
+						<div
+							key={node.nameKey}
+							className="flex items-center gap-2"
+						>
 							<span className="text-[11px] text-foreground/50 font-medium hidden md:block">
 								{t(node.nameKey)}
 							</span>
@@ -614,12 +829,14 @@ export function AgentsVisual() {
 									) : node.lucideIcon ? (
 										(() => {
 											const Icon = node.lucideIcon;
-											return <Icon className="h-4 w-4 text-foreground/60" />;
+											return (
+												<Icon className="h-4 w-4 text-foreground/60" />
+											);
 										})()
 									) : null}
 								</div>
 							</MagicCard>
-					</div>
+						</div>
 					))}
 				</div>
 			</div>
@@ -660,21 +877,21 @@ export function AgentsVisual() {
 			{execRefs.map((ref, i) => {
 				const curvatures = [-12, -4, 4, 12];
 				return (
-			<AnimatedBeam
+					<AnimatedBeam
 						key={`beam-r-${i}`}
-				containerRef={containerRef}
+						containerRef={containerRef}
 						fromRef={hubRef}
 						toRef={ref}
 						curvature={curvatures[i]}
 						startXOffset={36}
 						endXOffset={-20}
-				pathWidth={1.5}
+						pathWidth={1.5}
 						pathOpacity={0.1}
-				gradientStartColor="#22c55e"
-				gradientStopColor="#4ade80"
+						gradientStartColor="#22c55e"
+						gradientStopColor="#4ade80"
 						duration={3.5 + i * 0.3}
 						delay={0.5}
-			/>
+					/>
 				);
 			})}
 

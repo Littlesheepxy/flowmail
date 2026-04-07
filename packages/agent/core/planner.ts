@@ -1,5 +1,10 @@
 import type { ToolSet } from "@repo/ai";
-import type { PageContext, MemoryEntry, AgentConfig, MemoryCategory } from "./types";
+import type {
+	AgentConfig,
+	MemoryCategory,
+	MemoryEntry,
+	PageContext,
+} from "./types";
 import { CATEGORY_LABELS } from "./types";
 
 interface PlannerInput {
@@ -18,6 +23,10 @@ function buildContextBlock(ctx: PageContext): string {
 		lines.push(`Organization: ${ctx.organizationId}`);
 	}
 
+	if (ctx.unclassifiedEmailCount != null && ctx.unclassifiedEmailCount > 0) {
+		lines.push(`Unclassified Emails: ${ctx.unclassifiedEmailCount}`);
+	}
+
 	if (ctx.entity) {
 		const e = ctx.entity;
 		lines.push(
@@ -27,9 +36,7 @@ function buildContextBlock(ctx: PageContext): string {
 			lines.push(`AI Summary: ${e.aiSummary}`);
 		}
 		if (e.aiConfidence != null) {
-			lines.push(
-				`AI Confidence: ${Math.round(e.aiConfidence * 100)}%`,
-			);
+			lines.push(`AI Confidence: ${Math.round(e.aiConfidence * 100)}%`);
 		}
 		if (e.extractedFields && Object.keys(e.extractedFields).length > 0) {
 			lines.push(
@@ -80,7 +87,9 @@ function buildMemoryBlock(entries: MemoryEntry[]): string {
 	for (const [category, items] of grouped) {
 		const label = CATEGORY_LABELS[category] ?? category;
 		const scopeLabel = buildScopeLabel(items);
-		const heading = scopeLabel ? `### ${label}：${scopeLabel}` : `### ${label}`;
+		const heading = scopeLabel
+			? `### ${label}：${scopeLabel}`
+			: `### ${label}`;
 		const lines = items.map((e) => `- ${e.content}`);
 		sections.push(`${heading}\n${lines.join("\n")}`);
 	}
@@ -118,7 +127,7 @@ ${memoryBlock}
 
 ## 工作模式
 
-你有两种工作模式，根据上下文自动切换：
+你有三种工作模式，根据上下文自动切换：
 
 ### 模式 A：聚焦模式（上下文中有具体 Entity）
 - 上下文已包含实体信息，禁止向用户索要 entity ID、organization ID 等已有信息
@@ -132,13 +141,66 @@ ${memoryBlock}
 - 用户说"找所有审批"、"看看报告"时，调用 list_entities 并传入 type 筛选
 - 用户说"搜索XXX"时，调用 search_emails 或 list_entities
 - 用户说"同步邮件"时，先 list_connections 找到连接，再 sync_emails
-- 用户说"检查分类"、"整理一下"时，调用 batch_reclassify
+
+### 模式 C：智能分类模式（用户请求整理/分类邮件，或有大量未分类邮件）
+当用户说"帮我整理邮件"、"分类一下"、"设置分类"，或上下文显示有未分类邮件时触发。
+
+**你必须严格按以下 5 步对话流程执行，不可跳步：**
+
+#### 第 1 步：全局扫描
+- 调用 \`scan_email_headers\` 扫描最多 100 封未分类邮件标题
+- 向用户汇报概况："收到 N 封未分类邮件，来自 M 个发件人。最活跃的发件人有…"
+- 快速识别邮件的来源结构：哪些是系统通知、哪些是人际沟通、哪些是外部服务
+
+#### 第 2 步：分层采样精读
+- 从第 1 步结果中，**按以下策略选取 15-20 封代表性邮件**：
+  - 高频发件人：每个 top 发件人至少选 1-2 封
+  - 稀有发件人：只出现 1 次的也选 2-3 封（可能是重要但低频的邮件）
+  - 主题多样性：同一发件人选择主题差异最大的
+  - 时间跨度：覆盖最新和最早的邮件
+- 调用 \`read_email_samples\` 精读这些邮件正文（前 500 字）
+- 如有需要，对个别邮件调用 \`read_email_detail\` 读取完整正文
+- 分析用户的角色和业务场景："从邮件内容看，您主要处理…类型的业务"
+
+#### 第 3 步：提出分类方案
+- 基于前两步的分析，提出个性化的分类方案（通常 4-8 个分类）
+- 每个分类必须包含：
+  - **名称**：简洁的中文名
+  - **描述**：什么样的邮件属于这一类
+  - **特征关键词**：发件人模式、主题关键词、正文特征
+  - **预估数量**：大约有多少封邮件会落入这个分类
+- 用清晰的列表格式展示，例如：
+  > 1. **需求评审** — 来自产品团队的需求文档和评审邀请。关键词：PRD、需求评审、产品方案。预计约 15 封。
+  > 2. **系统告警** — Jenkins/监控系统自动发送的告警邮件。关键词：[ALERT]、构建失败、CPU。预计约 30 封。
+- 明确问用户："这个分类方案是否符合您的需求？需要调整哪些？"
+
+#### 第 4 步：协商调整
+- 如果用户要求修改，按要求调整：合并/拆分/重命名/新增/删除分类
+- 如果用户要求查看某些邮件的详细内容，用 \`read_email_detail\` 辅助
+- **反复迭代直到用户明确说"可以"、"就这样"、"确认"、"开始分类"等确认性语句**
+- 禁止在用户未确认前执行分类
+
+#### 第 5 步：执行分类
+- 用户确认后，先调用 \`setup_categories\` 创建分类方案到数据库
+- 汇报："分类方案已创建，现在开始处理邮件…"
+- 调用 \`classify_emails_batch\` 批量分类，每次 50 封
+- 每批完成后汇报进度："已处理 50/200 封，其中需求评审 12 封、系统告警 20 封…"
+- 如有剩余，继续调用直到全部处理完毕
+- 最后给出总结报告："全部 N 封邮件处理完毕。分类分布：…"
+
+**分类方案设计原则（aiPrompt 是分类精度的关键）：**
+- aiPrompt 必须包含具体、可操作的特征描述，而非抽象概念
+- 好的 aiPrompt 示例：「来自 jenkins@company.com 或 monitoring@company.com 的邮件，主题包含 [BUILD]、[ALERT]、[DEPLOY]，正文包含构建状态、错误日志、CPU/内存告警等内容」
+- 差的 aiPrompt 示例：「技术相关的邮件」
+- 每个分类的边界要清晰，避免大量重叠
+- 设置一个兜底分类（如"其他"），确保没有邮件漏分
 
 ## 关键行为规则
 1. 禁止向用户索要 organization ID 等上下文已有信息，直接使用
 2. 简洁、业务导向、全部用中文
 3. 工具调用后用 2-3 句中文总结
 4. 可以多步调用工具来完成复杂任务
+5. 模式 C 中必须等待用户确认才能执行分类，这是「人在回路」原则
 
 ## 回复格式
 
@@ -157,15 +219,15 @@ export function buildAgentConfig(
 	input: PlannerInput,
 	allTools: ToolSet,
 ): AgentConfig {
-	const hasEntity = !!(input.pageContext.entity || input.pageContext.entityId);
+	const hasEntity = !!(
+		input.pageContext.entity || input.pageContext.entityId
+	);
+	const hasUnclassified = (input.pageContext.unclassifiedEmailCount ?? 0) > 0;
 
-	const maxSteps = hasEntity ? 8 : 10;
+	const maxSteps = hasUnclassified ? 20 : hasEntity ? 8 : 10;
 
 	return {
-		systemPrompt: buildSystemPrompt(
-			input.pageContext,
-			input.memoryContext,
-		),
+		systemPrompt: buildSystemPrompt(input.pageContext, input.memoryContext),
 		tools: allTools,
 		maxSteps,
 	};

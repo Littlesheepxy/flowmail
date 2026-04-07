@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useRef,
+	useState,
+} from "react";
 
 /**
  * agentType 含义（产品态，非运行时切换）：
@@ -42,7 +49,8 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 	const [isFloatingOpen, setIsFloatingOpen] = useState(false);
 	const [contextEntityId, setContextEntityId] = useState<string | null>(null);
 	const [isOpenClawConnected, setIsOpenClawConnected] = useState(false);
-	const [pendingExecution, setPendingExecution] = useState<SuggestionExecution | null>(null);
+	const [pendingExecution, setPendingExecution] =
+		useState<SuggestionExecution | null>(null);
 	const pendingRef = useRef<SuggestionExecution | null>(null);
 
 	const executeSuggestion = useCallback((exec: SuggestionExecution) => {

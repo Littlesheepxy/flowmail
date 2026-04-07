@@ -1,0 +1,4 @@
+{
+	"title": "Integration Guide",
+	"pages": ["claude", "cursor", "stdio"]
+}

@@ -67,8 +67,7 @@ export function SetupGuide({ collapsed, basePath }: SetupGuideProps) {
 		});
 	}, [activeOrganization?.id, queryClient]);
 
-	const allComplete =
-		guideStatus?.completedCount === guideStatus?.totalSteps;
+	const allComplete = guideStatus?.completedCount === guideStatus?.totalSteps;
 
 	useEffect(() => {
 		if (!guideStatus) {
@@ -150,7 +149,12 @@ export function SetupGuide({ collapsed, basePath }: SetupGuideProps) {
 							className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-amber-400/20 to-orange-400/20 hover:from-amber-400/30 hover:to-orange-400/30 transition-colors mx-auto mb-2 ring-1 ring-amber-400/30"
 							onClick={() => setIsExpanded(!isExpanded)}
 						>
-							<svg className="h-6 w-6" viewBox="0 0 36 36" role="img" aria-label="Setup progress">
+							<svg
+								className="h-6 w-6"
+								viewBox="0 0 36 36"
+								role="img"
+								aria-label="Setup progress"
+							>
 								<title>Setup progress</title>
 								<circle
 									cx="18"
@@ -294,7 +298,8 @@ export function SetupGuide({ collapsed, basePath }: SetupGuideProps) {
 										<span
 											className={cn(
 												"font-medium",
-												step.completed && "line-through",
+												step.completed &&
+													"line-through",
 											)}
 										>
 											{t(`steps.${step.key}`)}
@@ -320,9 +325,7 @@ export function SetupGuide({ collapsed, basePath }: SetupGuideProps) {
 								);
 							}
 
-							return (
-								<div key={step.key}>{content}</div>
-							);
+							return <div key={step.key}>{content}</div>;
 						})}
 					</ul>
 				</>

@@ -2,17 +2,17 @@
 
 import type { HelpSuggestion } from "@ai-eyes/core";
 import { useCallback, useRef, useState } from "react";
-import type { OrbMood } from "../hooks/use-orb-animation";
-import { useOrbAnimation } from "../hooks/use-orb-animation";
 import { useDragPosition } from "../hooks/use-drag-position";
 import { useMouseTracker } from "../hooks/use-mouse-tracker";
+import type { OrbMood } from "../hooks/use-orb-animation";
+import { useOrbAnimation } from "../hooks/use-orb-animation";
 import { useAiEyes } from "../provider/AiEyesProvider";
-import { OrbDots } from "./OrbDots";
 import { HelpBubble } from "./HelpBubble";
+import { OrbDots } from "./OrbDots";
 import {
-	RadialMoodMenu,
 	DEFAULT_RADIAL_ITEMS,
 	type RadialMenuItem,
+	RadialMoodMenu,
 } from "./RadialMoodMenu";
 
 export interface AiEyesPosition {
@@ -90,7 +90,12 @@ export function AiEyes({
 		active: !menuOpen,
 	});
 
-	const { position: dragPos, isDragging, hasDragged, handlePointerDown } = useDragPosition(
+	const {
+		position: dragPos,
+		isDragging,
+		hasDragged,
+		handlePointerDown,
+	} = useDragPosition(
 		draggable && position !== "custom" && !interactionLocked,
 		onPositionChange,
 	);
@@ -165,7 +170,9 @@ export function AiEyes({
 					setPanelOpen(true);
 					break;
 				case "analyze":
-					setPanelPrefill(`请帮我分析当前页面的内容：\n📄 ${pageTitle}\n🔗 ${pageUrl}`);
+					setPanelPrefill(
+						`请帮我分析当前页面的内容：\n📄 ${pageTitle}\n🔗 ${pageUrl}`,
+					);
 					setPanelOpen(true);
 					break;
 				case "bookmark": {
@@ -195,7 +202,9 @@ export function AiEyes({
 				case "share": {
 					const shareText = `📄 ${pageTitle}\n🔗 ${pageUrl}`;
 					if (navigator.clipboard) {
-						navigator.clipboard.writeText(shareText).catch(() => {});
+						navigator.clipboard
+							.writeText(shareText)
+							.catch(() => {});
 					}
 					break;
 				}
@@ -214,7 +223,15 @@ export function AiEyes({
 					break;
 			}
 		},
-		[onMenuAction, collector, setPanelOpen, setPanelPrefill, enabled, setEnabled, startCooldown],
+		[
+			onMenuAction,
+			collector,
+			setPanelOpen,
+			setPanelPrefill,
+			enabled,
+			setEnabled,
+			startCooldown,
+		],
 	);
 
 	const handleMenuHover = useCallback((item: RadialMenuItem | null) => {
@@ -245,7 +262,12 @@ export function AiEyes({
 		position === "custom"
 			? {}
 			: hasDragged
-				? { position: "fixed", left: dragPos.x, top: dragPos.y, zIndex: 9999 }
+				? {
+						position: "fixed",
+						left: dragPos.x,
+						top: dragPos.y,
+						zIndex: 9999,
+					}
 				: position === "bottom-right"
 					? { position: "fixed", right: 24, bottom: 24, zIndex: 9999 }
 					: { position: "fixed", left: 24, bottom: 24, zIndex: 9999 };

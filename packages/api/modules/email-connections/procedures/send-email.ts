@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db, decryptSensitiveFields } from "@repo/database";
 import { z } from "zod/v4";
+import { writeAuditLog } from "../../../lib/audit-log";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
@@ -32,9 +33,14 @@ export const sendEmail = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(rawConnection.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			rawConnection.organizationId,
+			context.user.id,
+		);
 
 		const connection = decryptSensitiveFields(rawConnection);
+
+		let result: { success: boolean; provider: string };
 
 		if (connection.provider === "feishu") {
 			const fresh = await ensureFeishuOAuthAccessToken(connection);
@@ -43,23 +49,44 @@ export const sendEmail = protectedProcedure
 					message: "飞书邮箱缺少 access token，请重新授权连接",
 				});
 			}
-			return await sendViaFeishu(
+			result = await sendViaFeishu(
 				{ email: fresh.email, accessToken: fresh.accessToken },
 				input,
 			);
+		} else if (connection.provider === "gmail") {
+			if (!connection.accessToken) {
+				throw new ORPCError("BAD_REQUEST", {
+					message: "No access token available",
+				});
+			}
+			result = await sendViaGmail(connection, input);
+		} else if (connection.provider === "outlook") {
+			if (!connection.accessToken) {
+				throw new ORPCError("BAD_REQUEST", {
+					message: "No access token available",
+				});
+			}
+			result = await sendViaOutlook(connection, input);
+		} else {
+			throw new ORPCError("BAD_REQUEST", {
+				message: `Send not supported for provider: ${connection.provider}`,
+			});
 		}
 
-		if (!connection.accessToken) {
-			throw new ORPCError("BAD_REQUEST", { message: "No access token available" });
-		}
-
-		if (connection.provider === "gmail") {
-			return await sendViaGmail(connection, input);
-		}
-
-		throw new ORPCError("BAD_REQUEST", {
-			message: `Send not supported for provider: ${connection.provider}`,
+		writeAuditLog({
+			organizationId: rawConnection.organizationId,
+			userId: context.user.id,
+			action: "EMAIL_SEND",
+			targetType: "EmailConnection",
+			targetId: input.connectionId,
+			metadata: {
+				to: input.to,
+				subject: input.subject,
+				provider: connection.provider,
+			},
 		});
+
+		return result;
 	});
 
 interface ConnectionRecord {
@@ -174,4 +201,44 @@ async function sendViaGmail(connection: ConnectionRecord, input: SendInput) {
 	}
 
 	return { success: true, provider: "gmail" };
+}
+
+async function sendViaOutlook(connection: ConnectionRecord, input: SendInput) {
+	const toRecipients = input.to.map((addr) => ({
+		emailAddress: { address: addr },
+	}));
+	const ccRecipients = input.cc?.map((addr) => ({
+		emailAddress: { address: addr },
+	}));
+
+	const message: Record<string, unknown> = {
+		subject: input.subject,
+		body: {
+			contentType: "HTML",
+			content: input.htmlBody,
+		},
+		toRecipients,
+	};
+
+	if (ccRecipients && ccRecipients.length > 0) {
+		message.ccRecipients = ccRecipients;
+	}
+
+	const res = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${connection.accessToken}`,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ message, saveToSentItems: true }),
+	});
+
+	if (!res.ok) {
+		const err = await res.text();
+		throw new ORPCError("INTERNAL_SERVER_ERROR", {
+			message: `Outlook send failed: ${err}`,
+		});
+	}
+
+	return { success: true, provider: "outlook" };
 }

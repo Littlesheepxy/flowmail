@@ -28,6 +28,10 @@ export const disconnectSchema = z.object({
 
 export const syncConnectionSchema = z.object({
 	connectionId: z.string(),
+	skipClassification: z
+		.boolean()
+		.optional()
+		.describe("If true, only store emails without AI classification"),
 });
 
 export const testConnectionSchema = z.object({
@@ -42,6 +46,12 @@ export const connectOAuthSchema = z.object({
 	authCode: z.string().min(1),
 	redirectUri: z.string().url(),
 	imapPassword: z.string().optional(),
+});
+
+export const connectOutlookSchema = z.object({
+	organizationId: z.string(),
+	authCode: z.string(),
+	redirectUri: z.string().url(),
 });
 
 export const updateImapPasswordSchema = z.object({

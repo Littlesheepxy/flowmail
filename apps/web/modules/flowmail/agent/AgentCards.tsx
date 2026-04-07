@@ -7,52 +7,64 @@
  * 每张卡片都是一个独立的 GUI 组件，不是纯文本。
  */
 
+import { Spinner } from "@repo/ui";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { Spinner } from "@repo/ui";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-	CheckIcon,
-	XIcon,
 	AlertTriangleIcon,
-	TrendingUpIcon,
-	TrendingDownIcon,
+	ArrowRightIcon,
+	CheckIcon,
 	ClockIcon,
 	FlagIcon,
-	ShieldCheckIcon,
-	ShieldAlertIcon,
-	ArrowRightIcon,
 	MinusIcon,
+	ShieldAlertIcon,
+	ShieldCheckIcon,
 	SparklesIcon,
+	TrendingDownIcon,
+	TrendingUpIcon,
+	XIcon,
 } from "lucide-react";
 import type {
+	ActionResultCardData,
+	AgentUICard,
 	ApprovalCardData,
+	ConnectionListCardData,
+	EmailSearchCardData,
+	EntityListCardData,
 	ReportCardData,
 	RiskCardData,
-	TimelineDiffCardData,
-	EntityListCardData,
-	ActionResultCardData,
-	ConnectionListCardData,
-	SyncResultCardData,
 	SendResultCardData,
-	EmailSearchCardData,
-	AgentUICard,
+	SyncResultCardData,
+	TimelineDiffCardData,
 } from "./types";
 
 // ── 工具函数 ──────────────────────────────────────────────
 
 const RISK_CONFIG = {
-	low:      { label: "低风险",   cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900" },
-	medium:   { label: "中风险",   cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900" },
-	high:     { label: "高风险",   cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900" },
-	critical: { label: "严重风险", cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900" },
+	low: {
+		label: "低风险",
+		cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
+	},
+	medium: {
+		label: "中风险",
+		cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900",
+	},
+	high: {
+		label: "高风险",
+		cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900",
+	},
+	critical: {
+		label: "严重风险",
+		cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900",
+	},
 } as const;
 
 const SIG_COLORS = {
-	low:      "text-muted-foreground",
-	medium:   "text-amber-600 dark:text-amber-400",
-	high:     "text-orange-600 dark:text-orange-400",
+	low: "text-muted-foreground",
+	medium: "text-amber-600 dark:text-amber-400",
+	high: "text-orange-600 dark:text-orange-400",
 	critical: "text-red-600 dark:text-red-400",
 } as const;
 
@@ -70,7 +82,11 @@ export function ApprovalCard({
 	const approveMutation = useMutation(
 		orpc.approvals.approve.mutationOptions({
 			onSuccess: () => {
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.get.key({ input: { entityId: data.entityId } }) });
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId: data.entityId },
+					}),
+				});
 				onAction?.("approved");
 			},
 		}),
@@ -78,26 +94,37 @@ export function ApprovalCard({
 	const rejectMutation = useMutation(
 		orpc.approvals.reject.mutationOptions({
 			onSuccess: () => {
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.get.key({ input: { entityId: data.entityId } }) });
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId: data.entityId },
+					}),
+				});
 				onAction?.("rejected");
 			},
 		}),
 	);
 
 	const isPending = data.currentStatus === "pending";
-	const isBusy    = approveMutation.isPending || rejectMutation.isPending;
+	const isBusy = approveMutation.isPending || rejectMutation.isPending;
 
 	const deadlineDate = data.deadline ? new Date(data.deadline) : null;
-	const daysLeft     = deadlineDate
+	const daysLeft = deadlineDate
 		? Math.ceil((deadlineDate.getTime() - Date.now()) / 86400000)
 		: null;
-	const isUrgent = data.urgency === "紧急" || data.urgency === "urgent" || (daysLeft != null && daysLeft <= 2);
+	const isUrgent =
+		data.urgency === "紧急" ||
+		data.urgency === "urgent" ||
+		(daysLeft != null && daysLeft <= 2);
 
 	return (
 		<div className="rounded-xl border overflow-hidden bg-card">
 			{/* 标题行 */}
-			<div className={`px-3.5 py-2.5 flex items-center gap-2 border-b ${isUrgent ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/30"}`}>
-				<ShieldCheckIcon className={`size-4 shrink-0 ${isUrgent ? "text-red-500" : "text-foreground/60"}`} />
+			<div
+				className={`px-3.5 py-2.5 flex items-center gap-2 border-b ${isUrgent ? "bg-red-50 dark:bg-red-950/20" : "bg-muted/30"}`}
+			>
+				<ShieldCheckIcon
+					className={`size-4 shrink-0 ${isUrgent ? "text-red-500" : "text-foreground/60"}`}
+				/>
 				<span className="text-xs font-semibold text-foreground flex-1 truncate">
 					{data.title}
 				</span>
@@ -108,16 +135,21 @@ export function ApprovalCard({
 				)}
 				<Badge
 					status={
-						data.currentStatus === "approved" ? "success"
-						: data.currentStatus === "rejected" ? "error"
-						: "warning"
+						data.currentStatus === "approved"
+							? "success"
+							: data.currentStatus === "rejected"
+								? "error"
+								: "warning"
 					}
 					className="h-4 rounded-sm px-1.5 text-[10px]"
 				>
-					{data.currentStatus === "pending" ? "待审批"
-						: data.currentStatus === "approved" ? "已批准"
-						: data.currentStatus === "rejected" ? "已拒绝"
-						: data.currentStatus}
+					{data.currentStatus === "pending"
+						? "待审批"
+						: data.currentStatus === "approved"
+							? "已批准"
+							: data.currentStatus === "rejected"
+								? "已拒绝"
+								: data.currentStatus}
 				</Badge>
 			</div>
 
@@ -127,16 +159,29 @@ export function ApprovalCard({
 					<Row label="申请人" value={data.applicant} />
 				)}
 				{data.amount && (
-					<Row label="金额" value={<span className="text-lg font-bold text-foreground">{data.amount}</span>} />
+					<Row
+						label="金额"
+						value={
+							<span className="text-lg font-bold text-foreground">
+								{data.amount}
+							</span>
+						}
+					/>
 				)}
-				{data.purpose && (
-					<Row label="用途" value={data.purpose} />
-				)}
+				{data.purpose && <Row label="用途" value={data.purpose} />}
 				{daysLeft != null && (
 					<Row
 						label="截止日期"
 						value={
-							<span className={daysLeft < 0 ? "text-red-600 font-semibold" : daysLeft <= 2 ? "text-amber-600 font-semibold" : ""}>
+							<span
+								className={
+									daysLeft < 0
+										? "text-red-600 font-semibold"
+										: daysLeft <= 2
+											? "text-amber-600 font-semibold"
+											: ""
+								}
+							>
 								{data.deadline}
 								{daysLeft < 0
 									? ` (逾期 ${Math.abs(daysLeft)} 天)`
@@ -156,9 +201,15 @@ export function ApprovalCard({
 						size="sm"
 						className="flex-1 h-8 text-xs"
 						disabled={isBusy}
-						onClick={() => approveMutation.mutate({ entityId: data.entityId })}
+						onClick={() =>
+							approveMutation.mutate({ entityId: data.entityId })
+						}
 					>
-						{approveMutation.isPending ? <Spinner className="size-3 mr-1.5" /> : <CheckIcon className="size-3 mr-1.5" />}
+						{approveMutation.isPending ? (
+							<Spinner className="size-3 mr-1.5" />
+						) : (
+							<CheckIcon className="size-3 mr-1.5" />
+						)}
 						批准
 					</Button>
 					<Button
@@ -166,9 +217,18 @@ export function ApprovalCard({
 						variant="destructive"
 						className="flex-1 h-8 text-xs"
 						disabled={isBusy}
-						onClick={() => rejectMutation.mutate({ entityId: data.entityId, reason: "通过 Agent 拒绝" })}
+						onClick={() =>
+							rejectMutation.mutate({
+								entityId: data.entityId,
+								reason: "通过 Agent 拒绝",
+							})
+						}
 					>
-						{rejectMutation.isPending ? <Spinner className="size-3 mr-1.5" /> : <XIcon className="size-3 mr-1.5" />}
+						{rejectMutation.isPending ? (
+							<Spinner className="size-3 mr-1.5" />
+						) : (
+							<XIcon className="size-3 mr-1.5" />
+						)}
 						拒绝
 					</Button>
 				</div>
@@ -180,16 +240,20 @@ export function ApprovalCard({
 // ── 汇报卡片 ──────────────────────────────────────────────
 
 export function ReportCard({ data }: { data: ReportCardData }) {
-	const progress = data.progress ? Number.parseInt(data.progress) : null;
-	const riskCfg  = data.riskLevel ? RISK_CONFIG[data.riskLevel] : null;
+	const progress = data.progress ? Number.parseInt(data.progress, 10) : null;
+	const riskCfg = data.riskLevel ? RISK_CONFIG[data.riskLevel] : null;
 
 	return (
 		<div className="rounded-xl border overflow-hidden bg-card">
 			<div className="px-3.5 py-2.5 flex items-center gap-2 border-b bg-emerald-50/60 dark:bg-emerald-950/20">
 				<TrendingUpIcon className="size-4 text-emerald-600 shrink-0" />
-				<span className="text-xs font-semibold text-foreground flex-1 truncate">{data.title}</span>
+				<span className="text-xs font-semibold text-foreground flex-1 truncate">
+					{data.title}
+				</span>
 				{riskCfg && (
-					<span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${riskCfg.cls}`}>
+					<span
+						className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${riskCfg.cls}`}
+					>
 						{riskCfg.label}
 					</span>
 				)}
@@ -199,32 +263,48 @@ export function ReportCard({ data }: { data: ReportCardData }) {
 			{progress != null && (
 				<div className="px-3.5 pt-3 pb-1">
 					<div className="flex items-center justify-between mb-1.5">
-						<span className="text-xs text-muted-foreground">整体进度</span>
+						<span className="text-xs text-muted-foreground">
+							整体进度
+						</span>
 						<span className="text-sm font-bold">{progress}%</span>
 					</div>
 					<div className="h-2 rounded-full bg-muted overflow-hidden">
 						<div
 							className={`h-full rounded-full transition-all ${
-								progress >= 80 ? "bg-emerald-500"
-								: progress >= 50 ? "bg-blue-500"
-								: "bg-amber-500"
+								progress >= 80
+									? "bg-emerald-500"
+									: progress >= 50
+										? "bg-blue-500"
+										: "bg-amber-500"
 							}`}
-							style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+							style={{
+								width: `${Math.min(100, Math.max(0, progress))}%`,
+							}}
 						/>
 					</div>
 				</div>
 			)}
 
 			<div className="px-3.5 py-2 space-y-0">
-				{data.weeklyVelocity && <Row label="本周速度" value={data.weeklyVelocity} />}
-				{data.completedMilestones && <Row label="已完成" value={data.completedMilestones} />}
+				{data.weeklyVelocity && (
+					<Row label="本周速度" value={data.weeklyVelocity} />
+				)}
+				{data.completedMilestones && (
+					<Row label="已完成" value={data.completedMilestones} />
+				)}
 				{data.blockers && (
 					<Row
 						label="阻塞项"
-						value={<span className="text-amber-600 dark:text-amber-400">{data.blockers}</span>}
+						value={
+							<span className="text-amber-600 dark:text-amber-400">
+								{data.blockers}
+							</span>
+						}
 					/>
 				)}
-				{data.plannedCompletion && <Row label="预计完成" value={data.plannedCompletion} />}
+				{data.plannedCompletion && (
+					<Row label="预计完成" value={data.plannedCompletion} />
+				)}
 			</div>
 		</div>
 	);
@@ -233,26 +313,32 @@ export function ReportCard({ data }: { data: ReportCardData }) {
 // ── 风险预测卡片 ──────────────────────────────────────────
 
 export function RiskCard({ data }: { data: RiskCardData }) {
-	const cfg     = RISK_CONFIG[data.riskLevel] ?? RISK_CONFIG.low;
+	const cfg = RISK_CONFIG[data.riskLevel] ?? RISK_CONFIG.low;
 	const confPct = Math.round(data.confidence * 100);
 
 	return (
 		<div className="rounded-xl border overflow-hidden bg-card">
 			{/* 风险等级头部 */}
-			<div className={`px-3.5 py-2.5 border-b flex items-center gap-2 ${cfg.cls}`}>
+			<div
+				className={`px-3.5 py-2.5 border-b flex items-center gap-2 ${cfg.cls}`}
+			>
 				<ShieldAlertIcon className="size-4 shrink-0" />
 				<span className="text-xs font-bold flex-1">{cfg.label}</span>
-				<span className="text-[10px] opacity-70">AI 置信 {confPct}%</span>
+				<span className="text-[10px] opacity-70">
+					AI 置信 {confPct}%
+				</span>
 			</div>
 
 			<div className="px-3.5 py-3 space-y-3">
 				{/* 截止日期风险 */}
 				{data.deadlineRisk.hasDeadline && (
-					<div className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs ${
-						data.deadlineRisk.isAtRisk
-							? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
-							: "bg-muted/40 text-muted-foreground"
-					}`}>
+					<div
+						className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs ${
+							data.deadlineRisk.isAtRisk
+								? "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+								: "bg-muted/40 text-muted-foreground"
+						}`}
+					>
 						<ClockIcon className="size-3.5 shrink-0" />
 						<span>
 							截止 {data.deadlineRisk.deadline}
@@ -270,10 +356,15 @@ export function RiskCard({ data }: { data: RiskCardData }) {
 				{/* 风险因素 */}
 				{data.riskFactors.length > 0 && (
 					<div>
-						<p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">风险因素</p>
+						<p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+							风险因素
+						</p>
 						<ul className="space-y-1">
 							{data.riskFactors.map((f) => (
-								<li key={f} className="flex items-start gap-1.5 text-xs">
+								<li
+									key={f}
+									className="flex items-start gap-1.5 text-xs"
+								>
 									<AlertTriangleIcon className="size-3 mt-0.5 shrink-0 text-orange-500" />
 									{f}
 								</li>
@@ -291,10 +382,15 @@ export function RiskCard({ data }: { data: RiskCardData }) {
 				{/* 建议操作 */}
 				{data.suggestedActions.length > 0 && (
 					<div>
-						<p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">建议操作</p>
+						<p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+							建议操作
+						</p>
 						<ul className="space-y-1">
 							{data.suggestedActions.map((a) => (
-								<li key={a} className="flex items-start gap-1.5 text-xs">
+								<li
+									key={a}
+									className="flex items-start gap-1.5 text-xs"
+								>
 									<ArrowRightIcon className="size-3 mt-0.5 shrink-0 text-emerald-500" />
 									{a}
 								</li>
@@ -310,46 +406,74 @@ export function RiskCard({ data }: { data: RiskCardData }) {
 // ── 时间线 Diff 卡片 ──────────────────────────────────────
 
 export function TimelineDiffCard({ data }: { data: TimelineDiffCardData }) {
-	const DeltaIcon = data.progressDelta == null ? MinusIcon
-		: data.progressDelta > 0 ? TrendingUpIcon : TrendingDownIcon;
-	const deltaColor = data.progressDelta == null ? "text-muted-foreground"
-		: data.progressDelta > 0 ? "text-emerald-600 dark:text-emerald-400"
-		: "text-red-500 dark:text-red-400";
+	const DeltaIcon =
+		data.progressDelta == null
+			? MinusIcon
+			: data.progressDelta > 0
+				? TrendingUpIcon
+				: TrendingDownIcon;
+	const deltaColor =
+		data.progressDelta == null
+			? "text-muted-foreground"
+			: data.progressDelta > 0
+				? "text-emerald-600 dark:text-emerald-400"
+				: "text-red-500 dark:text-red-400";
 
 	return (
 		<div className="rounded-xl border overflow-hidden bg-card">
 			<div className="px-3.5 py-2.5 flex items-center gap-2 border-b bg-muted/40">
 				<SparklesIcon className="size-4 text-foreground/60 shrink-0" />
-				<span className="text-xs font-semibold text-foreground flex-1">变化分析</span>
+				<span className="text-xs font-semibold text-foreground flex-1">
+					变化分析
+				</span>
 				{data.progressDelta != null && (
-					<span className={`flex items-center gap-0.5 text-xs font-bold ${deltaColor}`}>
+					<span
+						className={`flex items-center gap-0.5 text-xs font-bold ${deltaColor}`}
+					>
 						<DeltaIcon className="size-3.5" />
-						{data.progressDelta > 0 ? "+" : ""}{data.progressDelta}%
+						{data.progressDelta > 0 ? "+" : ""}
+						{data.progressDelta}%
 					</span>
 				)}
 			</div>
 
 			<div className="px-3.5 py-3 space-y-3">
 				{/* 摘要 */}
-				<p className="text-xs text-foreground leading-relaxed">{data.summary}</p>
+				<p className="text-xs text-foreground leading-relaxed">
+					{data.summary}
+				</p>
 
 				{/* 变更列表 */}
 				{data.changes.length > 0 && (
 					<div className="space-y-1.5">
 						{data.changes.map((c, i) => (
-							<div key={i} className="flex items-start gap-2 text-xs">
-								<span className={`mt-0.5 size-1.5 rounded-full shrink-0 ${
-									c.significance === "critical" ? "bg-red-500"
-									: c.significance === "high" ? "bg-orange-500"
-									: c.significance === "medium" ? "bg-amber-500"
-									: "bg-muted-foreground"
-								}`} />
-								<span className={`font-medium min-w-[60px] ${SIG_COLORS[c.significance]}`}>
+							<div
+								key={i}
+								className="flex items-start gap-2 text-xs"
+							>
+								<span
+									className={`mt-0.5 size-1.5 rounded-full shrink-0 ${
+										c.significance === "critical"
+											? "bg-red-500"
+											: c.significance === "high"
+												? "bg-orange-500"
+												: c.significance === "medium"
+													? "bg-amber-500"
+													: "bg-muted-foreground"
+									}`}
+								/>
+								<span
+									className={`font-medium min-w-[60px] ${SIG_COLORS[c.significance]}`}
+								>
 									{c.field}
 								</span>
-								<span className="text-muted-foreground line-through truncate max-w-[60px]">{c.before ?? "—"}</span>
+								<span className="text-muted-foreground line-through truncate max-w-[60px]">
+									{c.before ?? "—"}
+								</span>
 								<ArrowRightIcon className="size-3 mt-0.5 shrink-0 text-muted-foreground/50" />
-								<span className="text-foreground truncate flex-1">{c.after ?? "—"}</span>
+								<span className="text-foreground truncate flex-1">
+									{c.after ?? "—"}
+								</span>
 							</div>
 						))}
 					</div>
@@ -359,7 +483,10 @@ export function TimelineDiffCard({ data }: { data: TimelineDiffCardData }) {
 				{data.riskSignals.length > 0 && (
 					<div className="rounded-lg bg-amber-50/60 dark:bg-amber-950/20 px-2.5 py-2 space-y-1">
 						{data.riskSignals.map((s) => (
-							<div key={s} className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+							<div
+								key={s}
+								className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400"
+							>
 								<AlertTriangleIcon className="size-3 shrink-0" />
 								{s}
 							</div>
@@ -387,23 +514,37 @@ export function EntityListCard({ data }: { data: EntityListCardData }) {
 				<span className="text-xs font-semibold">
 					{data.filterLabel ?? "事项列表"}
 				</span>
-				<span className="text-[10px] text-muted-foreground">{data.totalCount} 条</span>
+				<span className="text-[10px] text-muted-foreground">
+					{data.totalCount} 条
+				</span>
 			</div>
 			<ul className="divide-y">
 				{data.items.map((item) => (
-					<li key={item.id} className="px-3.5 py-2 flex items-center gap-2">
+					<li
+						key={item.id}
+						className="px-3.5 py-2 flex items-center gap-2"
+					>
 						<div className="flex-1 min-w-0">
-							<p className="text-xs font-medium truncate">{item.title}</p>
+							<p className="text-xs font-medium truncate">
+								{item.title}
+							</p>
 							<p className="text-[10px] text-muted-foreground">
-								{item.type} · {new Date(item.updatedAt).toLocaleDateString("zh-CN")}
+								{item.type} ·{" "}
+								{new Date(item.updatedAt).toLocaleDateString(
+									"zh-CN",
+								)}
 							</p>
 						</div>
 						<Badge
 							status={
-								item.status === "approved" || item.status === "completed" ? "success"
-								: item.status === "rejected" ? "error"
-								: item.status === "pending" ? "warning"
-								: "info"
+								item.status === "approved" ||
+								item.status === "completed"
+									? "success"
+									: item.status === "rejected"
+										? "error"
+										: item.status === "pending"
+											? "warning"
+											: "info"
 							}
 							className="h-4 rounded-sm px-1.5 text-[10px] shrink-0"
 						>
@@ -422,21 +563,28 @@ export function ActionResultCard({ data }: { data: ActionResultCardData }) {
 	const isSuccess = data.success;
 
 	return (
-		<div className={`rounded-xl border px-3.5 py-3 flex items-start gap-3 ${
-			isSuccess
-				? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900"
-				: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
-		}`}>
-			<div className={`flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5 ${
-				isSuccess ? "bg-emerald-500" : "bg-red-500"
-			}`}>
-				{isSuccess
-					? <CheckIcon className="size-3.5 text-white" />
-					: <XIcon className="size-3.5 text-white" />
-				}
+		<div
+			className={`rounded-xl border px-3.5 py-3 flex items-start gap-3 ${
+				isSuccess
+					? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900"
+					: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
+			}`}
+		>
+			<div
+				className={`flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5 ${
+					isSuccess ? "bg-emerald-500" : "bg-red-500"
+				}`}
+			>
+				{isSuccess ? (
+					<CheckIcon className="size-3.5 text-white" />
+				) : (
+					<XIcon className="size-3.5 text-white" />
+				)}
 			</div>
 			<div className="flex-1 min-w-0">
-				<p className={`text-xs font-semibold ${isSuccess ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
+				<p
+					className={`text-xs font-semibold ${isSuccess ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}
+				>
 					{data.message}
 				</p>
 				{data.fromStatus && data.toStatus && (
@@ -444,7 +592,13 @@ export function ActionResultCard({ data }: { data: ActionResultCardData }) {
 						<span className="line-through">{data.fromStatus}</span>
 						<ArrowRightIcon className="size-3" />
 						<Badge
-							status={data.toStatus === "approved" ? "success" : data.toStatus === "rejected" ? "error" : "info"}
+							status={
+								data.toStatus === "approved"
+									? "success"
+									: data.toStatus === "rejected"
+										? "error"
+										: "info"
+							}
 							className="h-3.5 rounded-sm px-1 text-[9px]"
 						>
 							{data.toStatus}
@@ -471,16 +625,26 @@ export function ConnectionListCard({ data }: { data: ConnectionListCardData }) {
 		<div className="rounded-xl border overflow-hidden bg-card">
 			<div className="px-3.5 py-2.5 border-b bg-muted/30 flex items-center justify-between">
 				<span className="text-xs font-semibold">邮箱连接</span>
-				<span className="text-[10px] text-muted-foreground">{data.totalCount} 个</span>
+				<span className="text-[10px] text-muted-foreground">
+					{data.totalCount} 个
+				</span>
 			</div>
 			<ul className="divide-y">
 				{data.connections.map((c) => (
-					<li key={c.id} className="px-3.5 py-2 flex items-center gap-2">
+					<li
+						key={c.id}
+						className="px-3.5 py-2 flex items-center gap-2"
+					>
 						<div className="flex-1 min-w-0">
-							<p className="text-xs font-medium truncate">{c.email}</p>
+							<p className="text-xs font-medium truncate">
+								{c.email}
+							</p>
 							<p className="text-[10px] text-muted-foreground">
-								{providerLabels[c.provider] ?? c.provider} · {c.authType}
-								{c.lastSyncAt ? ` · 最近同步 ${new Date(c.lastSyncAt).toLocaleDateString("zh-CN")}` : ""}
+								{providerLabels[c.provider] ?? c.provider} ·{" "}
+								{c.authType}
+								{c.lastSyncAt
+									? ` · 最近同步 ${new Date(c.lastSyncAt).toLocaleDateString("zh-CN")}`
+									: ""}
 							</p>
 						</div>
 						<Badge
@@ -502,23 +666,31 @@ export function SyncResultCard({ data }: { data: SyncResultCardData }) {
 	const hasErrors = data.errors > 0;
 
 	return (
-		<div className={cn(
-			"rounded-xl border px-3.5 py-3 flex items-start gap-3",
-			hasErrors
-				? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
-				: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900",
-		)}>
-			<div className={cn(
-				"flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5",
-				hasErrors ? "bg-amber-500" : "bg-emerald-500",
-			)}>
+		<div
+			className={cn(
+				"rounded-xl border px-3.5 py-3 flex items-start gap-3",
+				hasErrors
+					? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
+					: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900",
+			)}
+		>
+			<div
+				className={cn(
+					"flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5",
+					hasErrors ? "bg-amber-500" : "bg-emerald-500",
+				)}
+			>
 				<CheckIcon className="size-3.5 text-white" />
 			</div>
 			<div className="flex-1 min-w-0">
-				<p className={cn(
-					"text-xs font-semibold",
-					hasErrors ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400",
-				)}>
+				<p
+					className={cn(
+						"text-xs font-semibold",
+						hasErrors
+							? "text-amber-700 dark:text-amber-400"
+							: "text-emerald-700 dark:text-emerald-400",
+					)}
+				>
 					{data.email} 同步完成
 				</p>
 				<p className="text-[10px] text-muted-foreground mt-0.5">
@@ -534,27 +706,38 @@ export function SyncResultCard({ data }: { data: SyncResultCardData }) {
 
 export function SendResultCard({ data }: { data: SendResultCardData }) {
 	return (
-		<div className={cn(
-			"rounded-xl border px-3.5 py-3 flex items-start gap-3",
-			data.success
-				? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900"
-				: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900",
-		)}>
-			<div className={cn(
-				"flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5",
-				data.success ? "bg-emerald-500" : "bg-red-500",
-			)}>
-				{data.success
-					? <CheckIcon className="size-3.5 text-white" />
-					: <XIcon className="size-3.5 text-white" />
-				}
+		<div
+			className={cn(
+				"rounded-xl border px-3.5 py-3 flex items-start gap-3",
+				data.success
+					? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900"
+					: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900",
+			)}
+		>
+			<div
+				className={cn(
+					"flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5",
+					data.success ? "bg-emerald-500" : "bg-red-500",
+				)}
+			>
+				{data.success ? (
+					<CheckIcon className="size-3.5 text-white" />
+				) : (
+					<XIcon className="size-3.5 text-white" />
+				)}
 			</div>
 			<div className="flex-1 min-w-0">
-				<p className={cn(
-					"text-xs font-semibold",
-					data.success ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400",
-				)}>
-					{data.success ? "邮件已发送" : `发送失败：${data.error ?? "未知错误"}`}
+				<p
+					className={cn(
+						"text-xs font-semibold",
+						data.success
+							? "text-emerald-700 dark:text-emerald-400"
+							: "text-red-700 dark:text-red-400",
+					)}
+				>
+					{data.success
+						? "邮件已发送"
+						: `发送失败：${data.error ?? "未知错误"}`}
 				</p>
 				{data.success && (
 					<div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
@@ -574,7 +757,9 @@ export function EmailSearchCard({ data }: { data: EmailSearchCardData }) {
 		<div className="rounded-xl border overflow-hidden bg-card">
 			<div className="px-3.5 py-2.5 border-b bg-muted/30 flex items-center justify-between">
 				<span className="text-xs font-semibold">搜索结果</span>
-				<span className="text-[10px] text-muted-foreground">{data.totalCount} 封</span>
+				<span className="text-[10px] text-muted-foreground">
+					{data.totalCount} 封
+				</span>
 			</div>
 			{data.emails.length === 0 ? (
 				<div className="px-3.5 py-4 text-center text-xs text-muted-foreground">
@@ -586,18 +771,30 @@ export function EmailSearchCard({ data }: { data: EmailSearchCardData }) {
 						<li key={email.id} className="px-3.5 py-2">
 							<div className="flex items-center gap-2">
 								<div className="flex-1 min-w-0">
-									<p className="text-xs font-medium truncate">{email.subject}</p>
+									<p className="text-xs font-medium truncate">
+										{email.subject}
+									</p>
 									<p className="text-[10px] text-muted-foreground truncate">
-										{email.sender} · {new Date(email.receivedAt).toLocaleDateString("zh-CN")}
+										{email.sender} ·{" "}
+										{new Date(
+											email.receivedAt,
+										).toLocaleDateString("zh-CN")}
 									</p>
 								</div>
 								{email.entity && (
 									<Badge
 										status={
-											email.entity.status === "approved" || email.entity.status === "completed" ? "success"
-											: email.entity.status === "rejected" ? "error"
-											: email.entity.status === "pending" ? "warning"
-											: "info"
+											email.entity.status ===
+												"approved" ||
+											email.entity.status === "completed"
+												? "success"
+												: email.entity.status ===
+														"rejected"
+													? "error"
+													: email.entity.status ===
+															"pending"
+														? "warning"
+														: "info"
 										}
 										className="h-4 rounded-sm px-1.5 text-[10px] shrink-0"
 									>
@@ -606,7 +803,9 @@ export function EmailSearchCard({ data }: { data: EmailSearchCardData }) {
 								)}
 							</div>
 							{email.snippet && (
-								<p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{email.snippet}</p>
+								<p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+									{email.snippet}
+								</p>
 							)}
 						</li>
 					))}
@@ -633,7 +832,9 @@ export function AgentCard({
 }) {
 	switch (card.type) {
 		case "approval_card":
-			return <ApprovalCard data={card.data} onAction={onApprovalAction} />;
+			return (
+				<ApprovalCard data={card.data} onAction={onApprovalAction} />
+			);
 		case "report_card":
 			return <ReportCard data={card.data} />;
 		case "risk_card":
@@ -660,10 +861,17 @@ export function AgentCard({
 // ── 骨架组件（加载中占位） ─────────────────────────────────
 
 function SkeletonBar({ className }: { className?: string }) {
-	return <div className={cn("h-3 rounded bg-muted animate-pulse", className)} />;
+	return (
+		<div className={cn("h-3 rounded bg-muted animate-pulse", className)} />
+	);
 }
 
-function SkeletonCardShell({ icon, title, color, children }: {
+function SkeletonCardShell({
+	icon,
+	title,
+	color,
+	children,
+}: {
 	icon: React.ReactNode;
 	title: string;
 	color: string;
@@ -671,13 +879,15 @@ function SkeletonCardShell({ icon, title, color, children }: {
 }) {
 	return (
 		<div className="rounded-xl border overflow-hidden bg-card">
-			<div className={`px-3.5 py-2.5 flex items-center gap-2 border-b ${color}`}>
+			<div
+				className={`px-3.5 py-2.5 flex items-center gap-2 border-b ${color}`}
+			>
 				{icon}
-				<span className="text-xs font-semibold text-foreground/60">{title}</span>
+				<span className="text-xs font-semibold text-foreground/60">
+					{title}
+				</span>
 			</div>
-			<div className="px-3.5 py-3 space-y-2.5">
-				{children}
-			</div>
+			<div className="px-3.5 py-3 space-y-2.5">{children}</div>
 		</div>
 	);
 }
@@ -685,7 +895,9 @@ function SkeletonCardShell({ icon, title, color, children }: {
 function RiskCardSkeleton() {
 	return (
 		<SkeletonCardShell
-			icon={<ShieldAlertIcon className="size-4 text-amber-400 animate-pulse" />}
+			icon={
+				<ShieldAlertIcon className="size-4 text-amber-400 animate-pulse" />
+			}
 			title="风险分析中…"
 			color="bg-amber-50/40 dark:bg-amber-950/10"
 		>
@@ -700,7 +912,9 @@ function RiskCardSkeleton() {
 function TimelineDiffCardSkeleton() {
 	return (
 		<SkeletonCardShell
-			icon={<SparklesIcon className="size-4 text-muted-foreground animate-pulse" />}
+			icon={
+				<SparklesIcon className="size-4 text-muted-foreground animate-pulse" />
+			}
 			title="变化分析中…"
 			color="bg-muted/40"
 		>
@@ -774,7 +988,9 @@ function cn(...classes: (string | undefined | false)[]) {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
 	return (
 		<div className="flex items-baseline gap-2 py-1 border-b border-border/40 last:border-0">
-			<span className="text-[11px] text-muted-foreground min-w-[52px] shrink-0">{label}</span>
+			<span className="text-[11px] text-muted-foreground min-w-[52px] shrink-0">
+				{label}
+			</span>
 			<span className="text-xs font-medium flex-1 min-w-0">{value}</span>
 		</div>
 	);

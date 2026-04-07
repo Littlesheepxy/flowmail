@@ -1,13 +1,9 @@
 "use client";
 
 import { BlurFade } from "@repo/ui/components/blur-fade";
-import {
-	BarChart3Icon,
-	CheckCircle2Icon,
-	ZapIcon,
-} from "lucide-react";
-import type { JSXElementConstructor, ReactNode } from "react";
+import { BarChart3Icon, CheckCircle2Icon, ZapIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { JSXElementConstructor, ReactNode } from "react";
 import { ActionsVisual, InsightsVisual } from "./feature-visuals";
 
 interface FeatureTab {

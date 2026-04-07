@@ -5,8 +5,10 @@ import { Hero } from "@marketing/home/components/Hero";
 import { HowItWorks } from "@marketing/home/components/HowItWorks";
 import { MetricsSection } from "@marketing/home/components/MetricsSection";
 import { NotificationSection } from "@marketing/home/components/NotificationSection";
+import { PlatformLogos } from "@marketing/home/components/PlatformLogos";
 import { SecuritySection } from "@marketing/home/components/SecuritySection";
 import { TrustBar } from "@marketing/home/components/TrustBar";
+import { UseCasesSection } from "@marketing/home/components/UseCasesSection";
 import { setRequestLocale } from "next-intl/server";
 
 export default async function Home({
@@ -21,6 +23,8 @@ export default async function Home({
 		<>
 			<Hero />
 			<TrustBar />
+			<UseCasesSection />
+			<PlatformLogos />
 			<HowItWorks />
 			<Features />
 			<MetricsSection />

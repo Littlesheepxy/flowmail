@@ -1,23 +1,23 @@
 "use client";
 
 import {
+	type DOMMotionComponents,
+	type HTMLMotionProps,
+	type MotionProps,
+	motion,
+	useInView,
+} from "motion/react";
+import {
 	Children,
+	type ComponentType,
 	createContext,
+	type RefAttributes,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type ComponentType,
-	type RefAttributes,
 } from "react";
-import {
-	motion,
-	useInView,
-	type DOMMotionComponents,
-	type HTMLMotionProps,
-	type MotionProps,
-} from "motion/react";
 
 import { cn } from "../lib";
 
@@ -101,7 +101,9 @@ export const AnimatedSpan = ({
 		<motion.div
 			ref={elementRef}
 			initial={{ opacity: 0, y: -5 }}
-			animate={shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 0, y: -5 }}
+			animate={
+				shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 0, y: -5 }
+			}
 			transition={{ duration: 0.3, delay: sequence ? 0 : delay / 1000 }}
 			className={cn("grid text-sm font-normal tracking-tight", className)}
 			onAnimationComplete={() => {
@@ -173,7 +175,11 @@ export const TypingAnimation = ({
 		let startTimeout: ReturnType<typeof setTimeout> | null = null;
 
 		if (hasSequence && itemIndex !== null) {
-			if (sequenceStarted && !started && sequenceActiveIndex === itemIndex) {
+			if (
+				sequenceStarted &&
+				!started &&
+				sequenceActiveIndex === itemIndex
+			) {
 				setStarted(true);
 			}
 		} else if (!startOnView || isInView) {
@@ -279,7 +285,10 @@ export const Terminal = ({
 		}
 		const array = Children.toArray(children);
 		return array.map((child, index) => (
-			<ItemIndexContext.Provider key={`terminal-item-${index}`} value={index}>
+			<ItemIndexContext.Provider
+				key={`terminal-item-${index}`}
+				value={index}
+			>
 				{child as React.ReactNode}
 			</ItemIndexContext.Provider>
 		));
@@ -301,7 +310,9 @@ export const Terminal = ({
 				</div>
 			</div>
 			<pre className="p-4">
-				<code className="grid gap-y-1 overflow-auto">{wrappedChildren}</code>
+				<code className="grid gap-y-1 overflow-auto">
+					{wrappedChildren}
+				</code>
 			</pre>
 		</div>
 	);

@@ -1,4 +1,5 @@
 import { db, encryptSensitiveFields } from "@repo/database";
+import { writeAuditLog } from "../../../lib/audit-log";
 import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectOAuthSchema } from "../types";
@@ -92,8 +93,7 @@ const PROVIDER_CONFIG: Record<
 	},
 	wecom: {
 		tokenUrl: "https://qyapi.weixin.qq.com/cgi-bin/gettoken",
-		userInfoUrl:
-			"https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo",
+		userInfoUrl: "https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo",
 		tokenContentType: "url",
 		buildTokenBody: ({ appId, appSecret }) =>
 			`corpid=${encodeURIComponent(appId)}&corpsecret=${encodeURIComponent(appSecret)}`,
@@ -200,10 +200,28 @@ export const connectOAuth = protectedProcedure
 			);
 		}
 
-		const IMAP_DEFAULTS: Record<string, { host: string; port: number; smtpHost: string; smtpPort: number }> = {
-			feishu: { host: "imap.feishu.cn", port: 993, smtpHost: "smtp.feishu.cn", smtpPort: 465 },
-			dingtalk: { host: "imap.dingtalk.com", port: 993, smtpHost: "smtp.dingtalk.com", smtpPort: 465 },
-			wecom: { host: "imap.exmail.qq.com", port: 993, smtpHost: "smtp.exmail.qq.com", smtpPort: 465 },
+		const IMAP_DEFAULTS: Record<
+			string,
+			{ host: string; port: number; smtpHost: string; smtpPort: number }
+		> = {
+			feishu: {
+				host: "imap.feishu.cn",
+				port: 993,
+				smtpHost: "smtp.feishu.cn",
+				smtpPort: 465,
+			},
+			dingtalk: {
+				host: "imap.dingtalk.com",
+				port: 993,
+				smtpHost: "smtp.dingtalk.com",
+				smtpPort: 465,
+			},
+			wecom: {
+				host: "imap.exmail.qq.com",
+				port: 993,
+				smtpHost: "smtp.exmail.qq.com",
+				smtpPort: 465,
+			},
 		};
 		const imapDefaults = IMAP_DEFAULTS[input.provider];
 
@@ -220,6 +238,7 @@ export const connectOAuth = protectedProcedure
 			...(input.imapPassword ? { imapPassword: input.imapPassword } : {}),
 		});
 
+		const now = new Date();
 		const connection = await db.emailConnection.upsert({
 			where: {
 				organizationId_email: {
@@ -242,6 +261,9 @@ export const connectOAuth = protectedProcedure
 				smtpHost: imapDefaults?.smtpHost ?? null,
 				smtpPort: imapDefaults?.smtpPort ?? null,
 				isActive: true,
+				consentedAt: now,
+				consentScope: "sync,classify,extract",
+				consentUserId: context.user.id,
 			},
 			update: {
 				...encryptedUpdate,
@@ -255,7 +277,19 @@ export const connectOAuth = protectedProcedure
 				smtpPort: imapDefaults?.smtpPort ?? undefined,
 				...(input.imapPassword ? { authType: "password" } : {}),
 				isActive: true,
+				consentedAt: now,
+				consentScope: "sync,classify,extract",
+				consentUserId: context.user.id,
 			},
+		});
+
+		writeAuditLog({
+			organizationId: input.organizationId,
+			userId: context.user.id,
+			action: "EMAIL_CONNECTION_CREATE",
+			targetType: "EmailConnection",
+			targetId: connection.id,
+			metadata: { provider: input.provider, email },
 		});
 
 		return {

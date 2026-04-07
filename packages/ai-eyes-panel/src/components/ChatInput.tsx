@@ -1,11 +1,11 @@
 "use client";
 
 import {
+	type KeyboardEvent,
 	useCallback,
 	useEffect,
 	useRef,
 	useState,
-	type KeyboardEvent,
 } from "react";
 import type { SuggestionChip } from "../adapters/types";
 
@@ -147,7 +147,14 @@ export function ChatInput({
 					}}
 					aria-label="Send"
 				>
-					<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+					<svg
+						width="16"
+						height="16"
+						viewBox="0 0 16 16"
+						fill="none"
+						aria-hidden="true"
+					>
+						<title>Send</title>
 						<path
 							d="M3 13L13 8L3 3V7L9 8L3 9V13Z"
 							fill="currentColor"

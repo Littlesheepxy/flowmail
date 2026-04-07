@@ -78,13 +78,13 @@ export type WaitlistEntryScalarFieldEnum = z.infer<typeof WaitlistEntryScalarFie
 
 // File: EmailConnectionScalarFieldEnum.schema.ts
 
-export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'authType', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'imapHost', 'imapPort', 'smtpHost', 'smtpPort', 'imapPassword', 'appId', 'appSecret', 'maxSyncCount', 'isActive', 'lastSyncAt', 'syncCursor', 'createdAt', 'updatedAt'])
+export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'authType', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'imapHost', 'imapPort', 'smtpHost', 'smtpPort', 'imapPassword', 'appId', 'appSecret', 'maxSyncCount', 'isActive', 'lastSyncAt', 'syncCursor', 'consentedAt', 'consentScope', 'consentUserId', 'createdAt', 'updatedAt'])
 
 export type EmailConnectionScalarFieldEnum = z.infer<typeof EmailConnectionScalarFieldEnumSchema>;
 
 // File: EmailThreadScalarFieldEnum.schema.ts
 
-export const EmailThreadScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'connectionId', 'externalThreadId', 'subject', 'sender', 'senderName', 'participants', 'toRecipients', 'ccRecipients', 'snippet', 'bodyHtml', 'bodyText', 'rawPayload', 'messageId', 'entityId', 'receivedAt', 'processedAt', 'createdAt'])
+export const EmailThreadScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'connectionId', 'externalThreadId', 'subject', 'sender', 'senderName', 'participants', 'toRecipients', 'ccRecipients', 'snippet', 'bodyHtml', 'bodyText', 'rawPayload', 'messageId', 'entityId', 'receivedAt', 'processedAt', 'expiresAt', 'createdAt'])
 
 export type EmailThreadScalarFieldEnum = z.infer<typeof EmailThreadScalarFieldEnumSchema>;
 
@@ -382,6 +382,9 @@ export const EmailConnectionSchema = z.object({
   isActive: z.boolean().default(true),
   lastSyncAt: z.date().nullish(),
   syncCursor: z.string().nullish(),
+  consentedAt: z.date().nullish(),
+  consentScope: z.string().nullish(),
+  consentUserId: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -410,6 +413,7 @@ export const EmailThreadSchema = z.object({
   entityId: z.string().nullish(),
   receivedAt: z.date(),
   processedAt: z.date().nullish(),
+  expiresAt: z.date().nullish(),
   createdAt: z.date(),
 });
 

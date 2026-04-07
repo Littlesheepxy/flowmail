@@ -1,0 +1,87 @@
+---
+title: Cursor IDE
+description: Integrate Flowmail's MCP server with Cursor for agent-powered email workflow access during development.
+---
+
+Cursor supports MCP servers natively. This lets you interact with Flowmail data (approvals, reports, emails) directly from your IDE while coding.
+
+## Prerequisites
+
+- [Cursor](https://cursor.com) installed
+- A Flowmail account with an API token
+
+## Configuration
+
+### Project-Level (Recommended)
+
+Create a `.cursor/mcp.json` file in your project root:
+
+```json
+{
+  "mcpServers": {
+    "flowmail": {
+      "url": "https://your-domain.com/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+### Global Configuration
+
+To make Flowmail available in all Cursor projects, add it to your global MCP settings via **Cursor Settings → MCP Servers → Add Server**.
+
+## Verify Connection
+
+After adding the configuration:
+
+1. Open the Cursor command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Search for "MCP" to verify Flowmail is listed
+3. You should see 15 tools available under the "flowmail" server
+
+## Usage Examples
+
+In Cursor's Agent or Composer mode, you can ask:
+
+- "Check if there are any pending approvals related to the API rate limit change."
+- "List all report entities and summarize the latest engineering weekly report."
+- "Approve the deployment request for the staging environment."
+- "Show me the timeline for the vendor onboarding entity."
+
+## Local Development
+
+For local development with a self-hosted Flowmail instance, use the stdio transport instead:
+
+```json
+{
+  "mcpServers": {
+    "flowmail-local": {
+      "command": "npx",
+      "args": ["flowmail-mcp"],
+      "env": {
+        "DATABASE_URL": "your-database-url",
+        "FLOWMAIL_ORG_ID": "your-org-id"
+      }
+    }
+  }
+}
+```
+
+See the [Stdio guide](/docs/integration/stdio) for details on the local transport.
+
+## Troubleshooting
+
+**Tools not appearing:**
+- Ensure the URL is correct and the server is running
+- Check that your API token is valid and has the right scopes
+- Restart Cursor after changing the configuration
+
+**Connection timeout:**
+- Verify network connectivity to your Flowmail instance
+- Check if a firewall or VPN is blocking the SSE connection
+
+**Permission errors:**
+- Confirm your API token belongs to the right organization
+- Check token scopes in the Flowmail dashboard

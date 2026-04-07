@@ -213,7 +213,10 @@ export function RadialMoodMenu({
 
 	const handleClickOutside = useCallback(
 		(e: MouseEvent) => {
-			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+			if (
+				menuRef.current &&
+				!menuRef.current.contains(e.target as Node)
+			) {
 				onClose();
 			}
 		},
@@ -280,7 +283,8 @@ export function RadialMoodMenu({
 					position: "absolute",
 					inset: 0,
 					borderRadius: "50%",
-					background: "var(--ai-eyes-menu-bg, rgba(255,255,255,0.92))",
+					background:
+						"var(--ai-eyes-menu-bg, rgba(255,255,255,0.92))",
 					backdropFilter: "blur(16px)",
 					boxShadow:
 						"0 8px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
@@ -301,7 +305,8 @@ export function RadialMoodMenu({
 					width: (INNER_RADIUS - 8) * 2,
 					height: (INNER_RADIUS - 8) * 2,
 					borderRadius: "50%",
-					background: "var(--ai-eyes-menu-center, rgba(255,255,255,1))",
+					background:
+						"var(--ai-eyes-menu-center, rgba(255,255,255,1))",
 					boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)",
 					transform: animateIn ? "scale(1)" : "scale(0)",
 					opacity: animateIn ? 1 : 0,

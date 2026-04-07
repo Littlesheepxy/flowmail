@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
-import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { writeAuditLog } from "../../../lib/audit-log";
+import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { disconnectSchema } from "../types";
 
@@ -23,7 +23,10 @@ export const disconnectEmailConnection = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			connection.organizationId,
+			context.user.id,
+		);
 
 		await db.emailConnection.delete({
 			where: { id: input.connectionId },

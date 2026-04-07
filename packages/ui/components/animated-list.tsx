@@ -1,18 +1,16 @@
 "use client";
 
+import { AnimatePresence, type MotionProps, motion } from "motion/react";
 import React, {
+	type ComponentPropsWithoutRef,
 	useEffect,
 	useMemo,
 	useState,
-	type ComponentPropsWithoutRef,
 } from "react";
-import { AnimatePresence, motion, type MotionProps } from "motion/react";
 
 import { cn } from "../lib";
 
-export function AnimatedListItem({
-	children,
-}: { children: React.ReactNode }) {
+export function AnimatedListItem({ children }: { children: React.ReactNode }) {
 	const animations: MotionProps = {
 		initial: { scale: 0, opacity: 0 },
 		animate: { scale: 1, opacity: 1, originY: 0 },
@@ -45,7 +43,9 @@ export const AnimatedList = React.memo(
 
 			if (index < childrenArray.length - 1) {
 				timeout = setTimeout(() => {
-					setIndex((prevIndex) => (prevIndex + 1) % childrenArray.length);
+					setIndex(
+						(prevIndex) => (prevIndex + 1) % childrenArray.length,
+					);
 				}, delay);
 			}
 
@@ -68,7 +68,9 @@ export const AnimatedList = React.memo(
 			>
 				<AnimatePresence>
 					{itemsToShow.map((item) => (
-						<AnimatedListItem key={(item as React.ReactElement).key}>
+						<AnimatedListItem
+							key={(item as React.ReactElement).key}
+						>
 							{item}
 						</AnimatedListItem>
 					))}

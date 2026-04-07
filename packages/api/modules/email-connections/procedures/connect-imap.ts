@@ -1,5 +1,6 @@
 import { db, encryptSensitiveFields } from "@repo/database";
 import { getConnector } from "@repo/email-processor";
+import { writeAuditLog } from "../../../lib/audit-log";
 import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { connectImapSchema } from "../types";
@@ -33,7 +34,8 @@ export const connectImap = protectedProcedure
 		method: "POST",
 		path: "/email-connections/imap",
 		tags: ["EmailConnections"],
-		summary: "Connect an email account via IMAP (Feishu, DingTalk, WeCom, generic)",
+		summary:
+			"Connect an email account via IMAP (Feishu, DingTalk, WeCom, generic)",
 	})
 	.input(connectImapSchema)
 	.handler(async ({ input, context }) => {
@@ -63,8 +65,11 @@ export const connectImap = protectedProcedure
 
 		const maxSyncCount = input.maxSyncCount ?? 500;
 
-		const encrypted = encryptSensitiveFields({ imapPassword: input.password });
+		const encrypted = encryptSensitiveFields({
+			imapPassword: input.password,
+		});
 
+		const now = new Date();
 		const connection = await db.emailConnection.upsert({
 			where: {
 				organizationId_email: {
@@ -84,6 +89,9 @@ export const connectImap = protectedProcedure
 				imapPassword: encrypted.imapPassword,
 				maxSyncCount,
 				isActive: true,
+				consentedAt: now,
+				consentScope: "sync,classify,extract",
+				consentUserId: context.user.id,
 			},
 			update: {
 				provider: input.provider,
@@ -95,7 +103,19 @@ export const connectImap = protectedProcedure
 				imapPassword: encrypted.imapPassword,
 				maxSyncCount,
 				isActive: true,
+				consentedAt: now,
+				consentScope: "sync,classify,extract",
+				consentUserId: context.user.id,
 			},
+		});
+
+		writeAuditLog({
+			organizationId: input.organizationId,
+			userId: context.user.id,
+			action: "EMAIL_CONNECTION_CREATE",
+			targetType: "EmailConnection",
+			targetId: connection.id,
+			metadata: { provider: input.provider, email: input.email },
 		});
 
 		return {

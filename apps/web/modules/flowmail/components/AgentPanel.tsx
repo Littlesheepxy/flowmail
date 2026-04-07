@@ -398,7 +398,9 @@ function MarkdownContent({ content }: { content: string }) {
 							target="_blank"
 							rel="noopener noreferrer"
 							className="underline underline-offset-2 hover:opacity-80 text-primary"
-							onClick={isSafe ? undefined : (e) => e.preventDefault()}
+							onClick={
+								isSafe ? undefined : (e) => e.preventDefault()
+							}
 						>
 							{children}
 						</a>
@@ -434,7 +436,7 @@ function ReasoningToggle({ text }: { text: string }) {
 			{open && (
 				<div className="px-2.5 pb-2 pt-0.5">
 					<p className="text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap">
-						{text.length > 500 ? text.slice(0, 500) + "…" : text}
+						{text.length > 500 ? `${text.slice(0, 500)}…` : text}
 					</p>
 				</div>
 			)}
@@ -547,13 +549,13 @@ export function AgentPanel({
 			return;
 		}
 		const instruction = [
-			"请执行以下操作：" + exec.actionLabel,
+			`请执行以下操作：${exec.actionLabel}`,
 			"",
-			"背景：" + exec.suggestionMessage,
-			'事项："' + exec.entityTitle + '" (ID: ' + exec.entityId + ")",
-			"建议工具：" + exec.actionTool,
+			`背景：${exec.suggestionMessage}`,
+			`事项："${exec.entityTitle}" (ID: ${exec.entityId})`,
+			`建议工具：${exec.actionTool}`,
 			exec.actionParams && Object.keys(exec.actionParams).length > 0
-				? "参数：" + JSON.stringify(exec.actionParams)
+				? `参数：${JSON.stringify(exec.actionParams)}`
 				: "",
 			"",
 			"请根据上下文自主判断需要执行哪些操作，不要只是描述，直接调用工具执行。",
@@ -779,13 +781,19 @@ export function AgentPanel({
 										(isReasoningUIPart(p) && p.text) ||
 										(isToolOrDynamicToolUIPart(p) &&
 											!completedToolCallIds.has(
-												(p as DynamicToolUIPart).toolCallId,
+												(p as DynamicToolUIPart)
+													.toolCallId,
 											) &&
-											((p as DynamicToolUIPart).state === "input-streaming" ||
-												(p as DynamicToolUIPart).state === "input-available")) ||
+											((p as DynamicToolUIPart).state ===
+												"input-streaming" ||
+												(p as DynamicToolUIPart)
+													.state ===
+													"input-available")) ||
 										(isToolOrDynamicToolUIPart(p) &&
-											((p as DynamicToolUIPart).state === "output-available" ||
-												(p as DynamicToolUIPart).state === "output-error")),
+											((p as DynamicToolUIPart).state ===
+												"output-available" ||
+												(p as DynamicToolUIPart)
+													.state === "output-error")),
 								);
 
 								if (!hasVisibleContent) {
@@ -1003,9 +1011,9 @@ export function AgentPanel({
 								value={input}
 								onChange={(e) => setInput(e.target.value)}
 								placeholder={
-								entity
-									? `问关于「${entity.title.slice(0, 12)}...」的问题`
-									: "收件箱概览、搜索、分类…"
+									entity
+										? `问关于「${entity.title.slice(0, 12)}...」的问题`
+										: "收件箱概览、搜索、分类…"
 								}
 								className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
 								disabled={isLoading}

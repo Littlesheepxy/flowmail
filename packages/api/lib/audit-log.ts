@@ -44,7 +44,9 @@ export async function writeAuditLog(entry: AuditLogEntry): Promise<void> {
 				action: entry.action,
 				targetType: entry.targetType ?? null,
 				targetId: entry.targetId ?? null,
-				metadata: entry.metadata ? JSON.stringify(entry.metadata) : null,
+				metadata: entry.metadata
+					? JSON.stringify(entry.metadata)
+					: null,
 				ipAddress: entry.ipAddress ?? null,
 				userAgent: entry.userAgent ?? null,
 			},
@@ -58,7 +60,7 @@ export function extractRequestMeta(request: Request) {
 	const forwarded = request.headers.get("x-forwarded-for");
 	const ipAddress = forwarded
 		? forwarded.split(",")[0].trim()
-		: request.headers.get("x-real-ip") ?? undefined;
+		: (request.headers.get("x-real-ip") ?? undefined);
 	const userAgent = request.headers.get("user-agent") ?? undefined;
 	return { ipAddress, userAgent };
 }

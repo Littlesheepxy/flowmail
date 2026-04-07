@@ -1,27 +1,27 @@
 "use client";
 
+import { Spinner } from "@repo/ui";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
-import { Spinner } from "@repo/ui";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-	ArrowLeftIcon,
-	CheckCircle2Icon,
-	ClockIcon,
 	AlertCircleIcon,
-	XCircleIcon,
-	InboxIcon,
-	MailIcon,
+	ArrowLeftIcon,
 	BotIcon,
+	CheckCircle2Icon,
 	CheckIcon,
-	XIcon,
-	ShieldAlertIcon,
 	ChevronDownIcon,
 	ChevronUpIcon,
-	Reply as ReplyIcon,
+	ClockIcon,
 	ForwardIcon,
+	InboxIcon,
+	MailIcon,
+	Reply as ReplyIcon,
+	ShieldAlertIcon,
+	XCircleIcon,
+	XIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -33,7 +33,10 @@ import { ReplyComposer } from "./ReplyComposer";
 
 const statusConfig: Record<
 	string,
-	{ badgeStatus: "success" | "info" | "warning" | "error"; icon: typeof ClockIcon }
+	{
+		badgeStatus: "success" | "info" | "warning" | "error";
+		icon: typeof ClockIcon;
+	}
 > = {
 	pending: { badgeStatus: "warning", icon: ClockIcon },
 	approved: { badgeStatus: "success", icon: CheckCircle2Icon },
@@ -56,7 +59,9 @@ function FieldGrid({ fields }: { fields: Record<string, unknown> }) {
 	const entries = Object.entries(fields).filter(
 		([_, v]) => v !== null && v !== undefined && v !== "",
 	);
-	if (entries.length === 0) { return null; }
+	if (entries.length === 0) {
+		return null;
+	}
 
 	return (
 		<div className="grid grid-cols-2 gap-3 text-sm">
@@ -128,14 +133,22 @@ function RiskPanel({ entityId }: { entityId: string }) {
 
 							{risk.deadlineRisk.hasDeadline && (
 								<div className="text-sm">
-									<span className="text-muted-foreground">截止日期：</span>
+									<span className="text-muted-foreground">
+										截止日期：
+									</span>
 									<span
 										className={`font-medium ${risk.deadlineRisk.isAtRisk ? "text-red-600 dark:text-red-400" : ""}`}
 									>
 										{risk.deadlineRisk.deadline}
-										{risk.deadlineRisk.daysRemaining != null && (
+										{risk.deadlineRisk.daysRemaining !=
+											null && (
 											<span className="ml-1 text-xs">
-												（剩余 {risk.deadlineRisk.daysRemaining} 天）
+												（剩余{" "}
+												{
+													risk.deadlineRisk
+														.daysRemaining
+												}{" "}
+												天）
 											</span>
 										)}
 									</span>
@@ -163,7 +176,9 @@ function RiskPanel({ entityId }: { entityId: string }) {
 
 							{risk.predictedOutcome && (
 								<p className="text-sm text-muted-foreground">
-									<span className="font-medium text-foreground">预测：</span>
+									<span className="font-medium text-foreground">
+										预测：
+									</span>
 									{risk.predictedOutcome}
 								</p>
 							)}
@@ -213,7 +228,9 @@ export function EntityDetail() {
 		orpc.approvals.approve.mutationOptions({
 			onSuccess: () => {
 				queryClient.invalidateQueries({
-					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId },
+					}),
 				});
 			},
 		}),
@@ -223,7 +240,9 @@ export function EntityDetail() {
 		orpc.approvals.reject.mutationOptions({
 			onSuccess: () => {
 				queryClient.invalidateQueries({
-					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId },
+					}),
 				});
 			},
 		}),
@@ -251,7 +270,8 @@ export function EntityDetail() {
 				return;
 			}
 
-			const connectionId = (thread as { connectionId?: string }).connectionId;
+			const connectionId = (thread as { connectionId?: string })
+				.connectionId;
 			if (!connectionId) {
 				toast.error("找不到邮箱连接，无法发送");
 				return;
@@ -261,12 +281,17 @@ export function EntityDetail() {
 			let to: string[];
 			let cc: string[] | undefined;
 
-			const parseRecips = (raw?: string | null): Array<{ name?: string; address: string }> => {
+			const parseRecips = (
+				raw?: string | null,
+			): Array<{ name?: string; address: string }> => {
 				if (!raw) {
 					return [];
 				}
 				try {
-					return JSON.parse(raw) as Array<{ name?: string; address: string }>;
+					return JSON.parse(raw) as Array<{
+						name?: string;
+						address: string;
+					}>;
 				} catch {
 					return [];
 				}
@@ -296,7 +321,8 @@ export function EntityDetail() {
 					? rawSubject
 					: `${subjectPrefix}${rawSubject}`;
 
-			const messageId = (thread as { messageId?: string | null }).messageId;
+			const messageId = (thread as { messageId?: string | null })
+				.messageId;
 
 			try {
 				await sendMutation.mutateAsync({
@@ -313,7 +339,9 @@ export function EntityDetail() {
 				setReplyThreadId(null);
 
 				await queryClient.invalidateQueries({
-					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId },
+					}),
 				});
 			} catch (err) {
 				toast.error(
@@ -368,13 +396,21 @@ export function EntityDetail() {
 						</Badge>
 						<Badge status="info">{entity.type}</Badge>
 						{entity.category && (
-							<Badge className="gap-1" style={{ backgroundColor: `${entity.category.color}20`, color: entity.category.color, borderColor: `${entity.category.color}40` }}>
+							<Badge
+								className="gap-1"
+								style={{
+									backgroundColor: `${entity.category.color}20`,
+									color: entity.category.color,
+									borderColor: `${entity.category.color}40`,
+								}}
+							>
 								{entity.category.name}
 							</Badge>
 						)}
 						{entity.aiConfidence != null && (
 							<span className="text-xs text-muted-foreground">
-								{Math.round(entity.aiConfidence * 100)}% AI 置信度
+								{Math.round(entity.aiConfidence * 100)}% AI
+								置信度
 							</span>
 						)}
 					</div>
@@ -415,7 +451,9 @@ export function EntityDetail() {
 								<BotIcon className="size-4" />
 								AI 摘要
 							</div>
-							<p className="text-sm leading-relaxed">{entity.aiSummary}</p>
+							<p className="text-sm leading-relaxed">
+								{entity.aiSummary}
+							</p>
 						</Card>
 					)}
 
@@ -440,10 +478,15 @@ export function EntityDetail() {
 										<div className="flex items-start gap-3 rounded-md border p-3">
 											<MailIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
 											<div className="flex-1 min-w-0">
-												<p className="text-sm font-medium truncate">{thread.subject}</p>
+												<p className="text-sm font-medium truncate">
+													{thread.subject}
+												</p>
 												<p className="text-xs text-muted-foreground">
-													From: {thread.sender} &middot;{" "}
-													{new Date(thread.receivedAt).toLocaleString("zh-CN")}
+													From: {thread.sender}{" "}
+													&middot;{" "}
+													{new Date(
+														thread.receivedAt,
+													).toLocaleString("zh-CN")}
 												</p>
 												{thread.snippet && (
 													<p className="mt-1 text-xs text-muted-foreground line-clamp-2">
@@ -455,7 +498,12 @@ export function EntityDetail() {
 														variant="secondary"
 														size="sm"
 														className="h-6 px-2 gap-1 text-xs"
-														onClick={() => openReply(thread.id, "reply")}
+														onClick={() =>
+															openReply(
+																thread.id,
+																"reply",
+															)
+														}
 													>
 														<ReplyIcon className="size-3" />
 														回复
@@ -464,7 +512,12 @@ export function EntityDetail() {
 														variant="secondary"
 														size="sm"
 														className="h-6 px-2 gap-1 text-xs"
-														onClick={() => openReply(thread.id, "forward")}
+														onClick={() =>
+															openReply(
+																thread.id,
+																"forward",
+															)
+														}
 													>
 														<ForwardIcon className="size-3" />
 														转发
@@ -476,13 +529,24 @@ export function EntityDetail() {
 										{replyThreadId === thread.id && (
 											<div className="mt-2 rounded-md border overflow-hidden">
 												<ReplyComposer
-													senderName={thread.senderName ?? undefined}
-													senderEmail={thread.sender ?? ""}
-													subject={thread.subject ?? ""}
+													senderName={
+														thread.senderName ??
+														undefined
+													}
+													senderEmail={
+														thread.sender ?? ""
+													}
+													subject={
+														thread.subject ?? ""
+													}
 													defaultMode={replyMode}
 													onSend={handleSend}
-													onClose={() => setReplyThreadId(null)}
-													isSending={sendMutation.isPending}
+													onClose={() =>
+														setReplyThreadId(null)
+													}
+													isSending={
+														sendMutation.isPending
+													}
 												/>
 											</div>
 										)}
@@ -506,12 +570,18 @@ export function EntityDetail() {
 								...e,
 								createdAt: e.createdAt.toString(),
 								actor: e.actor
-									? { id: e.actor.id, name: e.actor.name ?? "", image: e.actor.image }
+									? {
+											id: e.actor.id,
+											name: e.actor.name ?? "",
+											image: e.actor.image,
+										}
 									: null,
 							}))}
 							entityType={entity.type}
 							status={entity.status}
-							extractedFields={entity.extractedFields as string | null}
+							extractedFields={
+								entity.extractedFields as string | null
+							}
 						/>
 					</Card>
 				</div>

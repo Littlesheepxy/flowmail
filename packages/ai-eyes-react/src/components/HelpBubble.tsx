@@ -52,7 +52,9 @@ export function HelpBubble({
 				width: 280,
 				zIndex: 10,
 				opacity: visible ? 1 : 0,
-				transform: visible ? "translateY(0) scale(1)" : "translateY(8px) scale(0.95)",
+				transform: visible
+					? "translateY(0) scale(1)"
+					: "translateY(8px) scale(0.95)",
 				transition: "opacity 0.3s, transform 0.3s",
 				pointerEvents: visible ? "auto" : "none",
 			}}
@@ -64,7 +66,8 @@ export function HelpBubble({
 					border: "1px solid var(--ai-eyes-bubble-border, #e5e5e5)",
 					borderRadius: 14,
 					padding: "14px 16px",
-					boxShadow: "0 8px 30px -4px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)",
+					boxShadow:
+						"0 8px 30px -4px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)",
 					fontSize: 13,
 					lineHeight: 1.6,
 				}}

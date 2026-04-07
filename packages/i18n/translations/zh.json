@@ -137,15 +137,49 @@
 			"description": "审批请求、追踪汇报、触发操作 — 全在一处完成。"
 		}
 	},
+	"useCases": {
+		"label": "为跨公司协作而生",
+		"title": "最消耗你邮件时间的场景",
+		"description": "Flowmail 把最高摩擦的邮件工作流变成结构化、可追踪的事项。",
+		"approval": {
+			"title": "跨公司审批追踪",
+			"description": "预算申请、合同签批、交付审批——AI 自动提取，状态一目了然。",
+			"example": "供应商发送报价 → CFO 审批 → 状态自动更新 → 双方收到通知"
+		},
+		"tracking": {
+			"title": "项目进度追踪",
+			"description": "供应商和合作伙伴的周报自动归集为时间线，风险信号实时预警。",
+			"example": "乙方 PM 发送周进展 → AI 提取里程碑和 blocker → 甲方 PM 看到 timeline"
+		},
+		"classification": {
+			"title": "AI 智能分类",
+			"description": "每封邮件按业务意图自动分类——审批、汇报、问题——准确率 98.5%。",
+			"example": "50 封跨公司邮件 → 3 秒完成分类 → 按优先级排序"
+		},
+		"domainsLabel": "AI 理解你的业务语境",
+		"domains": {
+			"legal": "法务合同",
+			"finance": "财务报销",
+			"investment": "投资尽调",
+			"pm": "项目管理",
+			"supply": "供应链采购",
+			"client": "客户跟进",
+			"hr": "HR 行政",
+			"engineering": "技术协作"
+		}
+	},
+	"platformLogos": {
+		"title": "兼容你团队已在使用的邮箱平台"
+	},
 	"metrics": {
-		"speed": "处理速度",
-		"speedValue": "< 3s",
+		"speed": "每周节省时间",
+		"speedValue": "5h+",
 		"accuracy": "分类准确率",
 		"accuracyValue": "98.5%",
-		"platforms": "邮箱平台",
+		"platforms": "支持邮箱平台",
 		"platformsValue": "6+",
-		"encryption": "加密标准",
-		"encryptionValue": "AES-256"
+		"encryption": "隐私合规",
+		"encryptionValue": "GDPR & CCPA"
 	},
 	"notifications": {
 		"label": "智能通知",
@@ -484,6 +518,18 @@
 			"title": "账号设置",
 			"subtitle": "管理你的个人账号设置。"
 		},
+		"privacy": {
+			"title": "隐私与数据",
+			"exportData": {
+				"title": "导出你的数据",
+				"description": "以 JSON 格式下载你的所有个人数据副本，包括个人资料、邮件线程、事项、时间线事件和分类。（GDPR 第20条 / CCPA §1798.100）",
+				"submit": "导出数据",
+				"notifications": {
+					"success": "数据导出成功。",
+					"error": "数据导出失败，请重试。"
+				}
+			}
+		},
 		"billing": {
 			"title": "账单"
 		},
@@ -492,6 +538,7 @@
 				"title": "账号",
 				"general": "通用",
 				"security": "安全",
+				"privacy": "隐私与数据",
 				"billing": "账单",
 				"dangerZone": "危险区域"
 			},

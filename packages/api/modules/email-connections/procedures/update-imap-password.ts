@@ -21,9 +21,14 @@ export const updateImapPassword = protectedProcedure
 			throw new ORPCError("NOT_FOUND");
 		}
 
-		await requireOrgMembershipForResource(connection.organizationId, context.user.id);
+		await requireOrgMembershipForResource(
+			connection.organizationId,
+			context.user.id,
+		);
 
-		const encrypted = encryptSensitiveFields({ imapPassword: input.imapPassword });
+		const encrypted = encryptSensitiveFields({
+			imapPassword: input.imapPassword,
+		});
 		const updated = await db.emailConnection.update({
 			where: { id: input.connectionId },
 			data: {

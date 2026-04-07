@@ -1,12 +1,12 @@
 "use client";
 
 import { BlurFade } from "@repo/ui/components/blur-fade";
-import { useTranslations } from "next-intl";
-import { WaitlistForm } from "./WaitlistForm";
-import { config } from "@/config";
 import { Button } from "@repo/ui/components/button";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { config } from "@/config";
+import { WaitlistForm } from "./WaitlistForm";
 
 export function BottomCTA() {
 	const t = useTranslations();

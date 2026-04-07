@@ -1,8 +1,8 @@
-import { db } from "@repo/database";
-import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { generateText, textModel as mcpTextModel, Output } from "@repo/ai";
 import { verifyApiToken } from "@repo/api";
+import { db } from "@repo/database";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 
 function getOrgId(extra: { authInfo?: AuthInfo }): string {
@@ -13,7 +13,10 @@ function getOrgId(extra: { authInfo?: AuthInfo }): string {
 	return orgId;
 }
 
-function assertOrgOwns(entity: { organizationId: string } | null, extra: { authInfo?: AuthInfo }) {
+function assertOrgOwns(
+	entity: { organizationId: string } | null,
+	extra: { authInfo?: AuthInfo },
+) {
 	if (!entity || entity.organizationId !== getOrgId(extra)) {
 		throw new Error("Entity not found");
 	}
@@ -36,24 +39,36 @@ const rawHandler = createMcpHandler(
 						.optional()
 						.describe("Filter by entity type"),
 					status: z.string().optional().describe("Filter by status"),
-					limit: z.number().optional().default(20).describe("Max results"),
+					limit: z
+						.number()
+						.optional()
+						.default(20)
+						.describe("Max results"),
 				},
 			},
 			async ({ type, status, limit }, extra) => {
 				const organizationId = getOrgId(extra);
 				const where: Record<string, unknown> = { organizationId };
-				if (type) { where.type = type; }
-				if (status) { where.status = status; }
+				if (type) {
+					where.type = type;
+				}
+				if (status) {
+					where.status = status;
+				}
 
 				const entities = await db.flowEntity.findMany({
 					where,
-					include: { assignee: { select: { name: true, email: true } } },
+					include: {
+						assignee: { select: { name: true, email: true } },
+					},
 					orderBy: { updatedAt: "desc" },
 					take: limit,
 				});
 
 				return {
-					content: [{ type: TEXT, text: JSON.stringify(entities, null, 2) }],
+					content: [
+						{ type: TEXT, text: JSON.stringify(entities, null, 2) },
+					],
 				};
 			},
 		);
@@ -74,7 +89,12 @@ const rawHandler = createMcpHandler(
 					include: {
 						assignee: { select: { name: true, email: true } },
 						threads: {
-							select: { subject: true, sender: true, snippet: true, receivedAt: true },
+							select: {
+								subject: true,
+								sender: true,
+								snippet: true,
+								receivedAt: true,
+							},
 						},
 						timeline: {
 							orderBy: { createdAt: "asc" },
@@ -84,12 +104,19 @@ const rawHandler = createMcpHandler(
 				});
 
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
 
-				return { content: [{ type: TEXT, text: JSON.stringify(entity, null, 2) }] };
+				return {
+					content: [
+						{ type: TEXT, text: JSON.stringify(entity, null, 2) },
+					],
+				};
 			},
 		);
 
@@ -106,9 +133,14 @@ const rawHandler = createMcpHandler(
 				},
 			},
 			async ({ entityId, status, reason }, extra) => {
-				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
+				const entity = await db.flowEntity.findUnique({
+					where: { id: entityId },
+				});
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
@@ -124,12 +156,25 @@ const rawHandler = createMcpHandler(
 						type: "status_changed",
 						content: `Status changed from ${entity.status} to ${status}${reason ? `: ${reason}` : ""}`,
 						metadata: JSON.stringify({
-							previousStatus: entity.status, newStatus: status, reason, via: "mcp",
+							previousStatus: entity.status,
+							newStatus: status,
+							reason,
+							via: "mcp",
 						}),
 					},
 				});
 
-				return { content: [{ type: TEXT, text: JSON.stringify({ success: true, entity: updated }) }] };
+				return {
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify({
+								success: true,
+								entity: updated,
+							}),
+						},
+					],
+				};
 			},
 		);
 
@@ -145,13 +190,27 @@ const rawHandler = createMcpHandler(
 			async (_args, extra) => {
 				const organizationId = getOrgId(extra);
 				const approvals = await db.flowEntity.findMany({
-					where: { organizationId, type: "APPROVAL", status: "pending" },
-					include: { assignee: { select: { name: true, email: true } } },
+					where: {
+						organizationId,
+						type: "APPROVAL",
+						status: "pending",
+					},
+					include: {
+						assignee: { select: { name: true, email: true } },
+					},
 					orderBy: { createdAt: "desc" },
 				});
 
 				return {
-					content: [{ type: TEXT, text: JSON.stringify({ count: approvals.length, approvals }) }],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify({
+								count: approvals.length,
+								approvals,
+							}),
+						},
+					],
 				};
 			},
 		);
@@ -161,22 +220,38 @@ const rawHandler = createMcpHandler(
 			{
 				title: "Approve Request",
 				description:
-					'Approve a pending approval request. Use list_pending_approvals first to get the entityId.',
+					"Approve a pending approval request. Use list_pending_approvals first to get the entityId.",
 				inputSchema: {
 					entityId: z.string().describe("Approval entity ID"),
-					comment: z.string().optional().describe("Optional approval comment"),
+					comment: z
+						.string()
+						.optional()
+						.describe("Optional approval comment"),
 				},
 			},
 			async ({ entityId, comment }, extra) => {
-				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
+				const entity = await db.flowEntity.findUnique({
+					where: { id: entityId },
+				});
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
 
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
-					return { content: [{ type: TEXT, text: "Entity is not a pending approval" }], isError: true };
+					return {
+						content: [
+							{
+								type: TEXT,
+								text: "Entity is not a pending approval",
+							},
+						],
+						isError: true,
+					};
 				}
 
 				const updated = await db.flowEntity.update({
@@ -189,12 +264,25 @@ const rawHandler = createMcpHandler(
 						entityId,
 						type: "action_taken",
 						content: `Approved${comment ? `: ${comment}` : ""}`,
-						metadata: JSON.stringify({ action: "approved", comment, via: "mcp" }),
+						metadata: JSON.stringify({
+							action: "approved",
+							comment,
+							via: "mcp",
+						}),
 					},
 				});
 
 				return {
-					content: [{ type: TEXT, text: JSON.stringify({ success: true, message: `Approval "${updated.title}" has been approved`, entity: updated }) }],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify({
+								success: true,
+								message: `Approval "${updated.title}" has been approved`,
+								entity: updated,
+							}),
+						},
+					],
 				};
 			},
 		);
@@ -203,22 +291,38 @@ const rawHandler = createMcpHandler(
 			"reject_request",
 			{
 				title: "Reject Request",
-				description: 'Reject a pending approval request with a required reason.',
+				description:
+					"Reject a pending approval request with a required reason.",
 				inputSchema: {
 					entityId: z.string().describe("Approval entity ID"),
-					reason: z.string().describe("Required reason for rejection"),
+					reason: z
+						.string()
+						.describe("Required reason for rejection"),
 				},
 			},
 			async ({ entityId, reason }, extra) => {
-				const entity = await db.flowEntity.findUnique({ where: { id: entityId } });
+				const entity = await db.flowEntity.findUnique({
+					where: { id: entityId },
+				});
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
 
 				if (entity.type !== "APPROVAL" || entity.status !== "pending") {
-					return { content: [{ type: TEXT, text: "Entity is not a pending approval" }], isError: true };
+					return {
+						content: [
+							{
+								type: TEXT,
+								text: "Entity is not a pending approval",
+							},
+						],
+						isError: true,
+					};
 				}
 
 				const updated = await db.flowEntity.update({
@@ -231,12 +335,25 @@ const rawHandler = createMcpHandler(
 						entityId,
 						type: "action_taken",
 						content: `Rejected: ${reason}`,
-						metadata: JSON.stringify({ action: "rejected", reason, via: "mcp" }),
+						metadata: JSON.stringify({
+							action: "rejected",
+							reason,
+							via: "mcp",
+						}),
 					},
 				});
 
 				return {
-					content: [{ type: TEXT, text: JSON.stringify({ success: true, message: `Approval "${updated.title}" has been rejected`, entity: updated }) }],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify({
+								success: true,
+								message: `Approval "${updated.title}" has been rejected`,
+								entity: updated,
+							}),
+						},
+					],
 				};
 			},
 		);
@@ -253,16 +370,27 @@ const rawHandler = createMcpHandler(
 			},
 			async ({ status }, extra) => {
 				const organizationId = getOrgId(extra);
-				const where: Record<string, unknown> = { organizationId, type: "REPORT" };
-				if (status) { where.status = status; }
+				const where: Record<string, unknown> = {
+					organizationId,
+					type: "REPORT",
+				};
+				if (status) {
+					where.status = status;
+				}
 
 				const reports = await db.flowEntity.findMany({
 					where,
-					include: { assignee: { select: { name: true, email: true } } },
+					include: {
+						assignee: { select: { name: true, email: true } },
+					},
 					orderBy: { updatedAt: "desc" },
 				});
 
-				return { content: [{ type: TEXT, text: JSON.stringify(reports, null, 2) }] };
+				return {
+					content: [
+						{ type: TEXT, text: JSON.stringify(reports, null, 2) },
+					],
+				};
 			},
 		);
 
@@ -278,25 +406,43 @@ const rawHandler = createMcpHandler(
 			async ({ entityId }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: { id: true, organizationId: true, title: true, aiSummary: true, extractedFields: true, status: true },
+					select: {
+						id: true,
+						organizationId: true,
+						title: true,
+						aiSummary: true,
+						extractedFields: true,
+						status: true,
+					},
 				});
 
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Report not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Report not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
 
 				return {
-					content: [{
-						type: TEXT,
-						text: JSON.stringify({
-							title: entity.title,
-							status: entity.status,
-							summary: entity.aiSummary,
-							fields: entity.extractedFields ? JSON.parse(entity.extractedFields) : {},
-						}, null, 2),
-					}],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify(
+								{
+									title: entity.title,
+									status: entity.status,
+									summary: entity.aiSummary,
+									fields: entity.extractedFields
+										? JSON.parse(entity.extractedFields)
+										: {},
+								},
+								null,
+								2,
+							),
+						},
+					],
 				};
 			},
 		);
@@ -306,17 +452,31 @@ const rawHandler = createMcpHandler(
 			"list_email_connections",
 			{
 				title: "List Email Connections",
-				description: "List all connected email accounts for the organization.",
+				description:
+					"List all connected email accounts for the organization.",
 				inputSchema: {},
 			},
 			async (_args, extra) => {
 				const organizationId = getOrgId(extra);
 				const connections = await db.emailConnection.findMany({
 					where: { organizationId },
-					select: { id: true, provider: true, email: true, isActive: true, lastSyncAt: true },
+					select: {
+						id: true,
+						provider: true,
+						email: true,
+						isActive: true,
+						lastSyncAt: true,
+					},
 				});
 
-				return { content: [{ type: TEXT, text: JSON.stringify(connections, null, 2) }] };
+				return {
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify(connections, null, 2),
+						},
+					],
+				};
 			},
 		);
 
@@ -324,11 +484,22 @@ const rawHandler = createMcpHandler(
 			"search_emails",
 			{
 				title: "Search Emails",
-				description: "Search emails by keyword, sender, or subject. Returns matching email threads with their associated entities.",
+				description:
+					"Search emails by keyword, sender, or subject. Returns matching email threads with their associated entities.",
 				inputSchema: {
-					query: z.string().optional().describe("Keyword to search in subject and body"),
-					sender: z.string().optional().describe("Filter by sender email or name"),
-					limit: z.number().optional().default(10).describe("Max results"),
+					query: z
+						.string()
+						.optional()
+						.describe("Keyword to search in subject and body"),
+					sender: z
+						.string()
+						.optional()
+						.describe("Filter by sender email or name"),
+					limit: z
+						.number()
+						.optional()
+						.default(10)
+						.describe("Max results"),
 				},
 			},
 			async ({ query, sender, limit }, extra) => {
@@ -343,11 +514,23 @@ const rawHandler = createMcpHandler(
 				}
 				if (sender) {
 					where.AND = [
-						...(Array.isArray(where.AND) ? (where.AND as unknown[]) : []),
+						...(Array.isArray(where.AND)
+							? (where.AND as unknown[])
+							: []),
 						{
 							OR: [
-								{ sender: { contains: sender, mode: "insensitive" } },
-								{ senderName: { contains: sender, mode: "insensitive" } },
+								{
+									sender: {
+										contains: sender,
+										mode: "insensitive",
+									},
+								},
+								{
+									senderName: {
+										contains: sender,
+										mode: "insensitive",
+									},
+								},
 							],
 						},
 					];
@@ -356,26 +539,48 @@ const rawHandler = createMcpHandler(
 				const threads = await db.emailThread.findMany({
 					where,
 					select: {
-						id: true, subject: true, sender: true, senderName: true,
-						snippet: true, receivedAt: true, entityId: true,
-						entity: { select: { id: true, title: true, type: true, status: true } },
+						id: true,
+						subject: true,
+						sender: true,
+						senderName: true,
+						snippet: true,
+						receivedAt: true,
+						entityId: true,
+						entity: {
+							select: {
+								id: true,
+								title: true,
+								type: true,
+								status: true,
+							},
+						},
 					},
 					orderBy: { receivedAt: "desc" },
 					take: limit,
 				});
 
 				return {
-					content: [{
-						type: TEXT,
-						text: JSON.stringify({
-							count: threads.length,
-							emails: threads.map((t) => ({
-								id: t.id, subject: t.subject, sender: t.senderName ?? t.sender,
-								senderEmail: t.sender, snippet: t.snippet,
-								receivedAt: t.receivedAt.toISOString(), entity: t.entity,
-							})),
-						}, null, 2),
-					}],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify(
+								{
+									count: threads.length,
+									emails: threads.map((t) => ({
+										id: t.id,
+										subject: t.subject,
+										sender: t.senderName ?? t.sender,
+										senderEmail: t.sender,
+										snippet: t.snippet,
+										receivedAt: t.receivedAt.toISOString(),
+										entity: t.entity,
+									})),
+								},
+								null,
+								2,
+							),
+						},
+					],
 				};
 			},
 		);
@@ -390,9 +595,19 @@ const rawHandler = createMcpHandler(
 				inputSchema: {
 					entityId: z.string().describe("Entity ID to add event to"),
 					type: z
-						.enum(["note", "milestone", "action_taken", "status_changed", "ai_summary", "email_sent"])
+						.enum([
+							"note",
+							"milestone",
+							"action_taken",
+							"status_changed",
+							"ai_summary",
+							"email_sent",
+						])
 						.describe("Type of timeline event"),
-					content: z.string().min(1).describe("Event content / description"),
+					content: z
+						.string()
+						.min(1)
+						.describe("Event content / description"),
 					metadata: z
 						.record(z.string(), z.unknown())
 						.optional()
@@ -405,18 +620,35 @@ const rawHandler = createMcpHandler(
 					select: { id: true, organizationId: true, title: true },
 				});
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
 
 				const enrichedMetadata = { ...(metadata ?? {}), via: "mcp" };
 				const event = await db.timelineEvent.create({
-					data: { entityId, type, content, metadata: JSON.stringify(enrichedMetadata) },
+					data: {
+						entityId,
+						type,
+						content,
+						metadata: JSON.stringify(enrichedMetadata),
+					},
 				});
 
 				return {
-					content: [{ type: TEXT, text: JSON.stringify({ success: true, message: `Timeline event added to "${entity.title}"`, event }) }],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify({
+								success: true,
+								message: `Timeline event added to "${entity.title}"`,
+								event,
+							}),
+						},
+					],
 				};
 			},
 		);
@@ -429,17 +661,35 @@ const rawHandler = createMcpHandler(
 					"Get an AI-powered semantic diff between two points in an entity's timeline.",
 				inputSchema: {
 					entityId: z.string().describe("Entity ID"),
-					fromEventId: z.string().optional().describe("Starting timeline event ID (defaults to first event)"),
-					toEventId: z.string().optional().describe("Ending timeline event ID (defaults to latest event)"),
+					fromEventId: z
+						.string()
+						.optional()
+						.describe(
+							"Starting timeline event ID (defaults to first event)",
+						),
+					toEventId: z
+						.string()
+						.optional()
+						.describe(
+							"Ending timeline event ID (defaults to latest event)",
+						),
 				},
 			},
 			async ({ entityId, fromEventId, toEventId }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: { id: true, organizationId: true, type: true, title: true },
+					select: {
+						id: true,
+						organizationId: true,
+						type: true,
+						title: true,
+					},
 				});
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
@@ -451,27 +701,65 @@ const rawHandler = createMcpHandler(
 
 				if (allEvents.length < 2) {
 					return {
-						content: [{ type: TEXT, text: JSON.stringify({ summary: "Not enough timeline events for a diff", events: allEvents }) }],
+						content: [
+							{
+								type: TEXT,
+								text: JSON.stringify({
+									summary:
+										"Not enough timeline events for a diff",
+									events: allEvents,
+								}),
+							},
+						],
 					};
 				}
 
-				const fromIdx = fromEventId ? allEvents.findIndex((e) => e.id === fromEventId) : 0;
-				const toIdx = toEventId ? allEvents.findIndex((e) => e.id === toEventId) : allEvents.length - 1;
-				const rangeEvents = allEvents.slice(Math.max(0, fromIdx), Math.min(allEvents.length, toIdx + 1));
-				const eventsText = rangeEvents.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`).join("\n");
+				const fromIdx = fromEventId
+					? allEvents.findIndex((e) => e.id === fromEventId)
+					: 0;
+				const toIdx = toEventId
+					? allEvents.findIndex((e) => e.id === toEventId)
+					: allEvents.length - 1;
+				const rangeEvents = allEvents.slice(
+					Math.max(0, fromIdx),
+					Math.min(allEvents.length, toIdx + 1),
+				);
+				const eventsText = rangeEvents
+					.map(
+						(e) =>
+							`[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`,
+					)
+					.join("\n");
 
 				if (!process.env.OPENAI_API_KEY) {
 					return {
-						content: [{ type: TEXT, text: JSON.stringify({ summary: `${rangeEvents.length} events in selected range`, events: rangeEvents }) }],
+						content: [
+							{
+								type: TEXT,
+								text: JSON.stringify({
+									summary: `${rangeEvents.length} events in selected range`,
+									events: rangeEvents,
+								}),
+							},
+						],
 					};
 				}
 
 				const diffSchema = z.object({
 					summary: z.string(),
-					changes: z.array(z.object({
-						field: z.string(), before: z.string().nullable(),
-						after: z.string().nullable(), significance: z.enum(["low", "medium", "high", "critical"]),
-					})),
+					changes: z.array(
+						z.object({
+							field: z.string(),
+							before: z.string().nullable(),
+							after: z.string().nullable(),
+							significance: z.enum([
+								"low",
+								"medium",
+								"high",
+								"critical",
+							]),
+						}),
+					),
 					riskSignals: z.array(z.string()),
 					progressDelta: z.number().nullable(),
 					recommendation: z.string().nullable(),
@@ -484,7 +772,20 @@ const rawHandler = createMcpHandler(
 				});
 
 				return {
-					content: [{ type: TEXT, text: JSON.stringify({ ...diff, fromEvent: allEvents[fromIdx], toEvent: allEvents[toIdx] }, null, 2) }],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify(
+								{
+									...diff,
+									fromEvent: allEvents[fromIdx],
+									toEvent: allEvents[toIdx],
+								},
+								null,
+								2,
+							),
+						},
+					],
 				};
 			},
 		);
@@ -506,19 +807,38 @@ const rawHandler = createMcpHandler(
 				});
 
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
 
 				if (!process.env.OPENAI_API_KEY) {
 					return {
-						content: [{ type: TEXT, text: JSON.stringify({ riskLevel: "unknown", message: "AI prediction requires OPENAI_API_KEY" }) }],
+						content: [
+							{
+								type: TEXT,
+								text: JSON.stringify({
+									riskLevel: "unknown",
+									message:
+										"AI prediction requires OPENAI_API_KEY",
+								}),
+							},
+						],
 					};
 				}
 
-				const fields = entity.extractedFields ? JSON.parse(entity.extractedFields) : {};
-				const timelineText = entity.timeline.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`).join("\n");
+				const fields = entity.extractedFields
+					? JSON.parse(entity.extractedFields)
+					: {};
+				const timelineText = entity.timeline
+					.map(
+						(e) =>
+							`[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`,
+					)
+					.join("\n");
 
 				const riskSchema = z.object({
 					riskLevel: z.enum(["low", "medium", "high", "critical"]),
@@ -526,8 +846,10 @@ const rawHandler = createMcpHandler(
 					predictedOutcome: z.string(),
 					suggestedActions: z.array(z.string()),
 					deadlineRisk: z.object({
-						hasDeadline: z.boolean(), deadline: z.string().nullable(),
-						daysRemaining: z.number().nullable(), isAtRisk: z.boolean(),
+						hasDeadline: z.boolean(),
+						deadline: z.string().nullable(),
+						daysRemaining: z.number().nullable(),
+						isAtRisk: z.boolean(),
 					}),
 					confidence: z.number().min(0).max(1),
 				});
@@ -538,7 +860,14 @@ const rawHandler = createMcpHandler(
 					prompt: `Analyze risk for entity "${entity.title}" (${entity.type}, status: ${entity.status}).\n\nFields: ${JSON.stringify(fields, null, 2)}\nTimeline: ${timelineText || "(none)"}\nToday: ${new Date().toISOString().split("T")[0]}\n\nAssess risk level, factors, predicted outcome, suggested actions, and deadline risk.`,
 				});
 
-				return { content: [{ type: TEXT, text: JSON.stringify(prediction, null, 2) }] };
+				return {
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify(prediction, null, 2),
+						},
+					],
+				};
 			},
 		);
 
@@ -551,10 +880,17 @@ const rawHandler = createMcpHandler(
 				inputSchema: {
 					entityId: z.string().describe("Entity ID"),
 					types: z
-						.array(z.enum([
-							"email_received", "email_sent", "status_changed",
-							"action_taken", "ai_summary", "milestone", "note",
-						]))
+						.array(
+							z.enum([
+								"email_received",
+								"email_sent",
+								"status_changed",
+								"action_taken",
+								"ai_summary",
+								"milestone",
+								"note",
+							]),
+						)
 						.optional()
 						.describe("Filter by event types"),
 				},
@@ -562,11 +898,20 @@ const rawHandler = createMcpHandler(
 			async ({ entityId, types }, extra) => {
 				const entity = await db.flowEntity.findUnique({
 					where: { id: entityId },
-					select: { id: true, organizationId: true, title: true, type: true, status: true },
+					select: {
+						id: true,
+						organizationId: true,
+						title: true,
+						type: true,
+						status: true,
+					},
 				});
 
 				if (!entity) {
-					return { content: [{ type: TEXT, text: "Entity not found" }], isError: true };
+					return {
+						content: [{ type: TEXT, text: "Entity not found" }],
+						isError: true,
+					};
 				}
 
 				assertOrgOwns(entity, extra);
@@ -583,14 +928,25 @@ const rawHandler = createMcpHandler(
 				});
 
 				return {
-					content: [{
-						type: TEXT,
-						text: JSON.stringify({
-							entity: { id: entity.id, title: entity.title, type: entity.type, status: entity.status },
-							totalEvents: timeline.length,
-							timeline,
-						}, null, 2),
-					}],
+					content: [
+						{
+							type: TEXT,
+							text: JSON.stringify(
+								{
+									entity: {
+										id: entity.id,
+										title: entity.title,
+										type: entity.type,
+										status: entity.status,
+									},
+									totalEvents: timeline.length,
+									timeline,
+								},
+								null,
+								2,
+							),
+						},
+					],
 				};
 			},
 		);

@@ -21,7 +21,10 @@ function createOAuth2Client(credentials: ConnectionCredentials) {
 }
 
 function decodeBase64Url(data: string): string {
-	return Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+	return Buffer.from(
+		data.replace(/-/g, "+").replace(/_/g, "/"),
+		"base64",
+	).toString("utf-8");
 }
 
 function extractEmailParts(payload: Record<string, unknown>): {
@@ -62,7 +65,10 @@ function getHeader(
 	headers: Array<{ name: string; value: string }>,
 	name: string,
 ): string {
-	return headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+	return (
+		headers.find((h) => h.name.toLowerCase() === name.toLowerCase())
+			?.value ?? ""
+	);
 }
 
 function parseSenderName(from: string): { name: string; email: string } {
@@ -79,7 +85,10 @@ function parseRecipientList(raw: string): EmailRecipient[] {
 	}
 	return raw.split(",").map((entry) => {
 		const parsed = parseSenderName(entry.trim());
-		return { name: parsed.name !== parsed.email ? parsed.name : undefined, address: parsed.email };
+		return {
+			name: parsed.name !== parsed.email ? parsed.name : undefined,
+			address: parsed.email,
+		};
 	});
 }
 
@@ -95,15 +104,22 @@ function extractAttachments(
 
 	for (const part of parts) {
 		const filename = part.filename as string | undefined;
-		const body = part.body as { attachmentId?: string; size?: number } | undefined;
+		const body = part.body as
+			| { attachmentId?: string; size?: number }
+			| undefined;
 		if (filename && body?.attachmentId) {
 			results.push({
 				filename,
 				mimeType: part.mimeType as string | undefined,
 				size: body.size,
 				externalId: `${messageId}/${body.attachmentId}`,
-				contentId: (part.headers as Array<{name: string; value: string}> | undefined)
-					?.find((h) => h.name.toLowerCase() === "content-id")?.value?.replace(/[<>]/g, ""),
+				contentId: (
+					part.headers as
+						| Array<{ name: string; value: string }>
+						| undefined
+				)
+					?.find((h) => h.name.toLowerCase() === "content-id")
+					?.value?.replace(/[<>]/g, ""),
 			});
 		}
 	}
@@ -118,22 +134,36 @@ export const gmailConnector: EmailConnector = {
 		const auth = createOAuth2Client(credentials);
 		const gmail = google.gmail({ version: "v1", auth });
 
-		const query = cursor ? `after:${cursor}` : "newer_than:1d";
+		const isFirstSync = !cursor;
+		const query = cursor ? `after:${cursor}` : "newer_than:30d";
+		const maxTotal = credentials.maxSyncCount ?? (isFirstSync ? 200 : 50);
+		const perPage = Math.min(maxTotal, 100);
 
-		const listRes = await gmail.users.messages.list({
-			userId: "me",
-			q: query,
-			maxResults: 50,
-		});
+		const allMessageIds: Array<{ id: string }> = [];
+		let pageToken: string | undefined;
 
-		const messageIds = listRes.data.messages ?? [];
+		do {
+			const listRes = await gmail.users.messages.list({
+				userId: "me",
+				q: query,
+				maxResults: perPage,
+				pageToken,
+			});
+
+			const msgs = listRes.data.messages ?? [];
+			for (const m of msgs) {
+				if (m.id) {
+					allMessageIds.push({ id: m.id });
+				}
+			}
+
+			pageToken = listRes.data.nextPageToken ?? undefined;
+		} while (pageToken && allMessageIds.length < maxTotal);
+
+		const messageIds = allMessageIds.slice(0, maxTotal);
 		const emails: RawEmail[] = [];
 
 		for (const msg of messageIds) {
-			if (!msg.id) {
-				continue;
-			}
-
 			const detail = await gmail.users.messages.get({
 				userId: "me",
 				id: msg.id,
@@ -154,7 +184,9 @@ export const gmailConnector: EmailConnector = {
 			const to = getHeader(headers, "To");
 			const cc = getHeader(headers, "Cc");
 			const date = getHeader(headers, "Date");
-			const rfcMessageId = getHeader(headers, "Message-ID") || getHeader(headers, "Message-Id");
+			const rfcMessageId =
+				getHeader(headers, "Message-ID") ||
+				getHeader(headers, "Message-Id");
 
 			const { name, email } = parseSenderName(from);
 			const { text: bodyText, html: bodyHtml } = extractEmailParts(
@@ -177,7 +209,8 @@ export const gmailConnector: EmailConnector = {
 				senderEmail: email,
 				recipients: to.split(",").map((r) => r.trim()),
 				toRecipients,
-				ccRecipients: ccRecipients.length > 0 ? ccRecipients : undefined,
+				ccRecipients:
+					ccRecipients.length > 0 ? ccRecipients : undefined,
 				content,
 				snippet: detail.data.snippet ?? "",
 				bodyHtml: bodyHtml || undefined,

@@ -1,10 +1,12 @@
 export * from "./client";
-export * from "./queries/index";
-export * from "./zod/index";
 export {
-	encryptField,
+	decryptEmailContent,
 	decryptField,
-	encryptSensitiveFields,
 	decryptSensitiveFields,
+	encryptEmailContent,
+	encryptField,
+	encryptSensitiveFields,
 	isEncrypted,
 } from "./lib/encryption";
+export * from "./queries/index";
+export * from "./zod/index";

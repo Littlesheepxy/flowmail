@@ -1,13 +1,42 @@
 import { tool } from "@repo/ai";
-import { db } from "@repo/database";
+import { db, decryptSensitiveFields } from "@repo/database";
 import { z } from "zod";
+
+const syncRateLimitStore = new Map<
+	string,
+	{ count: number; resetAt: number }
+>();
+
+function checkSyncRateLimit(connectionId: string): {
+	allowed: boolean;
+	resetAt: number;
+} {
+	const key = `email-sync:${connectionId}`;
+	const now = Date.now();
+	const windowMs = 60_000;
+	const maxRequests = 5;
+
+	const entry = syncRateLimitStore.get(key);
+	if (!entry || entry.resetAt < now) {
+		syncRateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+		return { allowed: true, resetAt: now + windowMs };
+	}
+	entry.count++;
+	if (entry.count > maxRequests) {
+		return { allowed: false, resetAt: entry.resetAt };
+	}
+	return { allowed: true, resetAt: entry.resetAt };
+}
 
 export function createEmailTools(deps: {
 	getConnector: (provider: string) => {
 		fetchNewEmails: (
 			config: Record<string, unknown>,
 			cursor: string | null,
-		) => Promise<{ emails: Array<Record<string, unknown>>; newCursor: string | null }>;
+		) => Promise<{
+			emails: Array<Record<string, unknown>>;
+			newCursor: string | null;
+		}>;
 	};
 	processEmail: (params: Record<string, unknown>) => Promise<{
 		success: boolean;
@@ -60,21 +89,36 @@ export function createEmailTools(deps: {
 			description:
 				"触发指定邮箱连接的邮件同步。拉取新邮件并进行 AI 处理。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				connectionId: z
 					.string()
 					.describe("邮箱连接 ID，从 list_connections 结果获取"),
 			}),
-			execute: async (input: { connectionId: string }) => {
-				const connection = await db.emailConnection.findUnique({
-					where: { id: input.connectionId },
-				});
-				if (!connection) {
-					return { error: "邮箱连接未找到" };
+			execute: async (input: {
+				organizationId: string;
+				connectionId: string;
+			}) => {
+				const rl = checkSyncRateLimit(input.connectionId);
+				if (!rl.allowed) {
+					return {
+						error: `同步频率超限，请 ${Math.ceil((rl.resetAt - Date.now()) / 1000)} 秒后重试`,
+					};
 				}
-				if (!connection.isActive) {
+
+				const rawConnection = await db.emailConnection.findFirst({
+					where: {
+						id: input.connectionId,
+						organizationId: input.organizationId,
+					},
+				});
+				if (!rawConnection) {
+					return { error: "邮箱连接未找到或无权访问" };
+				}
+				if (!rawConnection.isActive) {
 					return { error: "该邮箱连接已停用" };
 				}
 
+				const connection = decryptSensitiveFields(rawConnection);
 				const connector = deps.getConnector(connection.provider);
 				const { emails, newCursor } = await connector.fetchNewEmails(
 					{
@@ -163,6 +207,7 @@ export function createEmailTools(deps: {
 			description:
 				"通过已连接的邮箱发送邮件。当用户说'发邮件'、'回复邮件'时调用。",
 			inputSchema: z.object({
+				organizationId: z.string(),
 				connectionId: z.string().describe("发件邮箱连接 ID"),
 				to: z.array(z.string()).describe("收件人邮箱地址列表"),
 				cc: z.array(z.string()).optional().describe("抄送邮箱地址列表"),
@@ -175,6 +220,7 @@ export function createEmailTools(deps: {
 					.describe("回复的原邮件 Message-ID"),
 			}),
 			execute: async (input: {
+				organizationId: string;
 				connectionId: string;
 				to: string[];
 				cc?: string[];
@@ -183,12 +229,16 @@ export function createEmailTools(deps: {
 				textBody?: string;
 				inReplyTo?: string;
 			}) => {
-				const connection = await db.emailConnection.findUnique({
-					where: { id: input.connectionId },
+				const rawConnection = await db.emailConnection.findFirst({
+					where: {
+						id: input.connectionId,
+						organizationId: input.organizationId,
+					},
 				});
-				if (!connection) {
-					return { error: "邮箱连接未找到" };
+				if (!rawConnection) {
+					return { error: "邮箱连接未找到或无权访问" };
 				}
+				const connection = decryptSensitiveFields(rawConnection);
 				if (!connection.accessToken) {
 					return { error: "邮箱缺少访问令牌，请重新授权" };
 				}
@@ -244,18 +294,14 @@ export function createEmailTools(deps: {
 					const rawEmail = [
 						`From: ${connection.email}`,
 						`To: ${input.to.join(", ")}`,
-						input.cc?.length
-							? `Cc: ${input.cc.join(", ")}`
-							: "",
+						input.cc?.length ? `Cc: ${input.cc.join(", ")}` : "",
 						`Subject: =?UTF-8?B?${Buffer.from(input.subject).toString("base64")}?=`,
 						"MIME-Version: 1.0",
 						`Content-Type: multipart/alternative; boundary="${boundary}"`,
 						input.inReplyTo
 							? `In-Reply-To: ${input.inReplyTo}`
 							: "",
-						input.inReplyTo
-							? `References: ${input.inReplyTo}`
-							: "",
+						input.inReplyTo ? `References: ${input.inReplyTo}` : "",
 						"",
 						`--${boundary}`,
 						"Content-Type: text/plain; charset=UTF-8",
@@ -306,18 +352,14 @@ export function createEmailTools(deps: {
 		}),
 
 		search_emails: tool({
-			description:
-				"搜索组织内的邮件。可按关键词、发件人、主题筛选。",
+			description: "搜索组织内的邮件。可按关键词、发件人、主题筛选。",
 			inputSchema: z.object({
 				organizationId: z.string(),
 				query: z
 					.string()
 					.optional()
 					.describe("关键词搜索（匹配主题和正文）"),
-				sender: z
-					.string()
-					.optional()
-					.describe("发件人邮箱或名字"),
+				sender: z.string().optional().describe("发件人邮箱或名字"),
 				limit: z.number().default(10).describe("最多返回条数"),
 			}),
 			execute: async (input: {
