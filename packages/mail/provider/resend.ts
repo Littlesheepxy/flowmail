@@ -2,7 +2,14 @@ import { Resend } from "resend";
 import { config } from "../config";
 import type { SendEmailHandler } from "../types";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+
+function getResend(): Resend {
+	if (!_resend) {
+		_resend = new Resend(process.env.RESEND_API_KEY);
+	}
+	return _resend;
+}
 
 export const send: SendEmailHandler = async ({
 	to,
@@ -14,7 +21,7 @@ export const send: SendEmailHandler = async ({
 	html,
 	text,
 }) => {
-	await resend.emails.send({
+	await getResend().emails.send({
 		from: from ?? config.mailFrom,
 		to: [to],
 		cc,
