@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { usePageGuide } from "../hooks/use-page-guide";
 
@@ -86,39 +87,39 @@ const PROVIDERS: ProviderDef[] = [
 	},
 	{
 		id: "feishu",
-		name: "飞书邮箱",
+		name: "Feishu",
 		icon: "/icons/integrations/feishu.svg",
 		method: "oauth",
 		region: "china",
-		description: "飞书开放平台 OAuth",
+		description: "Lark OAuth",
 		oauthUrl: "https://accounts.feishu.cn/open-apis/authen/v1/authorize",
 	},
 	{
 		id: "dingtalk",
-		name: "钉钉邮箱",
+		name: "DingTalk",
 		icon: "/icons/integrations/dingtalk.svg",
 		method: "oauth",
 		region: "china",
-		description: "钉钉开放平台 OAuth",
+		description: "DingTalk OAuth",
 		oauthUrl: "https://login.dingtalk.com/oauth2/auth",
 		scopes: "openid",
 	},
 	{
 		id: "wecom",
-		name: "企微邮箱",
+		name: "WeCom",
 		icon: "/icons/integrations/wecom.png",
 		method: "oauth",
 		region: "china",
-		description: "企业微信 OAuth",
+		description: "WeCom OAuth",
 		oauthUrl: "https://open.weixin.qq.com/connect/oauth2/authorize",
 	},
 	{
 		id: "imap",
-		name: "其他邮箱",
+		name: "IMAP",
 		icon: "",
 		method: "imap",
 		region: "universal",
-		description: "通用 IMAP（QQ、163、Yahoo 等）",
+		description: "IMAP",
 	},
 ];
 
@@ -132,7 +133,47 @@ const WELL_KNOWN_IMAP: Record<string, { host: string; port: number }> = {
 	"icloud.com": { host: "imap.mail.me.com", port: 993 },
 };
 
+type FlowmailT = ReturnType<typeof useTranslations>;
+
+function getProviderDisplayName(providerId: string, t: FlowmailT): string {
+	switch (providerId) {
+		case "feishu":
+			return t("emailConnection.provider.lark.name");
+		case "dingtalk":
+			return t("emailConnection.provider.dingtalk.name");
+		case "wecom":
+			return t("emailConnection.provider.wecom.name");
+		case "imap":
+			return t("emailConnection.provider.other.name");
+		default: {
+			const found = PROVIDERS.find((p) => p.id === providerId);
+			return found?.name ?? providerId;
+		}
+	}
+}
+
+function getProviderDisplayDescription(
+	providerId: string,
+	t: FlowmailT,
+): string {
+	switch (providerId) {
+		case "feishu":
+			return t("emailConnection.provider.lark.description");
+		case "dingtalk":
+			return t("emailConnection.provider.dingtalk.description");
+		case "wecom":
+			return t("emailConnection.provider.wecom.description");
+		case "imap":
+			return t("emailConnection.provider.other.description");
+		default: {
+			const found = PROVIDERS.find((p) => p.id === providerId);
+			return found?.description ?? "";
+		}
+	}
+}
+
 export function EmailConnectionsList() {
+	const t = useTranslations("flowmail");
 	const { activeOrganization } = useActiveOrganization();
 	const queryClient = useQueryClient();
 	const params = useParams();
@@ -141,9 +182,10 @@ export function EmailConnectionsList() {
 	usePageGuide("connectEmail", [
 		{
 			element: '[data-guide="connect-email-btn"]',
-			title: "第 1 步：点击「连接邮箱」",
-			description:
-				"点击此按钮开始连接。弹出的对话框中会列出 Gmail、飞书、钉钉、企微以及通用 IMAP（QQ邮箱、163等）多种选项。选择你的邮箱类型即可开始授权。\n\n连接成功后，Flowmail 会自动同步你的邮件并用 AI 进行分析。",
+			title: t("emailConnection.pageGuide.connectEmail.step1.title"),
+			description: t(
+				"emailConnection.pageGuide.connectEmail.step1.description",
+			),
 			side: "bottom",
 		},
 	]);
@@ -195,21 +237,31 @@ export function EmailConnectionsList() {
 					queryKey: orpc.flowEntities.list.key(),
 				});
 				alert(
-					`同步完成：获取 ${result.fetched} 封邮件，处理 ${result.processed} 封${result.errors ? `，${result.errors} 封失败` : ""}`,
+					t("emailConnection.sync.toastSuccess", {
+						fetched: result.fetched,
+						processed: result.processed,
+						errorPart: result.errors
+							? t("emailConnection.sync.toastErrorsFailed", {
+									count: result.errors,
+								})
+							: "",
+					}),
 				);
 			},
 			onError: (err) => {
-				alert(`同步失败：${err.message}`);
+				alert(
+					t("emailConnection.sync.toastError", {
+						error: err.message,
+					}),
+				);
 			},
 		}),
 	);
 
 	const connections = data ?? [];
 
-	const providerLabel = (provider: string) => {
-		const found = PROVIDERS.find((p) => p.id === provider);
-		return found?.name ?? provider;
-	};
+	const providerLabel = (provider: string) =>
+		getProviderDisplayName(provider, t);
 
 	function handleClose() {
 		setDialogOpen(false);
@@ -220,9 +272,11 @@ export function EmailConnectionsList() {
 		<div data-module="connections" className="space-y-6">
 			<div className="flex items-center justify-between">
 				<div>
-					<h3 className="font-semibold text-lg">邮箱连接</h3>
+					<h3 className="font-semibold text-lg">
+						{t("emailConnection.page.title")}
+					</h3>
 					<p className="text-sm text-muted-foreground">
-						Flowmail 监听这些邮箱并自动提取业务事项。
+						{t("emailConnection.page.subtitle")}
 					</p>
 				</div>
 				<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -232,7 +286,7 @@ export function EmailConnectionsList() {
 							onClick={() => setSelectedProvider(null)}
 						>
 							<PlusIcon className="mr-2 size-4" />
-							连接邮箱
+							{t("emailConnection.action.connect")}
 						</Button>
 					</DialogTrigger>
 					<DialogContent className="sm:max-w-[480px]">
@@ -278,11 +332,21 @@ export function EmailConnectionsList() {
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead>邮箱</TableHead>
-							<TableHead>类型</TableHead>
-							<TableHead>状态</TableHead>
-							<TableHead>最后同步</TableHead>
-							<TableHead className="text-right">操作</TableHead>
+							<TableHead>
+								{t("emailConnection.table.email")}
+							</TableHead>
+							<TableHead>
+								{t("emailConnection.table.type")}
+							</TableHead>
+							<TableHead>
+								{t("emailConnection.table.status")}
+							</TableHead>
+							<TableHead>
+								{t("emailConnection.table.lastSync")}
+							</TableHead>
+							<TableHead className="text-right">
+								{t("emailConnection.table.actions")}
+							</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -294,7 +358,7 @@ export function EmailConnectionsList() {
 								>
 									<div className="flex items-center justify-center gap-2">
 										<Spinner className="size-4 text-primary" />
-										加载中...
+										{t("common.loading")}
 									</div>
 								</TableCell>
 							</TableRow>
@@ -306,9 +370,11 @@ export function EmailConnectionsList() {
 								>
 									<div className="flex flex-col items-center gap-2">
 										<MailIcon className="size-8 text-muted-foreground/50" />
-										<p>暂无已连接的邮箱</p>
+										<p>
+											{t("emailConnection.empty.title")}
+										</p>
 										<p className="text-xs">
-											点击上方「连接邮箱」开始自动处理邮件。
+											{t("emailConnection.empty.hint")}
 										</p>
 									</div>
 								</TableCell>
@@ -336,7 +402,9 @@ export function EmailConnectionsList() {
 										) &&
 										!conn.hasImapPassword ? (
 											<Badge status="warning">
-												需配置 IMAP 密码
+												{t(
+													"emailConnection.status.needsImapPassword",
+												)}
 											</Badge>
 										) : (
 											<Badge
@@ -347,8 +415,12 @@ export function EmailConnectionsList() {
 												}
 											>
 												{conn.isActive
-													? "已连接"
-													: "已断开"}
+													? t(
+															"emailConnection.status.connected",
+														)
+													: t(
+															"emailConnection.status.disconnected",
+														)}
 											</Badge>
 										)}
 									</TableCell>
@@ -357,7 +429,9 @@ export function EmailConnectionsList() {
 											? new Date(
 													conn.lastSyncAt,
 												).toLocaleString()
-											: "从未同步"}
+											: t(
+													"emailConnection.lastSync.never",
+												)}
 									</TableCell>
 									<TableCell>
 										<div className="flex justify-end gap-1">
@@ -368,7 +442,9 @@ export function EmailConnectionsList() {
 													<Button
 														size="icon"
 														variant="ghost"
-														title="设置 IMAP 密码"
+														title={t(
+															"emailConnection.action.setImapPassword",
+														)}
 														onClick={() => {
 															setPasswordDialogConn(
 																{
@@ -387,7 +463,9 @@ export function EmailConnectionsList() {
 											<Button
 												size="icon"
 												variant="ghost"
-												title="同步邮件"
+												title={t(
+													"emailConnection.action.sync",
+												)}
 												disabled={
 													syncMutation.isPending
 												}
@@ -406,7 +484,9 @@ export function EmailConnectionsList() {
 											<Button
 												size="icon"
 												variant="ghost"
-												title="断开连接"
+												title={t(
+													"emailConnection.action.disconnect",
+												)}
 												disabled={
 													disconnectMutation.isPending
 												}
@@ -437,10 +517,18 @@ export function EmailConnectionsList() {
 			>
 				<DialogContent className="sm:max-w-[400px]">
 					<DialogHeader>
-						<DialogTitle>设置 IMAP 密码</DialogTitle>
+						<DialogTitle>
+							{t("emailConnection.imapPasswordDialog.title")}
+						</DialogTitle>
 						<DialogDescription>
-							为 {passwordDialogConn?.email} 设置 IMAP
-							专用密码以启用邮件同步。
+							{passwordDialogConn
+								? t(
+										"emailConnection.imapPasswordDialog.descriptionWithEmail",
+										{ email: passwordDialogConn.email },
+									)
+								: t(
+										"emailConnection.imapPasswordDialog.description",
+									)}
 						</DialogDescription>
 					</DialogHeader>
 					<form
@@ -456,10 +544,14 @@ export function EmailConnectionsList() {
 						}}
 					>
 						<div className="space-y-2">
-							<Label>IMAP 专用密码</Label>
+							<Label>
+								{t("emailConnection.imapPasswordDialog.label")}
+							</Label>
 							<Input
 								type="password"
-								placeholder="在邮箱设置中生成的应用专用密码"
+								placeholder={t(
+									"emailConnection.imapPasswordDialog.placeholder",
+								)}
 								value={newImapPassword}
 								onChange={(e) =>
 									setNewImapPassword(e.target.value)
@@ -468,8 +560,9 @@ export function EmailConnectionsList() {
 								autoFocus
 							/>
 							<p className="text-xs text-muted-foreground">
-								请在飞书/钉钉/企微邮箱设置中开启 IMAP
-								服务并生成专用密码。
+								{t(
+									"emailConnection.imapPasswordDialog.hintProviderImap",
+								)}
 							</p>
 						</div>
 						<Button
@@ -481,8 +574,8 @@ export function EmailConnectionsList() {
 							}
 						>
 							{updatePwMutation.isPending
-								? "保存中..."
-								: "保存并启用同步"}
+								? t("emailConnection.imapPasswordDialog.saving")
+								: t("emailConnection.imapPasswordDialog.save")}
 						</Button>
 					</form>
 				</DialogContent>
@@ -492,11 +585,13 @@ export function EmailConnectionsList() {
 }
 
 function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
+	const t = useTranslations("flowmail");
 	const globalProviders = PROVIDERS.filter((p) => p.region === "global");
 	const chinaProviders = PROVIDERS.filter((p) => p.region === "china");
 	const imapProvider = PROVIDERS.find((p) => p.id === "imap");
 
 	function ProviderButton({ p }: { p: ProviderDef }) {
+		const displayName = getProviderDisplayName(p.id, t);
 		return (
 			<button
 				key={p.id}
@@ -504,9 +599,9 @@ function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
 				onClick={() => onSelect(p)}
 				className="flex flex-col items-center gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30"
 			>
-				<Image src={p.icon} alt={p.name} width={32} height={32} />
+				<Image src={p.icon} alt={displayName} width={32} height={32} />
 				<span className="text-sm font-medium text-foreground">
-					{p.name}
+					{displayName}
 				</span>
 				<span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
 					<ShieldCheckIcon className="size-3" />
@@ -519,9 +614,11 @@ function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
 	return (
 		<>
 			<DialogHeader>
-				<DialogTitle>连接邮箱</DialogTitle>
+				<DialogTitle>
+					{t("emailConnection.connectDialog.title")}
+				</DialogTitle>
 				<DialogDescription>
-					选择你的邮箱服务，通过 OAuth 安全授权连接。
+					{t("emailConnection.connectDialog.description")}
 				</DialogDescription>
 			</DialogHeader>
 
@@ -529,7 +626,7 @@ function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
 				<div className="space-y-2">
 					<p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
 						<GlobeIcon className="size-3" />
-						海外邮箱
+						{t("emailConnection.connectDialog.section.overseas")}
 					</p>
 					<div className="space-y-2">
 						{globalProviders.map((p) => (
@@ -541,7 +638,7 @@ function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
 				<div className="space-y-2">
 					<p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
 						<MailIcon className="size-3" />
-						国内邮箱
+						{t("emailConnection.connectDialog.section.domestic")}
 					</p>
 					<div className="space-y-2">
 						{chinaProviders.map((p) => (
@@ -559,7 +656,7 @@ function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
 						</div>
 						<div className="relative flex justify-center text-xs">
 							<span className="bg-background px-2 text-muted-foreground">
-								或
+								{t("common.or")}
 							</span>
 						</div>
 					</div>
@@ -573,10 +670,14 @@ function ProviderPicker({ onSelect }: { onSelect: (p: ProviderDef) => void }) {
 						</div>
 						<div>
 							<p className="text-sm font-medium text-foreground">
-								其他邮箱 / 通用 IMAP
+								{t(
+									"emailConnection.connectDialog.imapRowTitle",
+								)}
 							</p>
 							<p className="text-xs text-muted-foreground">
-								QQ 邮箱、163、Yahoo、iCloud 等
+								{t(
+									"emailConnection.connectDialog.imapRowSubtitle",
+								)}
 							</p>
 						</div>
 					</button>
@@ -595,10 +696,11 @@ function GmailOAuthForm({
 	organizationSlug: string;
 	onBack: () => void;
 }) {
+	const t = useTranslations("flowmail");
 	function handleConnect() {
 		const clientId = process.env.NEXT_PUBLIC_GMAIL_CLIENT_ID;
 		if (!clientId) {
-			alert("Gmail OAuth 尚未配置 (NEXT_PUBLIC_GMAIL_CLIENT_ID)");
+			alert(t("emailConnection.errors.gmailOAuthNotConfigured"));
 			return;
 		}
 
@@ -635,10 +737,12 @@ function GmailOAuthForm({
 					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
-					<DialogTitle>连接 Gmail</DialogTitle>
+					<DialogTitle>
+						{t("emailConnection.gmailOAuth.title")}
+					</DialogTitle>
 				</div>
 				<DialogDescription>
-					通过 Google OAuth 安全授权，Flowmail 仅获取邮件只读权限。
+					{t("emailConnection.gmailOAuth.description")}
 				</DialogDescription>
 			</DialogHeader>
 
@@ -651,15 +755,15 @@ function GmailOAuthForm({
 				/>
 				<div className="text-center space-y-1">
 					<p className="text-sm text-muted-foreground">
-						点击下方按钮将跳转到 Google 登录页面
+						{t("emailConnection.gmailOAuth.hintRedirect")}
 					</p>
 					<p className="text-xs text-muted-foreground/60">
-						授权后会自动返回 Flowmail
+						{t("emailConnection.gmailOAuth.hintReturn")}
 					</p>
 				</div>
 				<Button onClick={handleConnect} className="w-full gap-2">
 					<ExternalLinkIcon className="size-4" />
-					前往 Google 授权
+					{t("emailConnection.gmailOAuth.authorize")}
 				</Button>
 			</div>
 		</>
@@ -675,10 +779,11 @@ function OutlookOAuthForm({
 	organizationSlug: string;
 	onBack: () => void;
 }) {
+	const t = useTranslations("flowmail");
 	function handleConnect() {
 		const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID;
 		if (!clientId) {
-			alert("Microsoft OAuth 尚未配置 (NEXT_PUBLIC_MICROSOFT_CLIENT_ID)");
+			alert(t("emailConnection.errors.outlookOAuthNotConfigured"));
 			return;
 		}
 
@@ -716,11 +821,12 @@ function OutlookOAuthForm({
 					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
-					<DialogTitle>连接 Microsoft 365 / Outlook</DialogTitle>
+					<DialogTitle>
+						{t("emailConnection.outlookOAuth.title")}
+					</DialogTitle>
 				</div>
 				<DialogDescription>
-					通过 Microsoft OAuth 安全授权，Flowmail
-					仅获取邮件读取和发送权限。
+					{t("emailConnection.outlookOAuth.description")}
 				</DialogDescription>
 			</DialogHeader>
 
@@ -733,15 +839,15 @@ function OutlookOAuthForm({
 				/>
 				<div className="text-center space-y-1">
 					<p className="text-sm text-muted-foreground">
-						点击下方按钮将跳转到 Microsoft 登录页面
+						{t("emailConnection.outlookOAuth.hintRedirect")}
 					</p>
 					<p className="text-xs text-muted-foreground/60">
-						支持 Microsoft 365、Outlook.com、Hotmail
+						{t("emailConnection.outlookOAuth.hintProviders")}
 					</p>
 				</div>
 				<Button onClick={handleConnect} className="w-full gap-2">
 					<ExternalLinkIcon className="size-4" />
-					前往 Microsoft 授权
+					{t("emailConnection.outlookOAuth.authorize")}
 				</Button>
 			</div>
 		</>
@@ -759,6 +865,7 @@ function PlatformOAuthForm({
 	organizationSlug: string;
 	onBack: () => void;
 }) {
+	const t = useTranslations("flowmail");
 	const [appId, setAppId] = useState("");
 	const [appSecret, setAppSecret] = useState("");
 	const [imapPassword, setImapPassword] = useState("");
@@ -856,10 +963,14 @@ function PlatformOAuthForm({
 					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
-					<DialogTitle>连接 {provider.name}</DialogTitle>
+					<DialogTitle>
+						{t("emailConnection.platformOAuth.title", {
+							provider: getProviderDisplayName(provider.id, t),
+						})}
+					</DialogTitle>
 				</div>
 				<DialogDescription>
-					填写你在开放平台创建的应用凭据，然后进行 OAuth 授权。
+					{t("emailConnection.platformOAuth.description")}
 				</DialogDescription>
 			</DialogHeader>
 
@@ -879,10 +990,10 @@ function PlatformOAuthForm({
 					/>
 					<div className="flex-1">
 						<p className="text-sm font-medium text-foreground">
-							{provider.name}
+							{getProviderDisplayName(provider.id, t)}
 						</p>
 						<p className="text-xs text-muted-foreground">
-							{provider.description}
+							{getProviderDisplayDescription(provider.id, t)}
 						</p>
 					</div>
 				</div>
@@ -890,7 +1001,9 @@ function PlatformOAuthForm({
 				<div className="space-y-2">
 					<Label>{guide?.idLabel ?? "App ID"}</Label>
 					<Input
-						placeholder="输入 App ID"
+						placeholder={t(
+							"emailConnection.platformOAuth.appIdPlaceholder",
+						)}
 						value={appId}
 						onChange={(e) => setAppId(e.target.value)}
 						required
@@ -900,7 +1013,9 @@ function PlatformOAuthForm({
 					<Label>{guide?.secretLabel ?? "App Secret"}</Label>
 					<Input
 						type="password"
-						placeholder="输入 App Secret"
+						placeholder={t(
+							"emailConnection.platformOAuth.appSecretPlaceholder",
+						)}
 						value={appSecret}
 						onChange={(e) => setAppSecret(e.target.value)}
 						required
@@ -910,34 +1025,41 @@ function PlatformOAuthForm({
 				{provider.id !== "feishu" && (
 					<div className="space-y-2">
 						<Label>
-							IMAP 专用密码
+							{t(
+								"emailConnection.platformOAuth.imapPasswordLabel",
+							)}
 							<span className="text-muted-foreground font-normal ml-1">
-								(同步邮件必填)
+								{t(
+									"emailConnection.platformOAuth.imapPasswordRequiredHint",
+								)}
 							</span>
 						</Label>
 						<Input
 							type="password"
-							placeholder="在邮箱设置中生成的应用专用密码"
+							placeholder={t(
+								"emailConnection.platformOAuth.imapPasswordPlaceholder",
+							)}
 							value={imapPassword}
 							onChange={(e) => setImapPassword(e.target.value)}
 						/>
 						<p className="text-xs text-muted-foreground">
-							OAuth 仅用于身份验证，邮件同步需要 IMAP
-							密码。请在邮箱设置中开启 IMAP 并生成专用密码。
+							{t(
+								"emailConnection.platformOAuth.imapPasswordHint",
+							)}
 						</p>
 					</div>
 				)}
 
 				{guide?.docUrl && (
 					<p className="text-xs text-muted-foreground">
-						没有应用凭据？
+						{t("emailConnection.platformOAuth.noCredentials")}
 						<a
 							href={guide.docUrl}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="text-primary hover:underline ml-1"
 						>
-							前往开放平台创建 →
+							{t("emailConnection.platformOAuth.openPlatform")}
 						</a>
 					</p>
 				)}
@@ -948,7 +1070,7 @@ function PlatformOAuthForm({
 					disabled={!appId.trim() || !appSecret.trim()}
 				>
 					<ExternalLinkIcon className="size-4" />
-					前往授权
+					{t("emailConnection.platformOAuth.authorize")}
 				</Button>
 			</form>
 		</>
@@ -964,6 +1086,7 @@ function ImapConnectForm({
 	onBack: () => void;
 	onSuccess: () => void;
 }) {
+	const t = useTranslations("flowmail");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [imapHost, setImapHost] = useState("");
@@ -998,10 +1121,12 @@ function ImapConnectForm({
 					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
-					<DialogTitle>连接个人邮箱</DialogTitle>
+					<DialogTitle>
+						{t("emailConnection.imapForm.title")}
+					</DialogTitle>
 				</div>
 				<DialogDescription>
-					通过 IMAP 协议连接，需要邮箱地址和应用专用密码。
+					{t("emailConnection.imapForm.description")}
 				</DialogDescription>
 			</DialogHeader>
 
@@ -1023,7 +1148,7 @@ function ImapConnectForm({
 				}}
 			>
 				<div className="space-y-2">
-					<Label>邮箱地址</Label>
+					<Label>{t("emailConnection.imapForm.emailLabel")}</Label>
 					<Input
 						type="email"
 						placeholder="you@example.com"
@@ -1036,17 +1161,21 @@ function ImapConnectForm({
 					/>
 				</div>
 				<div className="space-y-2">
-					<Label>应用专用密码</Label>
+					<Label>{t("emailConnection.imapForm.passwordLabel")}</Label>
 					<Input
 						type="password"
-						placeholder="在邮箱设置中生成的专用密码"
+						placeholder={t(
+							"emailConnection.imapForm.passwordPlaceholder",
+						)}
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
 						required
 					/>
 				</div>
 				<div className="space-y-2">
-					<Label>首次同步数量</Label>
+					<Label>
+						{t("emailConnection.imapForm.syncCountLabel")}
+					</Label>
 					<Select
 						value={maxSyncCount}
 						onValueChange={setMaxSyncCount}
@@ -1055,25 +1184,31 @@ function ImapConnectForm({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="100">最近 100 封</SelectItem>
-							<SelectItem value="500">
-								最近 500 封（推荐）
+							<SelectItem value="100">
+								{t("emailConnection.imapForm.syncOption100")}
 							</SelectItem>
-							<SelectItem value="1000">最近 1000 封</SelectItem>
-							<SelectItem value="5000">最近 5000 封</SelectItem>
+							<SelectItem value="500">
+								{t("emailConnection.imapForm.syncOption500")}
+							</SelectItem>
+							<SelectItem value="1000">
+								{t("emailConnection.imapForm.syncOption1000")}
+							</SelectItem>
+							<SelectItem value="5000">
+								{t("emailConnection.imapForm.syncOption5000")}
+							</SelectItem>
 							<SelectItem value="10000">
-								全部（最多 10000 封）
+								{t("emailConnection.imapForm.syncOption10000")}
 							</SelectItem>
 						</SelectContent>
 					</Select>
 					<p className="text-xs text-muted-foreground">
-						邮件总数低于此值时会全部同步。
+						{t("emailConnection.imapForm.syncCountHint")}
 					</p>
 				</div>
 
 				<div className="grid grid-cols-3 gap-3">
 					<div className="col-span-2 space-y-2">
-						<Label>IMAP 服务器</Label>
+						<Label>{t("emailConnection.imapForm.hostLabel")}</Label>
 						<Input
 							placeholder="imap.example.com"
 							value={imapHost}
@@ -1081,7 +1216,7 @@ function ImapConnectForm({
 						/>
 					</div>
 					<div className="space-y-2">
-						<Label>端口</Label>
+						<Label>{t("emailConnection.imapForm.portLabel")}</Label>
 						<Input
 							placeholder="993"
 							value={imapPort}
@@ -1091,8 +1226,7 @@ function ImapConnectForm({
 				</div>
 
 				<p className="text-xs text-muted-foreground">
-					IMAP 服务器和端口会根据邮箱域名自动填充（支持
-					QQ、163、Outlook 等）。
+					{t("emailConnection.imapForm.autoFillHint")}
 				</p>
 
 				{connectMutation.error && (
@@ -1109,7 +1243,7 @@ function ImapConnectForm({
 					{connectMutation.isPending && (
 						<Spinner className="mr-2 size-4" />
 					)}
-					测试并连接
+					{t("emailConnection.imapForm.submit")}
 				</Button>
 			</form>
 		</>

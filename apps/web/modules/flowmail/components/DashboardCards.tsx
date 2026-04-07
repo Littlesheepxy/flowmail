@@ -18,38 +18,43 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const TYPE_CONFIGS: Record<
 	string,
-	{ icon: typeof InboxIcon; color: string; bg: string; label: string }
+	{ icon: typeof InboxIcon; color: string; bg: string }
 > = {
 	APPROVAL: {
 		icon: CheckCircle2Icon,
 		color: "text-amber-600",
 		bg: "bg-amber-500/10",
-		label: "审批",
 	},
 	REPORT: {
 		icon: FileTextIcon,
 		color: "text-blue-600",
 		bg: "bg-blue-500/10",
-		label: "汇报",
 	},
 	ISSUE: {
 		icon: AlertCircleIcon,
 		color: "text-red-600",
 		bg: "bg-red-500/10",
-		label: "问题",
 	},
 	FEEDBACK: {
 		icon: MessageSquareIcon,
 		color: "text-emerald-600",
 		bg: "bg-emerald-500/10",
-		label: "反馈",
 	},
 };
 
+const ENTITY_TYPE_LABEL_KEYS = {
+	APPROVAL: "dashboard.category.approval",
+	REPORT: "dashboard.category.report",
+	ISSUE: "dashboard.category.issue",
+	FEEDBACK: "dashboard.category.feedback",
+} as const;
+
 export function DashboardCards() {
+	const t = useTranslations("flowmail");
 	const { activeOrganization } = useActiveOrganization();
 	const pathname = usePathname();
 	const orgId = activeOrganization?.id ?? "";
@@ -89,7 +94,7 @@ export function DashboardCards() {
 			{/* Category distribution */}
 			<div>
 				<h3 className="text-sm font-medium text-muted-foreground mb-3">
-					分类分布
+					{t("dashboard.section.categoryDistribution")}
 				</h3>
 				<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 					{(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"] as const).map(
@@ -121,7 +126,7 @@ export function DashboardCards() {
 											</span>
 										</div>
 										<p className="text-sm text-muted-foreground">
-											{cfg.label}
+											{t(ENTITY_TYPE_LABEL_KEYS[type])}
 										</p>
 									</Card>
 								</Link>
@@ -137,7 +142,9 @@ export function DashboardCards() {
 					<Card className="p-4 hover:border-primary/30 transition-colors">
 						<div className="flex items-center gap-2 text-muted-foreground mb-1">
 							<ClockIcon className="size-3.5" />
-							<span className="text-xs">待审批</span>
+							<span className="text-xs">
+								{t("dashboard.kpi.pendingApproval")}
+							</span>
 						</div>
 						<p className="text-xl font-bold">
 							{pendingApprovals?.length ?? 0}
@@ -148,7 +155,9 @@ export function DashboardCards() {
 					<Card className="p-4 hover:border-primary/30 transition-colors">
 						<div className="flex items-center gap-2 text-muted-foreground mb-1">
 							<AlertCircleIcon className="size-3.5" />
-							<span className="text-xs">已阻塞</span>
+							<span className="text-xs">
+								{t("dashboard.kpi.blocked")}
+							</span>
 						</div>
 						<p className="text-xl font-bold">{blocked.length}</p>
 					</Card>
@@ -157,7 +166,9 @@ export function DashboardCards() {
 					<Card className="p-4 hover:border-primary/30 transition-colors">
 						<div className="flex items-center gap-2 text-muted-foreground mb-1">
 							<ListTodoIcon className="size-3.5" />
-							<span className="text-xs">需复核</span>
+							<span className="text-xs">
+								{t("dashboard.kpi.needsReview")}
+							</span>
 						</div>
 						<p className="text-xl font-bold">
 							{needsReview.length}
@@ -168,7 +179,9 @@ export function DashboardCards() {
 					<Card className="p-4 hover:border-primary/30 transition-colors">
 						<div className="flex items-center gap-2 text-muted-foreground mb-1">
 							<MailIcon className="size-3.5" />
-							<span className="text-xs">已连接邮箱</span>
+							<span className="text-xs">
+								{t("dashboard.kpi.connectedMailboxes")}
+							</span>
 						</div>
 						<p className="text-xl font-bold">
 							{connections?.length ?? 0}
@@ -181,13 +194,13 @@ export function DashboardCards() {
 			<div>
 				<div className="flex items-center justify-between mb-3">
 					<h3 className="text-sm font-medium text-muted-foreground">
-						近期动态
+						{t("dashboard.section.recentActivity")}
 					</h3>
 					<Link
 						href={`${pathname}/inbox`}
 						className="text-xs text-primary hover:underline"
 					>
-						查看全部
+						{t("dashboard.action.viewAll")}
 					</Link>
 				</div>
 				{isLoading ? (
@@ -198,13 +211,13 @@ export function DashboardCards() {
 					<Card className="p-8 text-center">
 						<InboxIcon className="size-8 text-muted-foreground/30 mx-auto mb-2" />
 						<p className="text-sm text-muted-foreground">
-							连接邮箱后，Flowmail 将自动分类处理你的邮件。
+							{t("dashboard.empty.hint")}
 						</p>
 						<Link
 							href={`${pathname}/settings/email-connections`}
 							className="inline-block mt-3 text-sm text-primary hover:underline"
 						>
-							连接邮箱
+							{t("dashboard.action.connectMailbox")}
 						</Link>
 					</Card>
 				) : (

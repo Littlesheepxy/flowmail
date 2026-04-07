@@ -16,8 +16,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export function WorkflowBoard() {
+	const t = useTranslations("flowmail");
 	const { activeOrganization } = useActiveOrganization();
 	const pathname = usePathname();
 	const queryClient = useQueryClient();
@@ -80,7 +82,7 @@ export function WorkflowBoard() {
 
 	const lanes = [
 		{
-			title: "待审批",
+			title: t("workflow.column.pendingApproval"),
 			icon: ClockIcon,
 			color: "text-amber-600",
 			items: pendingApprovals ?? [],
@@ -88,7 +90,7 @@ export function WorkflowBoard() {
 			type: "approval" as const,
 		},
 		{
-			title: "已阻塞",
+			title: t("workflow.column.blocked"),
 			icon: AlertCircleIcon,
 			color: "text-red-500",
 			items: blocked,
@@ -96,7 +98,7 @@ export function WorkflowBoard() {
 			type: "blocked" as const,
 		},
 		{
-			title: "需复核",
+			title: t("workflow.column.needsReview"),
 			icon: EyeIcon,
 			color: "text-blue-500",
 			items: needsReview,
@@ -111,7 +113,7 @@ export function WorkflowBoard() {
 			className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6"
 		>
 			{lanes.map((lane) => (
-				<div key={lane.title}>
+				<div key={lane.type}>
 					<div className="flex items-center gap-2 mb-3">
 						<lane.icon className={cn("size-4", lane.color)} />
 						<h3 className="text-sm font-semibold">{lane.title}</h3>
@@ -130,7 +132,7 @@ export function WorkflowBoard() {
 							</div>
 						) : lane.items.length === 0 ? (
 							<Card className="p-4 text-center text-sm text-muted-foreground">
-								暂无
+								{t("workflow.column.empty")}
 							</Card>
 						) : (
 							lane.items.map((item) => {
@@ -189,7 +191,9 @@ export function WorkflowBoard() {
 													}
 												>
 													<CheckIcon className="size-3 mr-0.5" />
-													批准
+													{t(
+														"workflow.action.approve",
+													)}
 												</Button>
 												<Button
 													size="sm"
@@ -206,7 +210,9 @@ export function WorkflowBoard() {
 													}
 												>
 													<XIcon className="size-3 mr-0.5" />
-													拒绝
+													{t(
+														"workflow.action.reject",
+													)}
 												</Button>
 											</div>
 										)}

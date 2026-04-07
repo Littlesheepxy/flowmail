@@ -4,6 +4,7 @@ import { cn } from "@repo/ui";
 import { useSidebar } from "@saas/shared/lib/sidebar-context";
 import { SearchIcon, SlidersHorizontalIcon, SparklesIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePageGuide } from "../hooks/use-page-guide";
 import { AgentPanel } from "./AgentPanel";
@@ -27,6 +28,7 @@ const AGENT_MAX_W = 600;
 const AGENT_DEFAULT_W = 380;
 
 export function SmartInbox() {
+	const t = useTranslations("flowmail");
 	const { isCollapsed } = useSidebar();
 	const isWide = useIsWideScreen();
 	const searchParams = useSearchParams();
@@ -113,7 +115,7 @@ export function SmartInbox() {
 					<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
 					<input
 						type="text"
-						placeholder="搜索邮件、审批、汇报..."
+						placeholder={t("smartInbox.search.placeholder")}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						className="w-full rounded-full bg-background/80 py-1.5 pl-9 pr-4 text-sm outline-none border border-border/50 focus:bg-background focus:border-border focus:ring-1 focus:ring-primary/20 transition-colors"
@@ -126,7 +128,9 @@ export function SmartInbox() {
 						className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-background/60 transition-colors"
 					>
 						<SlidersHorizontalIcon className="size-3.5" />
-						<span className="hidden sm:inline">筛选</span>
+						<span className="hidden sm:inline">
+							{t("smartInbox.filter.toggle")}
+						</span>
 					</button>
 
 					<button

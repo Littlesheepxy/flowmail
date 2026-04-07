@@ -4,6 +4,7 @@ import type { HelpSuggestion } from "@ai-eyes/core";
 import type { AiEyesPosition } from "@ai-eyes/react";
 import { AiEyes, useAiEyes } from "@ai-eyes/react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AgentPanel } from "./AgentPanel";
 import { useAgent } from "./AgentProvider";
@@ -48,6 +49,7 @@ function computePanelPosition(eyePos: AiEyesPosition) {
 }
 
 export function AgentFloatingButton() {
+	const t = useTranslations();
 	const pathname = usePathname();
 	const { isFloatingOpen, toggleFloating, setIsFloatingOpen } = useAgent();
 	const { setMood } = useAiEyes();
@@ -133,8 +135,8 @@ export function AgentFloatingButton() {
 						onPositionChange={handlePositionChange}
 						mood={isFloatingOpen ? "happy" : undefined}
 						locale={{
-							helpAccept: "帮我解决",
-							helpDismiss: "不需要",
+							helpAccept: t("aiEyes.helpAccept"),
+							helpDismiss: t("aiEyes.helpDismiss"),
 						}}
 						style={{ color: "var(--foreground)" }}
 					/>

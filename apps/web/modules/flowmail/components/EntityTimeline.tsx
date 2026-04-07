@@ -38,6 +38,7 @@ import {
 	UserIcon,
 	ZapIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { useAgent } from "./AgentProvider";
 
@@ -120,7 +121,16 @@ const LAYER_COLORS = {
 
 type Severity = "info" | "warning" | "critical";
 
-function detectSeverity(aiMeta?: Record<string, unknown>): Severity {
+interface SeverityRiskLabels {
+	urgent: string;
+	riskHigh: string;
+	riskMedium: string;
+}
+
+function detectSeverity(
+	aiMeta: Record<string, unknown> | undefined,
+	labels: SeverityRiskLabels,
+): Severity {
 	if (!aiMeta) {
 		return "info";
 	}
@@ -131,18 +141,21 @@ function detectSeverity(aiMeta?: Record<string, unknown>): Severity {
 	const risk = extractedFields?.risk as string | undefined;
 	const urgency = extractedFields?.urgency as string | undefined;
 
-	if (
-		urgency === "紧急" ||
-		risk === "高" ||
-		(riskSignals && riskSignals.length >= 2)
-	) {
+	const isUrgent =
+		urgency === labels.urgent || urgency === "紧急" || urgency === "Urgent";
+	const isHighRisk =
+		risk === labels.riskHigh || risk === "高" || risk === "High";
+
+	if (isUrgent || isHighRisk || (riskSignals && riskSignals.length >= 2)) {
 		return "critical";
 	}
-	if (
+	const isMediumRisk =
+		risk === labels.riskMedium ||
 		risk === "中" ||
 		risk === "中等" ||
-		(riskSignals && riskSignals.length >= 1)
-	) {
+		risk === "Medium";
+
+	if (isMediumRisk || (riskSignals && riskSignals.length >= 1)) {
 		return "warning";
 	}
 	return "info";
@@ -197,6 +210,7 @@ function DeadlineWarning({
 }: {
 	extractedFields?: string | null;
 }) {
+	const t = useTranslations("flowmail");
 	if (!extractedFields) {
 		return null;
 	}
@@ -243,10 +257,12 @@ function DeadlineWarning({
 		>
 			<ClockIcon className="size-3.5 shrink-0" />
 			{isOverdue
-				? `已逾期 ${Math.abs(diffDays)} 天`
+				? t("timeline.deadline.overdueDays", {
+						days: Math.abs(diffDays),
+					})
 				: diffDays === 0
-					? "今天截止"
-					: `截止还剩 ${diffDays} 天`}
+					? t("timeline.deadline.dueToday")
+					: t("timeline.deadline.daysLeft", { days: diffDays })}
 		</div>
 	);
 }
@@ -279,6 +295,7 @@ function DeltaBadge({ delta }: { delta?: number | null }) {
 
 /** AI 摘要行 — 默认展示，替代完整卡片 */
 function AiSummaryLine({ aiEvent }: { aiEvent: TimelineEvent }) {
+	const t = useTranslations("flowmail");
 	const meta = parseMeta(aiEvent.metadata);
 	const confidence = meta.confidence as number | undefined;
 	const progressDelta = meta.progressDelta as number | undefined;
@@ -295,13 +312,19 @@ function AiSummaryLine({ aiEvent }: { aiEvent: TimelineEvent }) {
 		const risk = extractedFields.risk as string | undefined;
 		const blocker = extractedFields.blocker as string | undefined;
 		if (progress) {
-			summaryParts.push(`进度 ${progress}`);
+			summaryParts.push(
+				t("timeline.summary.progress", { value: progress }),
+			);
 		}
-		if (risk && risk !== "无") {
-			summaryParts.push(`风险: ${risk}`);
+		const noneRisk =
+			risk === t("timeline.risk.none") ||
+			risk === "无" ||
+			risk === "None";
+		if (risk && !noneRisk) {
+			summaryParts.push(t("timeline.summary.risk", { risk }));
 		}
 		if (blocker) {
-			summaryParts.push(`阻塞: ${blocker}`);
+			summaryParts.push(t("timeline.summary.blocker", { blocker }));
 		}
 	}
 
@@ -342,6 +365,7 @@ function AiSummaryLine({ aiEvent }: { aiEvent: TimelineEvent }) {
 
 /** AI 分析详情卡 — 可折叠展开 */
 function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
+	const t = useTranslations("flowmail");
 	const meta = parseMeta(aiEvent.metadata);
 	const extractedFields = meta.extractedFields as
 		| Record<string, unknown>
@@ -395,7 +419,7 @@ function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
 			{riskSignals && riskSignals.length > 0 && (
 				<div className="space-y-1">
 					<p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
-						风险信号
+						{t("timeline.aiDetail.riskSignals")}
 					</p>
 					{riskSignals.map((s) => (
 						<div
@@ -413,7 +437,7 @@ function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
 				<details className="group">
 					<summary className="cursor-pointer text-[11px] text-muted-foreground select-none list-none flex items-center gap-1 hover:text-foreground transition-colors">
 						<ChevronDownIcon className="size-3 transition-transform group-open:rotate-180" />
-						查看推理过程
+						{t("timeline.aiDetail.viewReasoning")}
 					</summary>
 					<p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground pl-4 border-l border-border">
 						{reasoning}
@@ -434,6 +458,7 @@ function SuggestionBar({
 	entityId: string;
 	entityTitle: string;
 }) {
+	const t = useTranslations("flowmail");
 	const [dismissed, setDismissed] = useState(
 		suggestion.status === "dismissed",
 	);
@@ -570,7 +595,7 @@ function SuggestionBar({
 										className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
 										onClick={() => setDismissed(true)}
 									>
-										忽略
+										{t("timeline.suggestion.dismiss")}
 									</Button>
 								</div>
 							)}
@@ -589,10 +614,14 @@ function SuggestionBar({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>确认执行</AlertDialogTitle>
+						<AlertDialogTitle>
+							{t("timeline.execution.confirmTitle")}
+						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="space-y-2">
-								<p>即将让 Agent 执行以下操作：</p>
+								<p>
+									{t("timeline.execution.confirmDescription")}
+								</p>
 								<div className="rounded-md border bg-muted/50 p-3 text-sm">
 									<p className="font-medium text-foreground">
 										{pendingAction?.label}
@@ -602,14 +631,15 @@ function SuggestionBar({
 									</p>
 								</div>
 								<p className="text-xs text-muted-foreground">
-									Agent
-									会根据上下文自主判断具体执行步骤，可能包含多个操作。
+									{t("timeline.execution.confirmHint")}
 								</p>
 							</div>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>取消</AlertDialogCancel>
+						<AlertDialogCancel>
+							{t("common.cancel")}
+						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => {
 								if (pendingAction) {
@@ -618,7 +648,7 @@ function SuggestionBar({
 								setConfirmAction(undefined);
 							}}
 						>
-							确认执行
+							{t("timeline.execution.confirmAction")}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -671,6 +701,7 @@ function AddNoteForm({
 	entityId: string;
 	onAdded: () => void;
 }) {
+	const t = useTranslations("flowmail");
 	const [open, setOpen] = useState(false);
 	const [content, setContent] = useState("");
 	const queryClient = useQueryClient();
@@ -698,7 +729,7 @@ function AddNoteForm({
 				className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
 			>
 				<PlusIcon className="size-3.5" />
-				添加备注
+				{t("timeline.note.addTitle")}
 			</button>
 		);
 	}
@@ -706,7 +737,7 @@ function AddNoteForm({
 	return (
 		<div className="space-y-2">
 			<Textarea
-				placeholder="记录备注、里程碑或决策..."
+				placeholder={t("timeline.note.placeholder")}
 				value={content}
 				onChange={(e) => setContent(e.target.value)}
 				className="text-sm min-h-[72px] resize-none"
@@ -724,7 +755,7 @@ function AddNoteForm({
 						})
 					}
 				>
-					保存
+					{t("common.save")}
 				</Button>
 				<Button
 					size="sm"
@@ -734,7 +765,7 @@ function AddNoteForm({
 						setContent("");
 					}}
 				>
-					取消
+					{t("common.cancel")}
 				</Button>
 			</div>
 		</div>
@@ -751,6 +782,7 @@ export function EntityTimeline({
 	status: _status,
 	extractedFields,
 }: EntityTimelineProps) {
+	const t = useTranslations("flowmail");
 	const [filter, setFilter] = useState<"all" | "email" | "action" | "system">(
 		"all",
 	);
@@ -775,10 +807,10 @@ export function EntityTimeline({
 	}, [events]);
 
 	const filters: { id: typeof filter; label: string }[] = [
-		{ id: "all", label: "全部" },
-		{ id: "email", label: "邮件" },
-		{ id: "action", label: "操作" },
-		{ id: "system", label: "状态" },
+		{ id: "all", label: t("timeline.filter.all") },
+		{ id: "email", label: t("timeline.filter.email") },
+		{ id: "action", label: t("timeline.filter.action") },
+		{ id: "system", label: t("timeline.filter.status") },
 	];
 
 	const visible = primaryEvents.filter((e) => {
@@ -806,7 +838,7 @@ export function EntityTimeline({
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
 					<ClockIcon className="size-4 text-muted-foreground" />
-					时间线
+					{t("timeline.title")}
 				</div>
 				<div className="flex gap-0.5 rounded-md border bg-muted/40 p-0.5">
 					{filters.map((f) => (
@@ -833,7 +865,7 @@ export function EntityTimeline({
 			<div>
 				{visible.length === 0 && (
 					<p className="py-6 text-center text-xs text-muted-foreground">
-						暂无事件
+						{t("timeline.empty")}
 					</p>
 				)}
 
@@ -854,7 +886,11 @@ export function EntityTimeline({
 						? parseMeta(aiSummary.metadata)
 						: undefined;
 					const severity = aiSummary
-						? detectSeverity(aiMeta)
+						? detectSeverity(aiMeta, {
+								urgent: t("timeline.urgency.urgent"),
+								riskHigh: t("timeline.risk.high"),
+								riskMedium: t("timeline.risk.medium"),
+							})
 						: "info";
 					const isAiExpanded = expandedAi.has(event.id);
 
@@ -932,7 +968,10 @@ export function EntityTimeline({
 										<div className="flex items-center gap-1.5 mt-1.5">
 											{event.type === "milestone" && (
 												<span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
-													🏁 里程碑
+													🏁{" "}
+													{t(
+														"timeline.milestone.badge",
+													)}
 												</span>
 											)}
 											{event.type === "action_taken" &&
@@ -946,7 +985,9 @@ export function EntityTimeline({
 															<span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
 																<ShieldCheckIcon className="size-3 shrink-0" />
 																<span>
-																	已批准
+																	{t(
+																		"timeline.status.approved",
+																	)}
 																</span>
 															</span>
 														);
@@ -955,7 +996,9 @@ export function EntityTimeline({
 														return (
 															<span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">
 																<span>
-																	已拒绝
+																	{t(
+																		"timeline.status.rejected",
+																	)}
 																</span>
 															</span>
 														);

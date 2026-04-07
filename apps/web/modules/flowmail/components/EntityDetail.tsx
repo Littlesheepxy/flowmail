@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { EntityTimeline } from "./EntityTimeline";
@@ -78,6 +79,7 @@ function FieldGrid({ fields }: { fields: Record<string, unknown> }) {
 }
 
 function RiskPanel({ entityId }: { entityId: string }) {
+	const t = useTranslations("flowmail");
 	const [expanded, setExpanded] = useState(false);
 
 	const { data: risk, isLoading } = useQuery({
@@ -96,7 +98,7 @@ function RiskPanel({ entityId }: { entityId: string }) {
 			>
 				<div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
 					<ShieldAlertIcon className="size-4" />
-					AI 风险预测
+					{t("entityDetail.riskPrediction.title")}
 				</div>
 				{expanded ? (
 					<ChevronUpIcon className="size-4 text-muted-foreground" />
@@ -110,7 +112,7 @@ function RiskPanel({ entityId }: { entityId: string }) {
 					{isLoading ? (
 						<div className="flex items-center gap-2 text-sm text-muted-foreground">
 							<Spinner className="size-4" />
-							正在分析风险...
+							{t("entityDetail.riskPrediction.analyzing")}
 						</div>
 					) : risk ? (
 						<div className="space-y-3">
@@ -119,22 +121,35 @@ function RiskPanel({ entityId }: { entityId: string }) {
 									className={`rounded-md px-2.5 py-1 text-sm font-semibold ${RISK_COLORS[risk.riskLevel] ?? RISK_COLORS.low}`}
 								>
 									{risk.riskLevel === "low"
-										? "低风险"
+										? t("entityDetail.riskLevel.low")
 										: risk.riskLevel === "medium"
-											? "中风险"
+											? t("entityDetail.riskLevel.medium")
 											: risk.riskLevel === "high"
-												? "高风险"
-												: "严重风险"}
+												? t(
+														"entityDetail.riskLevel.high",
+													)
+												: t(
+														"entityDetail.riskLevel.critical",
+													)}
 								</span>
 								<span className="text-xs text-muted-foreground">
-									置信度 {Math.round(risk.confidence * 100)}%
+									{t(
+										"entityDetail.riskPrediction.confidence",
+										{
+											value: Math.round(
+												risk.confidence * 100,
+											),
+										},
+									)}
 								</span>
 							</div>
 
 							{risk.deadlineRisk.hasDeadline && (
 								<div className="text-sm">
 									<span className="text-muted-foreground">
-										截止日期：
+										{t(
+											"entityDetail.riskPrediction.deadlineLabel",
+										)}
 									</span>
 									<span
 										className={`font-medium ${risk.deadlineRisk.isAtRisk ? "text-red-600 dark:text-red-400" : ""}`}
@@ -143,12 +158,13 @@ function RiskPanel({ entityId }: { entityId: string }) {
 										{risk.deadlineRisk.daysRemaining !=
 											null && (
 											<span className="ml-1 text-xs">
-												（剩余{" "}
-												{
-													risk.deadlineRisk
-														.daysRemaining
-												}{" "}
-												天）
+												{t(
+													"entityDetail.riskPrediction.daysRemaining",
+													{
+														days: risk.deadlineRisk
+															.daysRemaining,
+													},
+												)}
 											</span>
 										)}
 									</span>
@@ -158,7 +174,9 @@ function RiskPanel({ entityId }: { entityId: string }) {
 							{risk.riskFactors.length > 0 && (
 								<div>
 									<p className="mb-1.5 text-xs font-medium text-muted-foreground">
-										风险因素
+										{t(
+											"entityDetail.riskPrediction.factors",
+										)}
 									</p>
 									<ul className="space-y-1">
 										{risk.riskFactors.map((f) => (
@@ -177,7 +195,9 @@ function RiskPanel({ entityId }: { entityId: string }) {
 							{risk.predictedOutcome && (
 								<p className="text-sm text-muted-foreground">
 									<span className="font-medium text-foreground">
-										预测：
+										{t(
+											"entityDetail.riskPrediction.outcomeLabel",
+										)}
 									</span>
 									{risk.predictedOutcome}
 								</p>
@@ -186,7 +206,9 @@ function RiskPanel({ entityId }: { entityId: string }) {
 							{risk.suggestedActions.length > 0 && (
 								<div>
 									<p className="mb-1.5 text-xs font-medium text-muted-foreground">
-										建议操作
+										{t(
+											"entityDetail.riskPrediction.suggestedActions",
+										)}
 									</p>
 									<ul className="space-y-1">
 										{risk.suggestedActions.map((a) => (
@@ -210,6 +232,7 @@ function RiskPanel({ entityId }: { entityId: string }) {
 }
 
 export function EntityDetail() {
+	const t = useTranslations("flowmail");
 	const params = useParams();
 	const pathname = usePathname();
 	const queryClient = useQueryClient();
@@ -273,7 +296,7 @@ export function EntityDetail() {
 			const connectionId = (thread as { connectionId?: string })
 				.connectionId;
 			if (!connectionId) {
-				toast.error("找不到邮箱连接，无法发送");
+				toast.error(t("entityDetail.email.noConnection"));
 				return;
 			}
 
@@ -335,7 +358,7 @@ export function EntityDetail() {
 					inReplyTo: messageId ?? undefined,
 				});
 
-				toast.success("邮件已发送");
+				toast.success(t("entityDetail.email.sentSuccess"));
 				setReplyThreadId(null);
 
 				await queryClient.invalidateQueries({
@@ -345,11 +368,16 @@ export function EntityDetail() {
 				});
 			} catch (err) {
 				toast.error(
-					`发送失败: ${err instanceof Error ? err.message : "未知错误"}`,
+					t("entityDetail.email.sendFailed", {
+						error:
+							err instanceof Error
+								? err.message
+								: t("common.error.unknown"),
+					}),
 				);
 			}
 		},
-		[entity, replyThreadId, sendMutation, queryClient, entityId],
+		[entity, replyThreadId, sendMutation, queryClient, entityId, t],
 	);
 
 	if (isLoading) {
@@ -409,8 +437,8 @@ export function EntityDetail() {
 						)}
 						{entity.aiConfidence != null && (
 							<span className="text-xs text-muted-foreground">
-								{Math.round(entity.aiConfidence * 100)}% AI
-								置信度
+								{Math.round(entity.aiConfidence * 100)}% AI{" "}
+								{t("entityDetail.extractedFields.confidence")}
 							</span>
 						)}
 					</div>
@@ -423,7 +451,7 @@ export function EntityDetail() {
 							onClick={() => approveMutation.mutate({ entityId })}
 						>
 							<CheckIcon className="mr-1 size-4" />
-							批准
+							{t("entityDetail.action.approve")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -436,7 +464,7 @@ export function EntityDetail() {
 							}
 						>
 							<XIcon className="mr-1 size-4" />
-							拒绝
+							{t("entityDetail.action.reject")}
 						</Button>
 					</div>
 				)}
@@ -449,7 +477,7 @@ export function EntityDetail() {
 						<Card className="p-4">
 							<div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
 								<BotIcon className="size-4" />
-								AI 摘要
+								{t("entityDetail.section.aiSummary")}
 							</div>
 							<p className="text-sm leading-relaxed">
 								{entity.aiSummary}
@@ -460,7 +488,7 @@ export function EntityDetail() {
 					{Object.keys(fields).length > 0 && (
 						<Card className="p-4">
 							<h3 className="mb-3 text-sm font-medium text-muted-foreground">
-								提取字段
+								{t("entityDetail.section.extractedFields")}
 							</h3>
 							<FieldGrid fields={fields} />
 						</Card>
@@ -470,7 +498,9 @@ export function EntityDetail() {
 					{entity.threads && entity.threads.length > 0 && (
 						<Card className="p-4">
 							<h3 className="mb-3 text-sm font-medium text-muted-foreground">
-								关联邮件（{entity.threads.length}）
+								{t("entityDetail.section.relatedThreads", {
+									count: entity.threads.length,
+								})}
 							</h3>
 							<div className="space-y-3">
 								{entity.threads.map((thread) => (
@@ -506,7 +536,9 @@ export function EntityDetail() {
 														}
 													>
 														<ReplyIcon className="size-3" />
-														回复
+														{t(
+															"entityDetail.emailAction.reply",
+														)}
 													</Button>
 													<Button
 														variant="secondary"
@@ -520,7 +552,9 @@ export function EntityDetail() {
 														}
 													>
 														<ForwardIcon className="size-3" />
-														转发
+														{t(
+															"entityDetail.emailAction.forward",
+														)}
 													</Button>
 												</div>
 											</div>

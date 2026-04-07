@@ -12,6 +12,7 @@ import {
 	InboxIcon,
 	XCircleIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const STATUS_CONFIG: Record<
 	string,
@@ -43,6 +44,7 @@ export function EntityCardList({
 	categorySlug,
 	search = "",
 }: EntityCardListProps) {
+	const t = useTranslations("flowmail");
 	const { activeOrganization } = useActiveOrganization();
 
 	const { data, isLoading } = useQuery({
@@ -81,7 +83,7 @@ export function EntityCardList({
 		>();
 		for (const entity of filteredEntities) {
 			const cat = (entity as { category?: CategoryInfo | null }).category;
-			const key = cat?.name ?? "未分类";
+			const key = cat?.name ?? t("inbox.uncategorized");
 			const color = cat?.color ?? "#94a3b8";
 			if (!groupMap.has(key)) {
 				groupMap.set(key, {
@@ -105,8 +107,8 @@ export function EntityCardList({
 					<InboxIcon className="size-10 text-muted-foreground/30 mb-3" />
 					<p className="text-sm text-muted-foreground">
 						{search
-							? "无匹配结果"
-							: "还没有邮件。连接邮箱开始处理。"}
+							? t("inbox.empty.noMatch")
+							: t("inbox.empty.noEntities")}
 					</p>
 				</div>
 			) : grouped ? (

@@ -1273,5 +1273,551 @@
 		"panelTitle": "AI Assistant",
 		"panelSubtitle": "I noticed you might need some help",
 		"placeholder": "How can I help you?"
+	},
+	"flowmail": {
+		"common": {
+			"loading": "Loading...",
+			"cancel": "Cancel",
+			"save": "Save",
+			"create": "Create",
+			"or": "or",
+			"error": {
+				"unknown": "Unknown error"
+			}
+		},
+		"dashboard": {
+			"category": {
+				"approval": "Approvals",
+				"report": "Reports",
+				"issue": "Issues",
+				"feedback": "Feedback"
+			},
+			"section": {
+				"categoryDistribution": "Category Distribution",
+				"recentActivity": "Recent Activity"
+			},
+			"kpi": {
+				"pendingApproval": "Pending Approval",
+				"blocked": "Blocked",
+				"needsReview": "Needs Review",
+				"connectedMailboxes": "Connected Mailboxes"
+			},
+			"action": {
+				"viewAll": "View All",
+				"connectMailbox": "Connect Mailbox"
+			},
+			"empty": {
+				"hint": "After connecting your mailbox, Flowmail will automatically classify and process your emails."
+			}
+		},
+		"entityDetail": {
+			"riskPrediction": {
+				"title": "AI Risk Prediction",
+				"analyzing": "Analyzing risk...",
+				"confidence": "Confidence {value}%",
+				"deadlineLabel": "Deadline:",
+				"daysRemaining": "({days} days remaining)",
+				"factors": "Risk Factors",
+				"outcomeLabel": "Prediction:",
+				"suggestedActions": "Suggested Actions"
+			},
+			"riskLevel": {
+				"low": "Low Risk",
+				"medium": "Medium Risk",
+				"high": "High Risk",
+				"critical": "Critical Risk"
+			},
+			"email": {
+				"noConnection": "No mailbox connection found, unable to send",
+				"sentSuccess": "Email sent",
+				"sendFailed": "Send failed: {error}"
+			},
+			"extractedFields": {
+				"confidence": "Confidence"
+			},
+			"action": {
+				"approve": "Approve",
+				"reject": "Reject"
+			},
+			"section": {
+				"aiSummary": "AI Summary",
+				"extractedFields": "Extracted Fields",
+				"relatedThreads": "Related Emails ({count})"
+			},
+			"emailAction": {
+				"reply": "Reply",
+				"forward": "Forward"
+			}
+		},
+		"timeline": {
+			"title": "Timeline",
+			"empty": "No events yet",
+			"filter": {
+				"all": "All",
+				"email": "Email",
+				"action": "Action",
+				"status": "Status"
+			},
+			"status": {
+				"approved": "Approved",
+				"rejected": "Rejected"
+			},
+			"risk": {
+				"none": "None",
+				"medium": "Medium",
+				"high": "High"
+			},
+			"urgency": {
+				"urgent": "Urgent"
+			},
+			"deadline": {
+				"overdueDays": "Overdue by {days} days",
+				"dueToday": "Due today",
+				"daysLeft": "{days} days left"
+			},
+			"summary": {
+				"progress": "Progress {value}",
+				"risk": "Risk: {risk}",
+				"blocker": "Blocker: {blocker}"
+			},
+			"aiDetail": {
+				"riskSignals": "Risk Signals",
+				"viewReasoning": "View Reasoning"
+			},
+			"suggestion": {
+				"dismiss": "Dismiss"
+			},
+			"execution": {
+				"confirmTitle": "Confirm Execution",
+				"confirmDescription": "The Agent will perform the following action:",
+				"confirmHint": "The agent will autonomously determine the execution steps based on context, which may include multiple operations.",
+				"confirmAction": "Confirm Execution"
+			},
+			"note": {
+				"addTitle": "Add Note",
+				"placeholder": "Record notes, milestones, or decisions..."
+			},
+			"milestone": {
+				"badge": "Milestone"
+			}
+		},
+		"inbox": {
+			"uncategorized": "Uncategorized",
+			"empty": {
+				"noMatch": "No matching results",
+				"noEntities": "No emails yet. Connect a mailbox to get started."
+			}
+		},
+		"agent": {
+			"toolResult": {
+				"approved": "Approval granted",
+				"rejected": "Approval rejected",
+				"noteAdded": "Note added",
+				"statusUpdated": "Status updated"
+			},
+			"entityList": {
+				"pendingApprovalsLabel": "Pending Approvals"
+			},
+			"toolStatus": {
+				"generic": "Executing {name}...",
+				"get_entity": "Fetching item details...",
+				"approve_entity": "Approving...",
+				"reject_entity": "Rejecting...",
+				"predict_risk": "Analyzing risk...",
+				"get_timeline_diff": "Analyzing timeline changes...",
+				"add_note": "Adding note...",
+				"update_entity_status": "Updating status...",
+				"update_entity_type": "Reclassifying...",
+				"batch_reclassify": "Checking classification accuracy...",
+				"list_entities": "Listing items...",
+				"get_inbox_summary": "Fetching inbox summary...",
+				"list_pending_approvals": "Fetching pending approvals...",
+				"list_connections": "Fetching mailbox connections...",
+				"sync_emails": "Syncing emails...",
+				"send_email": "Sending email...",
+				"search_emails": "Searching emails..."
+			},
+			"toolDone": {
+				"generic": "Finished: {name}",
+				"get_entity": "Item details fetched",
+				"approve_entity": "Approval completed",
+				"reject_entity": "Rejection completed",
+				"predict_risk": "Risk analysis complete",
+				"get_timeline_diff": "Timeline analysis complete",
+				"add_note": "Note added",
+				"update_entity_status": "Status updated",
+				"update_entity_type": "Reclassification complete",
+				"batch_reclassify": "Classification check complete",
+				"list_entities": "Items listed",
+				"get_inbox_summary": "Inbox summary fetched",
+				"list_pending_approvals": "Pending approvals fetched",
+				"list_connections": "Connections fetched",
+				"sync_emails": "Sync complete",
+				"send_email": "Email sent",
+				"search_emails": "Search complete"
+			},
+			"suggestion": {
+				"global": {
+					"inboxOverview": "Inbox overview",
+					"pendingApprovalCount": "How many pending approvals?",
+					"checkClassification": "Check classification accuracy",
+					"syncEmails": "Sync emails"
+				},
+				"approval": {
+					"analyze": "Analyze this approval",
+					"assessRisk": "Assess risk",
+					"approve": "Approve",
+					"reject": "Reject",
+					"viewDetails": "View approval details",
+					"viewTimeline": "View timeline changes"
+				},
+				"report": {
+					"summarize": "Summarize project progress",
+					"analyzeRisk": "Analyze risk",
+					"viewChanges": "View recent changes",
+					"whatToFollowUp": "What needs follow-up?",
+					"viewDetails": "View report details"
+				},
+				"issue": {
+					"analyze": "Analyze this issue",
+					"assessRisk": "Assess risk and impact",
+					"viewProgress": "View resolution progress"
+				},
+				"default": {
+					"analyze": "Analyze this item",
+					"assessRisk": "Assess risk",
+					"viewTimeline": "View timeline changes"
+				}
+			},
+			"reasoning": {
+				"toggleLabel": "Reasoning"
+			},
+			"header": {
+				"thinking": "Thinking"
+			},
+			"scope": {
+				"currentEntity": "Current Item",
+				"all": "All"
+			},
+			"empty": {
+				"hintGlobal": "Try asking: inbox overview, pending approvals, search emails, sync mailbox...",
+				"hintEntity": "What can I help you with?"
+			},
+			"tool": {
+				"failedSuffix": "Failed"
+			},
+			"loading": {
+				"thinking": "Agent is thinking..."
+			},
+			"error": {
+				"title": "Agent encountered an error",
+				"retryHint": ", please retry",
+				"clearAndRetry": "Clear chat and retry"
+			},
+			"input": {
+				"placeholder": {
+					"entity": "Ask about \"{title}\"...",
+					"global": "Inbox overview, search, classify..."
+				}
+			},
+			"prompt": {
+				"executePrefix": "Please perform the following action: {action}",
+				"context": "Context: {message}",
+				"entity": "Item: \"{title}\" (ID: {id})",
+				"suggestedTool": "Suggested tool: {tool}",
+				"params": "Parameters: {json}",
+				"closing": "Based on context, decide what to execute—do not only describe; call tools to act."
+			}
+		},
+		"emailConnection": {
+			"page": {
+				"title": "Email Connections",
+				"subtitle": "Flowmail monitors these mailboxes and automatically extracts business items."
+			},
+			"action": {
+				"connect": "Connect Mailbox",
+				"sync": "Sync Emails",
+				"disconnect": "Disconnect",
+				"setImapPassword": "Set IMAP Password"
+			},
+			"table": {
+				"email": "Email",
+				"type": "Type",
+				"status": "Status",
+				"lastSync": "Last Sync",
+				"actions": "Actions"
+			},
+			"status": {
+				"connected": "Connected",
+				"disconnected": "Disconnected",
+				"needsImapPassword": "IMAP password required"
+			},
+			"lastSync": {
+				"never": "Never synced"
+			},
+			"empty": {
+				"title": "No connected mailboxes",
+				"hint": "Click \"Connect Mailbox\" above to start processing emails automatically."
+			},
+			"sync": {
+				"toastSuccess": "Sync complete: fetched {fetched} emails, processed {processed}{errorPart}",
+				"toastErrorsFailed": ", {count} failed",
+				"toastError": "Sync failed: {error}"
+			},
+			"connectDialog": {
+				"title": "Connect Mailbox",
+				"description": "Choose your email provider and connect securely with OAuth.",
+				"section": {
+					"overseas": "International",
+					"domestic": "China"
+				},
+				"genericImap": {
+					"title": "Other Email",
+					"description": "Generic IMAP (QQ, 163, Yahoo, etc.)"
+				},
+				"imapRowTitle": "Other email / Generic IMAP",
+				"imapRowSubtitle": "QQ Mail, 163, Yahoo, iCloud, and more"
+			},
+			"imapPasswordDialog": {
+				"title": "Set IMAP Password",
+				"description": "Some email providers require an app-specific password for IMAP access.",
+				"descriptionWithEmail": "Set an IMAP app password for {email} to enable mail sync.",
+				"label": "IMAP app password",
+				"placeholder": "App password from your mailbox settings",
+				"hint": "You can find this in your email provider's security settings.",
+				"hintProviderImap": "Enable IMAP in Lark/DingTalk/WeCom mail settings and generate an app password.",
+				"saving": "Saving...",
+				"save": "Save & Enable Sync"
+			},
+			"errors": {
+				"gmailOAuthNotConfigured": "Gmail OAuth is not configured (NEXT_PUBLIC_GMAIL_CLIENT_ID)",
+				"outlookOAuthNotConfigured": "Microsoft OAuth is not configured (NEXT_PUBLIC_MICROSOFT_CLIENT_ID)"
+			},
+			"pageGuide": {
+				"connectEmail": {
+					"step1": {
+						"title": "Step 1: Click \"Connect Mailbox\"",
+						"description": "Click this button to start. The dialog lists Gmail, Lark, DingTalk, WeCom, and generic IMAP (QQ Mail, 163, etc.). Pick your provider to authorize.\n\nAfter connecting, Flowmail will sync your mail and analyze it with AI."
+					}
+				}
+			},
+			"gmailOAuth": {
+				"title": "Connect Gmail",
+				"description": "Authorize with Google OAuth. Flowmail only requests read access to your mail.",
+				"hintRedirect": "You will be redirected to Google sign-in",
+				"hintReturn": "You will return to Flowmail after authorization",
+				"authorize": "Continue to Google"
+			},
+			"outlookOAuth": {
+				"title": "Connect Microsoft 365 / Outlook",
+				"description": "Authorize with Microsoft OAuth. Flowmail only requests mail read and send permissions.",
+				"hintRedirect": "You will be redirected to Microsoft sign-in",
+				"hintProviders": "Supports Microsoft 365, Outlook.com, Hotmail",
+				"authorize": "Continue to Microsoft"
+			},
+			"platformOAuth": {
+				"title": "Connect {provider}",
+				"description": "Enter the app credentials you created on the open platform, then complete OAuth.",
+				"appIdPlaceholder": "Enter App ID",
+				"appSecretPlaceholder": "Enter App Secret",
+				"imapPasswordLabel": "IMAP app password",
+				"imapPasswordRequiredHint": "(required for sync)",
+				"imapPasswordPlaceholder": "App password from mailbox settings",
+				"imapPasswordHint": "OAuth is only for sign-in; syncing mail requires an IMAP password. Enable IMAP and create an app password in mailbox settings.",
+				"noCredentials": "No app yet?",
+				"openPlatform": "Create one on the open platform →",
+				"authorize": "Continue to authorize"
+			},
+			"imapForm": {
+				"title": "Connect personal mailbox",
+				"description": "Connect via IMAP using your email address and an app-specific password.",
+				"emailLabel": "Email address",
+				"passwordLabel": "App password",
+				"passwordPlaceholder": "App password from mailbox settings",
+				"syncCountLabel": "Initial sync count",
+				"syncCountHint": "If your mailbox has fewer messages than this, all will be synced.",
+				"syncOption100": "Latest 100",
+				"syncOption500": "Latest 500 (recommended)",
+				"syncOption1000": "Latest 1,000",
+				"syncOption5000": "Latest 5,000",
+				"syncOption10000": "All (up to 10,000)",
+				"hostLabel": "IMAP server",
+				"portLabel": "Port",
+				"autoFillHint": "Server and port are filled automatically from your domain (QQ, 163, Outlook, etc.).",
+				"submit": "Test and connect"
+			},
+			"provider": {
+				"lark": {
+					"name": "Lark Mail",
+					"description": "Lark Platform OAuth"
+				},
+				"dingtalk": {
+					"name": "DingTalk Mail",
+					"description": "DingTalk Platform OAuth"
+				},
+				"wecom": {
+					"name": "WeCom Mail",
+					"description": "WeCom OAuth"
+				},
+				"other": {
+					"name": "Other Email",
+					"description": "Generic IMAP (QQ, 163, Yahoo, etc.)"
+				}
+			}
+		},
+		"replyComposer": {
+			"placeholder": "Type your reply...",
+			"mode": {
+				"reply": "Reply",
+				"replyAll": "Reply All",
+				"forward": "Forward"
+			},
+			"action": {
+				"send": "Send"
+			},
+			"format": {
+				"bold": "Bold",
+				"italic": "Italic",
+				"underline": "Underline",
+				"strikethrough": "Strikethrough",
+				"bulletList": "Bullet List",
+				"orderedList": "Ordered List",
+				"blockquote": "Blockquote",
+				"link": "Link",
+				"insertLink": "Insert link",
+				"linkPrompt": "Enter URL:"
+			},
+			"attachmentComingSoon": "Attachments (coming soon)"
+		},
+		"categoryManager": {
+			"deleteConfirm": "Delete this category? Related emails will move to “Uncategorized”.",
+			"count": "{count} categories",
+			"action": {
+				"create": "New category"
+			},
+			"badge": {
+				"default": "Default"
+			},
+			"emptyPrompt": "No AI prompt configured",
+			"entityCountSuffix": "items",
+			"dialog": {
+				"editTitle": "Edit category",
+				"createTitle": "New category"
+			},
+			"form": {
+				"name": "Name",
+				"slug": "Slug",
+				"namePlaceholder": "e.g. Customer support tickets",
+				"slugPlaceholder": "e.g. customer-service",
+				"icon": "Icon",
+				"color": "Color",
+				"aiPrompt": "AI classification prompt",
+				"aiPromptPlaceholder": "Describe emails that belong here, e.g. approval requests, authorization needs...",
+				"aiPromptHint": "AI uses this prompt to decide if an email matches this category. Describe key traits and keywords."
+			},
+			"preview": {
+				"label": "Preview",
+				"slugFallback": "slug"
+			},
+			"tour": {
+				"step1": {
+					"title": "Step 1: Click “New category”",
+					"description": "Use this button to create a category. Each category is a business type (approvals, reports, tickets, etc.).\n\nWhen creating, set:\n• Category name (e.g. “Approval requests”)\n• AI prompt (what kinds of emails belong here, e.g. “Emails with approval, authorization, or approval-request keywords”)\n\nAI will assign new mail using your prompt."
+				}
+			}
+		},
+		"threadView": {
+			"email": {
+				"noConnection": "No mailbox connection found, unable to send",
+				"sentSuccess": "Email sent",
+				"sendFailed": "Send failed: {error}"
+			},
+			"empty": {
+				"selectThread": {
+					"title": "Select an email to view details",
+					"subtitle": "Choose an item from the list on the left"
+				},
+				"noRelatedEmails": {
+					"title": "No related emails",
+					"subtitle": "Emails will be automatically linked to this item after processing"
+				}
+			},
+			"notFound": "Item not found",
+			"tab": {
+				"email": "Emails",
+				"timeline": "Timeline"
+			},
+			"action": {
+				"reply": "Reply",
+				"replyAll": "Reply All",
+				"forward": "Forward"
+			},
+			"recipient": {
+				"toPrefix": "To ",
+				"morePeople": "+{count} more",
+				"ccPrefix": "Cc:"
+			},
+			"quote": {
+				"expand": "··· Show quoted content"
+			},
+			"preview": {
+				"empty": "(No preview content)"
+			},
+			"attachment": {
+				"count": "{count} attachments",
+				"showAll": "Show all {count} attachments",
+				"download": "Download"
+			}
+		},
+		"workflow": {
+			"column": {
+				"pendingApproval": "Pending Approval",
+				"blocked": "Blocked",
+				"needsReview": "Needs Review",
+				"empty": "None"
+			},
+			"action": {
+				"approve": "Approve",
+				"reject": "Reject"
+			}
+		},
+		"notification": {
+			"type": {
+				"deadlineReminder": "Deadline reminder",
+				"overdue": "Overdue",
+				"approvalTimeout": "Approval timeout",
+				"newEntity": "New item",
+				"statusChange": "Status changed",
+				"dailyDigest": "Daily digest"
+			},
+			"panel": {
+				"title": "Notifications"
+			},
+			"action": {
+				"markAllRead": "Mark all read",
+				"view": "View"
+			},
+			"empty": "No notifications",
+			"aria": {
+				"bell": "Notifications",
+				"bellWithUnread": "Notifications ({count} unread)"
+			}
+		},
+		"time": {
+			"justNow": "Just now",
+			"minutesAgo": "{count} min ago",
+			"hoursAgo": "{count} h ago",
+			"daysAgo": "{count} d ago",
+			"dateSameYear": "{month}/{day} {hour}:{minute}",
+			"dateOtherYear": "{year}/{month}/{day}"
+		},
+		"smartInbox": {
+			"search": {
+				"placeholder": "Search emails, items..."
+			},
+			"filter": {
+				"toggle": "Filter"
+			}
+		}
 	}
 }

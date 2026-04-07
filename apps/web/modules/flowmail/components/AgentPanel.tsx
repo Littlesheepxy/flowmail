@@ -26,6 +26,7 @@ import {
 	XIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -41,6 +42,44 @@ interface AgentPanelProps {
 	onClose?: () => void;
 }
 
+type FlowmailTranslate = (
+	key: string,
+	values?: Record<string, string | number | Date>,
+) => string;
+
+const KNOWN_TOOL_NAMES = [
+	"get_entity",
+	"approve_entity",
+	"reject_entity",
+	"predict_risk",
+	"get_timeline_diff",
+	"add_note",
+	"update_entity_status",
+	"update_entity_type",
+	"batch_reclassify",
+	"list_entities",
+	"get_inbox_summary",
+	"list_pending_approvals",
+	"list_connections",
+	"sync_emails",
+	"send_email",
+	"search_emails",
+] as const;
+
+function toolPendingLabel(toolName: string, t: FlowmailTranslate): string {
+	if ((KNOWN_TOOL_NAMES as readonly string[]).includes(toolName)) {
+		return t(`agent.toolStatus.${toolName}`);
+	}
+	return t("agent.toolStatus.generic", { name: toolName });
+}
+
+function toolDoneLabel(toolName: string, t: FlowmailTranslate): string {
+	if ((KNOWN_TOOL_NAMES as readonly string[]).includes(toolName)) {
+		return t(`agent.toolDone.${toolName}`);
+	}
+	return t("agent.toolDone.generic", { name: toolName });
+}
+
 /** Tool 结果 → UI 卡片 */
 function toolResultToBlock(
 	toolName: string,
@@ -51,6 +90,7 @@ function toolResultToBlock(
 		type: string;
 		status: string;
 	} | null,
+	t: FlowmailTranslate,
 ): AgentUICard | null {
 	if (result.error) {
 		return null;
@@ -63,7 +103,9 @@ function toolResultToBlock(
 				success: Boolean(result.success),
 				action: toolName === "approve_entity" ? "approved" : "rejected",
 				message:
-					toolName === "approve_entity" ? "审批已通过" : "审批已拒绝",
+					toolName === "approve_entity"
+						? t("agent.toolResult.approved")
+						: t("agent.toolResult.rejected"),
 				fromStatus: String(result.fromStatus ?? "pending"),
 				toStatus: String(
 					result.toStatus ??
@@ -134,7 +176,7 @@ function toolResultToBlock(
 			type: "entity_list",
 			data: {
 				totalCount: Number(result.count ?? items.length),
-				filterLabel: "待审批事项",
+				filterLabel: t("agent.entityList.pendingApprovalsLabel"),
 				items,
 			},
 		};
@@ -195,7 +237,10 @@ function toolResultToBlock(
 			data: {
 				success: true,
 				action: toolName === "add_note" ? "add_note" : "update_status",
-				message: toolName === "add_note" ? "备注已添加" : "状态已更新",
+				message:
+					toolName === "add_note"
+						? t("agent.toolResult.noteAdded")
+						: t("agent.toolResult.statusUpdated"),
 				fromStatus: result.fromStatus
 					? String(result.fromStatus)
 					: undefined,
@@ -273,66 +318,62 @@ function toolResultToBlock(
 	return null;
 }
 
-// ── 工具名称映射 ─────────────────────────────────────────
-
-const TOOL_LABELS: Record<string, string> = {
-	get_entity: "正在获取事项详情...",
-	approve_entity: "正在执行批准...",
-	reject_entity: "正在执行拒绝...",
-	predict_risk: "正在分析风险...",
-	get_timeline_diff: "正在分析时间线变化...",
-	add_note: "正在添加备注...",
-	update_entity_status: "正在更新状态...",
-	update_entity_type: "正在重新分类...",
-	batch_reclassify: "正在检查分类准确性...",
-	list_entities: "正在检索事项...",
-	get_inbox_summary: "正在获取收件箱概览...",
-	list_pending_approvals: "正在查询待审批事项...",
-	list_connections: "正在查询邮箱连接...",
-	sync_emails: "正在同步邮件...",
-	send_email: "正在发送邮件...",
-	search_emails: "正在搜索邮件...",
-};
-
-function toolLabel(name: string): string {
-	return TOOL_LABELS[name] ?? `正在执行 ${name}...`;
-}
-
 // ── 快捷建议 ─────────────────────────────────────────────
 
-const GLOBAL_SUGGESTIONS = [
-	"收件箱概览",
-	"有多少待审批？",
-	"检查分类是否准确",
-	"同步邮件",
-];
-
-function getSuggestions(type: string | null, status: string | null): string[] {
+function getSuggestions(
+	type: string | null,
+	status: string | null,
+	t: FlowmailTranslate,
+): string[] {
 	if (!type) {
-		return GLOBAL_SUGGESTIONS;
+		return [
+			t("agent.suggestion.global.inboxOverview"),
+			t("agent.suggestion.global.pendingApprovalCount"),
+			t("agent.suggestion.global.checkClassification"),
+			t("agent.suggestion.global.syncEmails"),
+		];
 	}
 
 	if (type === "APPROVAL") {
 		if (status === "pending") {
-			return ["分析这个审批", "评估风险", "批准", "拒绝"];
+			return [
+				t("agent.suggestion.approval.analyze"),
+				t("agent.suggestion.approval.assessRisk"),
+				t("agent.suggestion.approval.approve"),
+				t("agent.suggestion.approval.reject"),
+			];
 		}
-		return ["查看审批详情", "查看时间线变化"];
+		return [
+			t("agent.suggestion.approval.viewDetails"),
+			t("agent.suggestion.approval.viewTimeline"),
+		];
 	}
 	if (type === "REPORT") {
 		if (status === "in_progress" || status === "received") {
 			return [
-				"总结项目进展",
-				"分析风险",
-				"查看最近变化",
-				"有什么需要跟进的？",
+				t("agent.suggestion.report.summarize"),
+				t("agent.suggestion.report.analyzeRisk"),
+				t("agent.suggestion.report.viewChanges"),
+				t("agent.suggestion.report.whatToFollowUp"),
 			];
 		}
-		return ["查看汇报详情", "分析风险"];
+		return [
+			t("agent.suggestion.report.viewDetails"),
+			t("agent.suggestion.report.analyzeRisk"),
+		];
 	}
 	if (type === "ISSUE") {
-		return ["分析这个问题", "评估风险和影响", "查看处理进展"];
+		return [
+			t("agent.suggestion.issue.analyze"),
+			t("agent.suggestion.issue.assessRisk"),
+			t("agent.suggestion.issue.viewProgress"),
+		];
 	}
-	return ["分析这个事项", "评估风险", "查看时间线变化"];
+	return [
+		t("agent.suggestion.default.analyze"),
+		t("agent.suggestion.default.assessRisk"),
+		t("agent.suggestion.default.viewTimeline"),
+	];
 }
 
 // ── Markdown 渲染 ────────────────────────────────────────
@@ -416,6 +457,7 @@ function MarkdownContent({ content }: { content: string }) {
 // ── 思考过程 ─────────────────────────────────────────────
 
 function ReasoningToggle({ text }: { text: string }) {
+	const t = useTranslations("flowmail");
 	const [open, setOpen] = useState(false);
 	return (
 		<div className="rounded-lg border bg-muted/40">
@@ -425,7 +467,7 @@ function ReasoningToggle({ text }: { text: string }) {
 				className="flex items-center gap-1.5 w-full px-2.5 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/60 transition-colors rounded-lg"
 			>
 				<BrainIcon className="size-3" />
-				<span>思考过程</span>
+				<span>{t("agent.reasoning.toggleLabel")}</span>
 				<ChevronDownIcon
 					className={cn(
 						"size-3 ml-auto transition-transform",
@@ -456,6 +498,7 @@ export function AgentPanel({
 	className,
 	onClose,
 }: AgentPanelProps) {
+	const t = useTranslations("flowmail");
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [input, setInput] = useState("");
 	const [scope, setScope] = useState<AgentScope>("entity");
@@ -549,22 +592,27 @@ export function AgentPanel({
 			return;
 		}
 		const instruction = [
-			`请执行以下操作：${exec.actionLabel}`,
+			t("agent.prompt.executePrefix", { action: exec.actionLabel }),
 			"",
-			`背景：${exec.suggestionMessage}`,
-			`事项："${exec.entityTitle}" (ID: ${exec.entityId})`,
-			`建议工具：${exec.actionTool}`,
+			t("agent.prompt.context", { message: exec.suggestionMessage }),
+			t("agent.prompt.entity", {
+				title: exec.entityTitle,
+				id: exec.entityId,
+			}),
+			t("agent.prompt.suggestedTool", { tool: exec.actionTool }),
 			exec.actionParams && Object.keys(exec.actionParams).length > 0
-				? `参数：${JSON.stringify(exec.actionParams)}`
+				? t("agent.prompt.params", {
+						json: JSON.stringify(exec.actionParams),
+					})
 				: "",
 			"",
-			"请根据上下文自主判断需要执行哪些操作，不要只是描述，直接调用工具执行。",
+			t("agent.prompt.closing"),
 		]
 			.filter(Boolean)
 			.join("\n");
 
 		sendMessage({ text: instruction });
-	}, [pendingExecution, isLoading, consumeExecution, sendMessage]);
+	}, [pendingExecution, isLoading, consumeExecution, sendMessage, t]);
 
 	function handleSubmit(e: FormEvent) {
 		e.preventDefault();
@@ -586,6 +634,7 @@ export function AgentPanel({
 	const suggestions = getSuggestions(
 		entity?.type ?? null,
 		entity?.status ?? null,
+		t,
 	);
 
 	return (
@@ -604,7 +653,7 @@ export function AgentPanel({
 							{isLoading && (
 								<span className="text-[10px] text-(--agent-accent) flex items-center gap-1 font-medium">
 									<Spinner className="size-2.5" />
-									思考中
+									{t("agent.header.thinking")}
 								</span>
 							)}
 						</div>
@@ -645,7 +694,7 @@ export function AgentPanel({
 										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
-								当前事项
+								{t("agent.scope.currentEntity")}
 							</button>
 							<button
 								type="button"
@@ -657,7 +706,7 @@ export function AgentPanel({
 										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
-								全部
+								{t("agent.scope.all")}
 							</button>
 						</div>
 					)}
@@ -719,9 +768,7 @@ export function AgentPanel({
 									<SparklesIcon className="size-5 text-muted-foreground/40" />
 								</div>
 								<p className="text-xs text-center leading-relaxed">
-									试试问我：收件箱概览、待审批列表、
-									<br />
-									搜索邮件、同步邮箱…
+									{t("agent.empty.hintGlobal")}
 								</p>
 							</div>
 						)}
@@ -732,7 +779,7 @@ export function AgentPanel({
 									<SparklesIcon className="size-5 text-muted-foreground/40" />
 								</div>
 								<p className="text-xs text-center">
-									有什么我可以帮你的？
+									{t("agent.empty.hintEntity")}
 								</p>
 							</div>
 						)}
@@ -883,10 +930,13 @@ export function AgentPanel({
 																className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive flex items-center gap-1.5"
 															>
 																<AlertTriangleIcon className="size-3 shrink-0" />
-																{toolLabel(
+																{toolPendingLabel(
 																	toolName,
+																	t,
 																)}
-																失败
+																{t(
+																	"agent.tool.failedSuffix",
+																)}
 															</div>
 														);
 													}
@@ -905,6 +955,7 @@ export function AgentPanel({
 																toolName,
 																output,
 																entityCtx,
+																t,
 															);
 														if (card) {
 															return (
@@ -927,17 +978,10 @@ export function AgentPanel({
 															>
 																<CheckCircle2Icon className="size-3 text-emerald-500" />
 																<span>
-																	{toolLabel(
+																	{toolDoneLabel(
 																		toolName,
-																	)
-																		.replace(
-																			"正在",
-																			"已完成",
-																		)
-																		.replace(
-																			"...",
-																			"",
-																		)}
+																		t,
+																	)}
 																</span>
 															</div>
 														);
@@ -960,7 +1004,7 @@ export function AgentPanel({
 								<div className="flex items-center gap-2 text-muted-foreground px-1">
 									<Spinner className="size-3.5" />
 									<span className="text-xs">
-										Agent 正在思考...
+										{t("agent.loading.thinking")}
 									</span>
 								</div>
 							)}
@@ -968,17 +1012,17 @@ export function AgentPanel({
 						{hasError && (
 							<div className="mx-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
 								<p className="text-xs text-destructive">
-									⚠️ Agent 遇到错误
+									⚠️ {t("agent.error.title")}
 									{error?.message
 										? `：${error.message.slice(0, 80)}`
-										: "，请重试"}
+										: t("agent.error.retryHint")}
 								</p>
 								<button
 									type="button"
 									onClick={() => setMessages([])}
 									className="mt-1.5 text-[11px] text-destructive/80 hover:text-destructive underline"
 								>
-									清除对话重试
+									{t("agent.error.clearAndRetry")}
 								</button>
 							</div>
 						)}
@@ -1012,8 +1056,10 @@ export function AgentPanel({
 								onChange={(e) => setInput(e.target.value)}
 								placeholder={
 									entity
-										? `问关于「${entity.title.slice(0, 12)}...」的问题`
-										: "收件箱概览、搜索、分类…"
+										? t("agent.input.placeholder.entity", {
+												title: `${entity.title.slice(0, 12)}…`,
+											})
+										: t("agent.input.placeholder.global")
 								}
 								className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
 								disabled={isLoading}

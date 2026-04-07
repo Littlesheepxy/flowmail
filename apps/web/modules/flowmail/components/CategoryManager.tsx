@@ -31,6 +31,7 @@ import {
 	TagIcon,
 	TrashIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 import { usePageGuide } from "../hooks/use-page-guide";
 
@@ -73,15 +74,15 @@ interface CategoryFormData {
 }
 
 export function CategoryManager() {
+	const t = useTranslations("flowmail");
 	const { activeOrganization } = useActiveOrganization();
 	const queryClient = useQueryClient();
 
 	usePageGuide("configureCategories", [
 		{
 			element: '[data-guide="create-category-btn"]',
-			title: "第 1 步：点击「新建分类」",
-			description:
-				"点击此按钮创建一个分类。每个分类代表一种业务类型（如审批、汇报、工单等）。\n\n创建时你需要填写：\n• 分类名称（如「审批请求」）\n• AI 提示词（告诉 AI 什么样的邮件属于这个分类，比如「包含请审批、approval 等关键词的邮件」）\n\nAI 会根据你写的提示词自动将新邮件归类。",
+			title: t("categoryManager.tour.step1.title"),
+			description: t("categoryManager.tour.step1.description"),
 			side: "bottom",
 		},
 	]);
@@ -151,7 +152,7 @@ export function CategoryManager() {
 	}
 
 	function handleDelete(id: string) {
-		if (!confirm("确定删除此分类？关联的邮件将移入「未分类」。")) {
+		if (!confirm(t("categoryManager.deleteConfirm"))) {
 			return;
 		}
 		deleteMutation.mutate({ id, organizationId: orgId });
@@ -169,7 +170,9 @@ export function CategoryManager() {
 		<div data-module="categories" className="space-y-6">
 			<div className="flex items-center justify-between">
 				<p className="text-sm text-muted-foreground">
-					共 {categories?.length ?? 0} 个分类
+					{t("categoryManager.count", {
+						count: categories?.length ?? 0,
+					})}
 				</p>
 				<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 					<DialogTrigger asChild>
@@ -181,7 +184,7 @@ export function CategoryManager() {
 							}}
 						>
 							<PlusIcon className="size-4 mr-1.5" />
-							新建分类
+							{t("categoryManager.action.create")}
 						</Button>
 					</DialogTrigger>
 					<DialogContent className="sm:max-w-[520px]">
@@ -244,17 +247,19 @@ export function CategoryManager() {
 									</span>
 									{cat.isDefault && (
 										<span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-											默认
+											{t("categoryManager.badge.default")}
 										</span>
 									)}
 								</div>
 								<p className="text-xs text-muted-foreground truncate mt-0.5 max-w-[400px]">
-									{cat.aiPrompt || "未配置 AI 提示词"}
+									{cat.aiPrompt ||
+										t("categoryManager.emptyPrompt")}
 								</p>
 							</div>
 
 							<span className="text-xs tabular-nums text-muted-foreground shrink-0">
-								{cat._count.entities} 条
+								{cat._count.entities}{" "}
+								{t("categoryManager.entityCountSuffix")}
 							</span>
 
 							<div className="flex items-center gap-1 shrink-0">
@@ -332,6 +337,7 @@ function CategoryForm({
 	onUpdate: (id: string, data: Partial<CategoryFormData>) => void;
 	isPending: boolean;
 }) {
+	const t = useTranslations("flowmail");
 	const existing = editId ? categories.find((c) => c.id === editId) : null;
 
 	const [name, setName] = useState(existing?.name ?? "");
@@ -372,29 +378,37 @@ function CategoryForm({
 	return (
 		<>
 			<DialogHeader>
-				<DialogTitle>{editId ? "编辑分类" : "新建分类"}</DialogTitle>
+				<DialogTitle>
+					{editId
+						? t("categoryManager.dialog.editTitle")
+						: t("categoryManager.dialog.createTitle")}
+				</DialogTitle>
 			</DialogHeader>
 			<form onSubmit={handleSubmit} className="space-y-5 mt-2">
 				<div className="grid grid-cols-2 gap-4">
 					<div className="space-y-1.5">
-						<Label>名称</Label>
+						<Label>{t("categoryManager.form.name")}</Label>
 						<Input
 							value={name}
 							onChange={(e) => handleNameChange(e.target.value)}
-							placeholder="例如：客服工单"
+							placeholder={t(
+								"categoryManager.form.namePlaceholder",
+							)}
 							required
 							disabled={!!existing?.isDefault}
 						/>
 					</div>
 					<div className="space-y-1.5">
-						<Label>Slug</Label>
+						<Label>{t("categoryManager.form.slug")}</Label>
 						<Input
 							value={slug}
 							onChange={(e) => {
 								setSlug(e.target.value);
 								setAutoSlug(false);
 							}}
-							placeholder="例如：customer-service"
+							placeholder={t(
+								"categoryManager.form.slugPlaceholder",
+							)}
 							required
 							disabled={!!editId}
 							pattern="[a-z0-9-]+"
@@ -403,7 +417,7 @@ function CategoryForm({
 				</div>
 
 				<div className="space-y-1.5">
-					<Label>图标</Label>
+					<Label>{t("categoryManager.form.icon")}</Label>
 					<div className="flex flex-wrap gap-1.5">
 						{AVAILABLE_ICONS.map((item) => (
 							<button
@@ -432,7 +446,7 @@ function CategoryForm({
 				</div>
 
 				<div className="space-y-1.5">
-					<Label>颜色</Label>
+					<Label>{t("categoryManager.form.color")}</Label>
 					<div className="flex flex-wrap gap-1.5">
 						{AVAILABLE_COLORS.map((c) => (
 							<button
@@ -452,17 +466,18 @@ function CategoryForm({
 				</div>
 
 				<div className="space-y-1.5">
-					<Label>AI 分类提示词</Label>
+					<Label>{t("categoryManager.form.aiPrompt")}</Label>
 					<textarea
 						value={aiPrompt}
 						onChange={(e) => setAiPrompt(e.target.value)}
-						placeholder="描述符合该分类的邮件特征，例如：包含审批请求、授权需求的邮件..."
+						placeholder={t(
+							"categoryManager.form.aiPromptPlaceholder",
+						)}
 						rows={3}
 						className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/50 resize-none"
 					/>
 					<p className="text-[11px] text-muted-foreground">
-						AI
-						将使用此提示词来判断邮件是否属于该分类。请描述该分类邮件的关键特征和关键词。
+						{t("categoryManager.form.aiPromptHint")}
 					</p>
 				</div>
 
@@ -482,9 +497,11 @@ function CategoryForm({
 						})()}
 					</div>
 					<div>
-						<p className="text-sm font-medium">{name || "预览"}</p>
+						<p className="text-sm font-medium">
+							{name || t("categoryManager.preview.label")}
+						</p>
 						<p className="text-xs text-muted-foreground font-mono">
-							{slug || "slug"}
+							{slug || t("categoryManager.preview.slugFallback")}
 						</p>
 					</div>
 					<Button
@@ -493,7 +510,7 @@ function CategoryForm({
 						disabled={isPending || !name || !slug}
 					>
 						{isPending && <Spinner className="size-3.5 mr-1.5" />}
-						{editId ? "保存" : "创建"}
+						{editId ? t("common.save") : t("common.create")}
 					</Button>
 				</div>
 			</form>

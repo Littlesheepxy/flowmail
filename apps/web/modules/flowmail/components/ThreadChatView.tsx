@@ -33,6 +33,7 @@ import {
 	Reply as ReplyIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EntityTimeline } from "./EntityTimeline";
@@ -48,6 +49,7 @@ interface ThreadChatViewProps {
 }
 
 export function ThreadChatView({ entityId }: ThreadChatViewProps) {
+	const t = useTranslations("flowmail");
 	const queryClient = useQueryClient();
 	const { data: entity, isLoading } = useQuery({
 		...orpc.flowEntities.get.queryOptions({
@@ -76,7 +78,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 			const connectionId = (latestThread as { connectionId?: string })
 				.connectionId;
 			if (!connectionId) {
-				toast.error("找不到邮箱连接，无法发送");
+				toast.error(t("threadView.email.noConnection"));
 				return;
 			}
 
@@ -122,7 +124,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 					inReplyTo: messageId ?? undefined,
 				});
 
-				toast.success("邮件已发送");
+				toast.success(t("threadView.email.sentSuccess"));
 				setShowComposer(false);
 
 				await queryClient.invalidateQueries({
@@ -132,11 +134,16 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 				});
 			} catch (err) {
 				toast.error(
-					`发送失败: ${err instanceof Error ? err.message : "未知错误"}`,
+					t("threadView.email.sendFailed", {
+						error:
+							err instanceof Error
+								? err.message
+								: t("common.error.unknown"),
+					}),
 				);
 			}
 		},
-		[entity, entityId, sendMutation, queryClient],
+		[entity, entityId, sendMutation, queryClient, t],
 	);
 
 	const openComposer = useCallback((mode: ReplyMode) => {
@@ -148,9 +155,11 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full text-muted-foreground/40">
 				<InboxIcon className="size-12 mb-3 stroke-1" />
-				<p className="text-sm font-medium">选择一封邮件查看详情</p>
+				<p className="text-sm font-medium">
+					{t("threadView.empty.selectThread.title")}
+				</p>
 				<p className="text-xs mt-1 text-muted-foreground/30">
-					从左侧列表中选择一个条目
+					{t("threadView.empty.selectThread.subtitle")}
 				</p>
 			</div>
 		);
@@ -167,7 +176,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 	if (!entity) {
 		return (
 			<div className="flex items-center justify-center h-full text-muted-foreground">
-				未找到该条目
+				{t("threadView.notFound")}
 			</div>
 		);
 	}
@@ -197,7 +206,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 					<TabsList className="w-full justify-start gap-0 border-b-0 bg-transparent">
 						<TabsTrigger value="emails" className="gap-1.5 text-xs">
 							<MailIcon className="size-3.5" />
-							邮件
+							{t("threadView.tab.email")}
 							{threads.length > 0 && (
 								<span className="ml-0.5 text-[10px] text-muted-foreground">
 									{threads.length}
@@ -209,7 +218,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 							className="gap-1.5 text-xs"
 						>
 							<ClockIcon className="size-3.5" />
-							时间线
+							{t("threadView.tab.timeline")}
 							{timeline.length > 0 && (
 								<span className="ml-0.5 text-[10px] text-muted-foreground">
 									{timeline.length}
@@ -280,7 +289,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 						onClick={() => openComposer("reply")}
 					>
 						<ReplyIcon className="size-4" />
-						回复
+						{t("threadView.action.reply")}
 					</Button>
 					<Button
 						variant="secondary"
@@ -288,7 +297,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 						onClick={() => openComposer("forward")}
 					>
 						<ForwardIcon className="size-4" />
-						转发
+						{t("threadView.action.forward")}
 					</Button>
 				</div>
 			)}
@@ -335,6 +344,7 @@ function EmailListView({
 	threads: ThreadItem[];
 	onReply?: (mode: ReplyMode) => void;
 }) {
+	const t = useTranslations("flowmail");
 	const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
 		if (threads.length > 0) {
 			return new Set([threads[0].id]);
@@ -346,9 +356,11 @@ function EmailListView({
 		return (
 			<div className="flex flex-col items-center justify-center py-20 text-muted-foreground/40">
 				<MailIcon className="size-10 mb-3 stroke-1" />
-				<p className="text-sm font-medium">暂无关联邮件</p>
+				<p className="text-sm font-medium">
+					{t("threadView.empty.noRelatedEmails.title")}
+				</p>
 				<p className="text-xs mt-1 text-muted-foreground/30">
-					邮件处理后会自动关联到此条目
+					{t("threadView.empty.noRelatedEmails.subtitle")}
 				</p>
 			</div>
 		);
@@ -397,6 +409,7 @@ function EmailMessage({
 	onToggle: () => void;
 	onReply?: (mode: ReplyMode) => void;
 }) {
+	const t = useTranslations("flowmail");
 	const displayName = thread.senderName || thread.sender || "Unknown";
 	const emailAddress = thread.sender || "";
 	const initial = displayName.charAt(0).toUpperCase();
@@ -451,7 +464,7 @@ function EmailMessage({
 							<PaperclipIcon className="size-3.5 text-muted-foreground shrink-0" />
 						)}
 						<span className="text-[11px] text-muted-foreground shrink-0 ml-auto">
-							{formatDate(thread.receivedAt)}
+							{formatRelativeTime(thread.receivedAt, t)}
 						</span>
 						{isExpanded ? (
 							<ChevronUpIcon className="size-3.5 text-muted-foreground shrink-0" />
@@ -494,10 +507,12 @@ function EmailMessage({
 											}}
 										>
 											<ReplyIcon className="size-3.5" />
-											回复
+											{t("threadView.action.reply")}
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent>回复</TooltipContent>
+									<TooltipContent>
+										{t("threadView.action.reply")}
+									</TooltipContent>
 								</Tooltip>
 								<Tooltip>
 									<TooltipTrigger asChild>
@@ -511,10 +526,12 @@ function EmailMessage({
 											}}
 										>
 											<ReplyAllIcon className="size-3.5" />
-											全部回复
+											{t("threadView.action.replyAll")}
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent>全部回复</TooltipContent>
+									<TooltipContent>
+										{t("threadView.action.replyAll")}
+									</TooltipContent>
 								</Tooltip>
 								<Tooltip>
 									<TooltipTrigger asChild>
@@ -528,10 +545,12 @@ function EmailMessage({
 											}}
 										>
 											<ForwardIcon className="size-3.5" />
-											转发
+											{t("threadView.action.forward")}
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent>转发</TooltipContent>
+									<TooltipContent>
+										{t("threadView.action.forward")}
+									</TooltipContent>
 								</Tooltip>
 							</TooltipProvider>
 						</div>
@@ -566,6 +585,7 @@ function RecipientLine({
 	to: EmailRecipient[];
 	cc: EmailRecipient[];
 }) {
+	const t = useTranslations("flowmail");
 	const [expanded, setExpanded] = useState(false);
 	const totalCount = to.length + cc.length;
 
@@ -578,7 +598,7 @@ function RecipientLine({
 
 	return (
 		<div className="text-xs text-muted-foreground mt-0.5">
-			<span>发送给 </span>
+			<span>{t("threadView.recipient.toPrefix")}</span>
 			<span className="text-foreground/70">
 				{firstTo?.name || firstTo?.address}
 			</span>
@@ -591,7 +611,9 @@ function RecipientLine({
 					}}
 					className="ml-1 text-primary hover:underline"
 				>
-					+{remaining} 人
+					{t("threadView.recipient.morePeople", {
+						count: remaining,
+					})}
 				</button>
 			)}
 			{expanded && (
@@ -606,7 +628,7 @@ function RecipientLine({
 					))}
 					{cc.length > 0 && (
 						<span className="ml-1">
-							| 抄送:{" "}
+							| {t("threadView.recipient.ccPrefix")}{" "}
 							{cc.map((r) => r.name || r.address).join(", ")}
 						</span>
 					)}
@@ -619,6 +641,7 @@ function RecipientLine({
 // ─── Email Body ───
 
 function EmailBody({ thread }: { thread: ThreadItem }) {
+	const t = useTranslations("flowmail");
 	const [showQuoted, setShowQuoted] = useState(false);
 
 	if (thread.bodyHtml) {
@@ -634,7 +657,7 @@ function EmailBody({ thread }: { thread: ThreadItem }) {
 						onClick={() => setShowQuoted(true)}
 						className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
 					>
-						··· 显示引用内容
+						{t("threadView.quote.expand")}
 					</button>
 				)}
 			</div>
@@ -657,12 +680,17 @@ function EmailBody({ thread }: { thread: ThreadItem }) {
 		);
 	}
 
-	return <p className="text-sm text-muted-foreground italic">(无预览内容)</p>;
+	return (
+		<p className="text-sm text-muted-foreground italic">
+			{t("threadView.preview.empty")}
+		</p>
+	);
 }
 
 // ─── Attachment Bar ───
 
 function AttachmentBar({ attachments }: { attachments: AttachmentItem[] }) {
+	const t = useTranslations("flowmail");
 	const [expanded, setExpanded] = useState(false);
 	const visible = expanded ? attachments : attachments.slice(0, 3);
 
@@ -671,7 +699,9 @@ function AttachmentBar({ attachments }: { attachments: AttachmentItem[] }) {
 			<div className="flex items-center gap-2 mb-2">
 				<PaperclipIcon className="size-3.5 text-muted-foreground" />
 				<span className="text-xs font-medium text-muted-foreground">
-					{attachments.length} 个附件
+					{t("threadView.attachment.count", {
+						count: attachments.length,
+					})}
 				</span>
 			</div>
 			<div className="flex flex-wrap gap-2">
@@ -685,7 +715,9 @@ function AttachmentBar({ attachments }: { attachments: AttachmentItem[] }) {
 					onClick={() => setExpanded(true)}
 					className="mt-2 text-xs text-primary hover:underline"
 				>
-					显示全部 {attachments.length} 个附件
+					{t("threadView.attachment.showAll", {
+						count: attachments.length,
+					})}
 				</button>
 			)}
 		</div>
@@ -693,6 +725,7 @@ function AttachmentBar({ attachments }: { attachments: AttachmentItem[] }) {
 }
 
 function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
+	const t = useTranslations("flowmail");
 	const Icon = getFileIcon(attachment.mimeType);
 	const sizeStr = attachment.size ? formatFileSize(attachment.size) : "";
 
@@ -712,7 +745,7 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 			<button
 				type="button"
 				className="size-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-background transition-all"
-				title="下载"
+				title={t("threadView.attachment.download")}
 			>
 				<DownloadIcon className="size-3.5 text-muted-foreground" />
 			</button>
@@ -722,7 +755,10 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 
 // ─── Utilities ───
 
-function formatDate(date: string | Date): string {
+function formatRelativeTime(
+	date: string | Date,
+	t: ReturnType<typeof useTranslations>,
+): string {
 	const d = new Date(date);
 	const now = new Date();
 	const diffMs = now.getTime() - d.getTime();
@@ -731,23 +767,32 @@ function formatDate(date: string | Date): string {
 	const diffDays = Math.floor(diffMs / 86400000);
 
 	if (diffMins < 1) {
-		return "刚刚";
+		return t("time.justNow");
 	}
 	if (diffMins < 60) {
-		return `${diffMins} 分钟前`;
+		return t("time.minutesAgo", { count: diffMins });
 	}
 	if (diffHours < 24) {
-		return `${diffHours} 小时前`;
+		return t("time.hoursAgo", { count: diffHours });
 	}
 	if (diffDays < 7) {
-		return `${diffDays} 天前`;
+		return t("time.daysAgo", { count: diffDays });
 	}
 
 	const isSameYear = d.getFullYear() === now.getFullYear();
 	if (isSameYear) {
-		return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+		return t("time.dateSameYear", {
+			month: d.getMonth() + 1,
+			day: d.getDate(),
+			hour: pad(d.getHours()),
+			minute: pad(d.getMinutes()),
+		});
 	}
-	return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+	return t("time.dateOtherYear", {
+		year: d.getFullYear(),
+		month: d.getMonth() + 1,
+		day: d.getDate(),
+	});
 }
 
 function pad(n: number): string {

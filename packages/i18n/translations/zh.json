@@ -628,5 +628,511 @@
 		"panelTitle": "AI 助手",
 		"panelSubtitle": "我注意到你可能需要帮助",
 		"placeholder": "有什么可以帮你的？"
+	},
+	"flowmail": {
+		"common": {
+			"loading": "加载中...",
+			"cancel": "取消",
+			"save": "保存",
+			"create": "创建",
+			"or": "或",
+			"error": {
+				"unknown": "未知错误"
+			}
+		},
+		"dashboard": {
+			"category": {
+				"approval": "审批",
+				"report": "汇报",
+				"issue": "问题",
+				"feedback": "反馈"
+			},
+			"section": {
+				"categoryDistribution": "分类分布",
+				"recentActivity": "近期动态"
+			},
+			"kpi": {
+				"pendingApproval": "待审批",
+				"blocked": "已阻塞",
+				"needsReview": "需复核",
+				"connectedMailboxes": "已连接邮箱"
+			},
+			"action": {
+				"viewAll": "查看全部",
+				"connectMailbox": "连接邮箱"
+			},
+			"empty": {
+				"hint": "连接邮箱后，Flowmail 将自动分类处理你的邮件。"
+			}
+		},
+		"entityDetail": {
+			"riskPrediction": {
+				"title": "AI 风险预测",
+				"analyzing": "正在分析风险...",
+				"confidence": "置信度 {value}%",
+				"deadlineLabel": "截止日期：",
+				"daysRemaining": "（剩余 {days} 天）",
+				"factors": "风险因素",
+				"outcomeLabel": "预测：",
+				"suggestedActions": "建议操作"
+			},
+			"riskLevel": {
+				"low": "低风险",
+				"medium": "中风险",
+				"high": "高风险",
+				"critical": "严重风险"
+			},
+			"email": {
+				"noConnection": "找不到邮箱连接，无法发送",
+				"sentSuccess": "邮件已发送",
+				"sendFailed": "发送失败：{error}"
+			},
+			"extractedFields": {
+				"confidence": "置信度"
+			},
+			"action": {
+				"approve": "批准",
+				"reject": "拒绝"
+			},
+			"section": {
+				"aiSummary": "AI 摘要",
+				"extractedFields": "提取字段",
+				"relatedThreads": "关联邮件（{count}）"
+			},
+			"emailAction": {
+				"reply": "回复",
+				"forward": "转发"
+			}
+		},
+		"timeline": {
+			"title": "时间线",
+			"empty": "暂无事件",
+			"filter": {
+				"all": "全部",
+				"email": "邮件",
+				"action": "操作",
+				"status": "状态"
+			},
+			"status": {
+				"approved": "已批准",
+				"rejected": "已拒绝"
+			},
+			"risk": {
+				"none": "无",
+				"medium": "中",
+				"high": "高"
+			},
+			"urgency": {
+				"urgent": "紧急"
+			},
+			"deadline": {
+				"overdueDays": "已逾期 {days} 天",
+				"dueToday": "今天截止",
+				"daysLeft": "截止还剩 {days} 天"
+			},
+			"summary": {
+				"progress": "进度 {value}",
+				"risk": "风险: {risk}",
+				"blocker": "阻塞: {blocker}"
+			},
+			"aiDetail": {
+				"riskSignals": "风险信号",
+				"viewReasoning": "查看推理过程"
+			},
+			"suggestion": {
+				"dismiss": "忽略"
+			},
+			"execution": {
+				"confirmTitle": "确认执行",
+				"confirmDescription": "即将让 Agent 执行以下操作：",
+				"confirmHint": "Agent 会根据上下文自主判断具体执行步骤，可能包含多个操作。",
+				"confirmAction": "确认执行"
+			},
+			"note": {
+				"addTitle": "添加备注",
+				"placeholder": "记录备注、里程碑或决策..."
+			},
+			"milestone": {
+				"badge": "里程碑"
+			}
+		},
+		"inbox": {
+			"uncategorized": "未分类",
+			"empty": {
+				"noMatch": "无匹配结果",
+				"noEntities": "还没有邮件。连接邮箱开始处理。"
+			}
+		},
+		"agent": {
+			"toolResult": {
+				"approved": "审批已通过",
+				"rejected": "审批已拒绝",
+				"noteAdded": "备注已添加",
+				"statusUpdated": "状态已更新"
+			},
+			"entityList": {
+				"pendingApprovalsLabel": "待审批事项"
+			},
+			"toolStatus": {
+				"generic": "正在执行 {name}..."
+			},
+			"suggestion": {
+				"global": {
+					"inboxOverview": "收件箱概览",
+					"checkClassification": "检查分类是否准确",
+					"syncEmails": "同步邮件"
+				},
+				"approval": {
+					"analyze": "分析这个审批",
+					"assessRisk": "评估风险",
+					"approve": "批准",
+					"reject": "拒绝"
+				},
+				"report": {
+					"summarize": "总结项目进展",
+					"analyzeRisk": "分析风险",
+					"viewChanges": "查看最近变化"
+				},
+				"issue": {
+					"analyze": "分析这个问题",
+					"assessRisk": "评估风险和影响",
+					"viewProgress": "查看处理进展"
+				},
+				"default": {
+					"analyze": "分析这个事项",
+					"assessRisk": "评估风险",
+					"viewTimeline": "查看时间线变化"
+				}
+			},
+			"reasoning": {
+				"toggleLabel": "思考过程"
+			},
+			"header": {
+				"thinking": "思考中"
+			},
+			"scope": {
+				"currentEntity": "当前事项",
+				"all": "全部"
+			},
+			"empty": {
+				"hintGlobal": "试试问我：收件箱概览、待审批列表、搜索邮件、同步邮箱…",
+				"hintEntity": "有什么我可以帮你的？"
+			},
+			"tool": {
+				"failedSuffix": "失败"
+			},
+			"loading": {
+				"thinking": "Agent 正在思考..."
+			},
+			"error": {
+				"title": "Agent 遇到错误",
+				"retryHint": "，请重试",
+				"clearAndRetry": "清除对话重试"
+			},
+			"input": {
+				"placeholder": {
+					"entity": "问关于「{title}」的问题",
+					"global": "收件箱概览、搜索、分类…"
+				}
+			},
+			"prompt": {
+				"executePrefix": "请执行以下操作：{action}",
+				"context": "背景：{message}",
+				"entity": "事项：\"{title}\" (ID: {id})",
+				"suggestedTool": "建议工具：{tool}",
+				"params": "参数：{json}",
+				"closing": "请根据上下文自主判断需要执行哪些操作，不要只是描述，直接调用工具执行。"
+			}
+		},
+		"emailConnection": {
+			"page": {
+				"title": "邮箱连接",
+				"subtitle": "Flowmail 监听这些邮箱并自动提取业务事项。"
+			},
+			"action": {
+				"connect": "连接邮箱",
+				"sync": "同步邮件",
+				"disconnect": "断开连接",
+				"setImapPassword": "设置 IMAP 密码"
+			},
+			"table": {
+				"email": "邮箱",
+				"type": "类型",
+				"status": "状态",
+				"lastSync": "最后同步",
+				"actions": "操作"
+			},
+			"status": {
+				"connected": "已连接",
+				"disconnected": "已断开",
+				"needsImapPassword": "需配置 IMAP 密码"
+			},
+			"lastSync": {
+				"never": "从未同步"
+			},
+			"empty": {
+				"title": "暂无已连接的邮箱",
+				"hint": "点击上方「连接邮箱」开始自动处理邮件。"
+			},
+			"sync": {
+				"toastSuccess": "同步完成：获取 {fetched} 封邮件，处理 {processed} 封{errorPart}",
+				"toastErrorsFailed": "，{count} 封失败",
+				"toastError": "同步失败：{error}"
+			},
+			"connectDialog": {
+				"title": "连接邮箱",
+				"description": "选择你的邮箱服务，通过 OAuth 安全授权连接。",
+				"section": {
+					"overseas": "海外邮箱",
+					"domestic": "国内邮箱"
+				},
+				"genericImap": {
+					"title": "其他邮箱",
+					"description": "通用 IMAP（QQ、163、Yahoo 等）"
+				},
+				"imapRowTitle": "其他邮箱 / 通用 IMAP",
+				"imapRowSubtitle": "QQ 邮箱、163、Yahoo、iCloud 等"
+			},
+			"imapPasswordDialog": {
+				"title": "设置 IMAP 密码",
+				"description": "部分邮箱需要使用应用专用密码进行 IMAP 访问。",
+				"descriptionWithEmail": "为 {email} 设置 IMAP 专用密码以启用邮件同步。",
+				"label": "IMAP 专用密码",
+				"placeholder": "在邮箱设置中生成的应用专用密码",
+				"hint": "可在邮箱安全设置中找到。",
+				"hintProviderImap": "请在飞书/钉钉/企微邮箱设置中开启 IMAP 服务并生成专用密码。",
+				"saving": "保存中...",
+				"save": "保存并启用同步"
+			},
+			"errors": {
+				"gmailOAuthNotConfigured": "Gmail OAuth 尚未配置 (NEXT_PUBLIC_GMAIL_CLIENT_ID)",
+				"outlookOAuthNotConfigured": "Microsoft OAuth 尚未配置 (NEXT_PUBLIC_MICROSOFT_CLIENT_ID)"
+			},
+			"pageGuide": {
+				"connectEmail": {
+					"step1": {
+						"title": "第 1 步：点击「连接邮箱」",
+						"description": "点击此按钮开始连接。弹出的对话框中会列出 Gmail、飞书、钉钉、企微以及通用 IMAP（QQ邮箱、163等）多种选项。选择你的邮箱类型即可开始授权。\n\n连接成功后，Flowmail 会自动同步你的邮件并用 AI 进行分析。"
+					}
+				}
+			},
+			"gmailOAuth": {
+				"title": "连接 Gmail",
+				"description": "通过 Google OAuth 安全授权，Flowmail 仅获取邮件只读权限。",
+				"hintRedirect": "点击下方按钮将跳转到 Google 登录页面",
+				"hintReturn": "授权后会自动返回 Flowmail",
+				"authorize": "前往 Google 授权"
+			},
+			"outlookOAuth": {
+				"title": "连接 Microsoft 365 / Outlook",
+				"description": "通过 Microsoft OAuth 安全授权，Flowmail 仅获取邮件读取和发送权限。",
+				"hintRedirect": "点击下方按钮将跳转到 Microsoft 登录页面",
+				"hintProviders": "支持 Microsoft 365、Outlook.com、Hotmail",
+				"authorize": "前往 Microsoft 授权"
+			},
+			"platformOAuth": {
+				"title": "连接 {provider}",
+				"description": "填写你在开放平台创建的应用凭据，然后进行 OAuth 授权。",
+				"appIdPlaceholder": "输入 App ID",
+				"appSecretPlaceholder": "输入 App Secret",
+				"imapPasswordLabel": "IMAP 专用密码",
+				"imapPasswordRequiredHint": "（同步邮件必填）",
+				"imapPasswordPlaceholder": "在邮箱设置中生成的应用专用密码",
+				"imapPasswordHint": "OAuth 仅用于身份验证，邮件同步需要 IMAP 密码。请在邮箱设置中开启 IMAP 并生成专用密码。",
+				"noCredentials": "没有应用凭据？",
+				"openPlatform": "前往开放平台创建 →",
+				"authorize": "前往授权"
+			},
+			"imapForm": {
+				"title": "连接个人邮箱",
+				"description": "通过 IMAP 协议连接，需要邮箱地址和应用专用密码。",
+				"emailLabel": "邮箱地址",
+				"passwordLabel": "应用专用密码",
+				"passwordPlaceholder": "在邮箱设置中生成的专用密码",
+				"syncCountLabel": "首次同步数量",
+				"syncCountHint": "邮件总数低于此值时会全部同步。",
+				"syncOption100": "最近 100 封",
+				"syncOption500": "最近 500 封（推荐）",
+				"syncOption1000": "最近 1000 封",
+				"syncOption5000": "最近 5000 封",
+				"syncOption10000": "全部（最多 10000 封）",
+				"hostLabel": "IMAP 服务器",
+				"portLabel": "端口",
+				"autoFillHint": "IMAP 服务器和端口会根据邮箱域名自动填充（支持 QQ、163、Outlook 等）。",
+				"submit": "测试并连接"
+			},
+			"provider": {
+				"lark": {
+					"name": "飞书邮箱",
+					"description": "飞书开放平台 OAuth"
+				},
+				"dingtalk": {
+					"name": "钉钉邮箱",
+					"description": "钉钉开放平台 OAuth"
+				},
+				"wecom": {
+					"name": "企微邮箱",
+					"description": "企业微信 OAuth"
+				},
+				"other": {
+					"name": "其他邮箱",
+					"description": "通用 IMAP（QQ、163、Yahoo 等）"
+				}
+			}
+		},
+		"replyComposer": {
+			"placeholder": "输入回复内容...",
+			"mode": {
+				"reply": "回复",
+				"replyAll": "全部回复",
+				"forward": "转发"
+			},
+			"action": {
+				"send": "发送"
+			},
+			"format": {
+				"bold": "加粗",
+				"italic": "斜体",
+				"underline": "下划线",
+				"strikethrough": "删除线",
+				"bulletList": "无序列表",
+				"orderedList": "有序列表",
+				"blockquote": "引用",
+				"link": "链接",
+				"insertLink": "插入链接",
+				"linkPrompt": "链接地址:"
+			},
+			"attachmentComingSoon": "附件（即将支持）"
+		},
+		"categoryManager": {
+			"deleteConfirm": "确定删除此分类？关联的邮件将移入「未分类」。",
+			"count": "共 {count} 个分类",
+			"action": {
+				"create": "新建分类"
+			},
+			"badge": {
+				"default": "默认"
+			},
+			"emptyPrompt": "未配置 AI 提示词",
+			"entityCountSuffix": "条",
+			"dialog": {
+				"editTitle": "编辑分类",
+				"createTitle": "新建分类"
+			},
+			"form": {
+				"name": "名称",
+				"slug": "Slug",
+				"namePlaceholder": "例如：客服工单",
+				"slugPlaceholder": "例如：customer-service",
+				"icon": "图标",
+				"color": "颜色",
+				"aiPrompt": "AI 分类提示词",
+				"aiPromptPlaceholder": "描述符合该分类的邮件特征，例如：包含审批请求、授权需求的邮件...",
+				"aiPromptHint": "AI 将使用此提示词来判断邮件是否属于该分类。请描述该分类邮件的关键特征和关键词。"
+			},
+			"preview": {
+				"label": "预览",
+				"slugFallback": "slug"
+			},
+			"tour": {
+				"step1": {
+					"title": "第 1 步：点击「新建分类」",
+					"description": "点击此按钮创建一个分类。每个分类代表一种业务类型（如审批、汇报、工单等）。\n\n创建时你需要填写：\n• 分类名称（如「审批请求」）\n• AI 提示词（告诉 AI 什么样的邮件属于这个分类，比如「包含请审批、approval 等关键词的邮件」）\n\nAI 会根据你写的提示词自动将新邮件归类。"
+				}
+			}
+		},
+		"threadView": {
+			"email": {
+				"noConnection": "找不到邮箱连接，无法发送",
+				"sentSuccess": "邮件已发送",
+				"sendFailed": "发送失败：{error}"
+			},
+			"empty": {
+				"selectThread": {
+					"title": "选择一封邮件查看详情",
+					"subtitle": "从左侧列表中选择一个条目"
+				},
+				"noRelatedEmails": {
+					"title": "暂无关联邮件",
+					"subtitle": "邮件处理后会自动关联到此条目"
+				}
+			},
+			"notFound": "未找到该条目",
+			"tab": {
+				"email": "邮件",
+				"timeline": "时间线"
+			},
+			"action": {
+				"reply": "回复",
+				"replyAll": "全部回复",
+				"forward": "转发"
+			},
+			"recipient": {
+				"toPrefix": "发送给 ",
+				"morePeople": "+{count} 人",
+				"ccPrefix": "抄送:"
+			},
+			"quote": {
+				"expand": "··· 显示引用内容"
+			},
+			"preview": {
+				"empty": "(无预览内容)"
+			},
+			"attachment": {
+				"count": "{count} 个附件",
+				"showAll": "显示全部 {count} 个附件",
+				"download": "下载"
+			}
+		},
+		"workflow": {
+			"column": {
+				"pendingApproval": "待审批",
+				"blocked": "已阻塞",
+				"needsReview": "需复核",
+				"empty": "暂无"
+			},
+			"action": {
+				"approve": "批准",
+				"reject": "拒绝"
+			}
+		},
+		"notification": {
+			"type": {
+				"deadlineReminder": "截止提醒",
+				"overdue": "已过期",
+				"approvalTimeout": "审批超时",
+				"newEntity": "新事项",
+				"statusChange": "状态变更",
+				"dailyDigest": "每日摘要"
+			},
+			"panel": {
+				"title": "通知"
+			},
+			"action": {
+				"markAllRead": "全部已读",
+				"view": "查看"
+			},
+			"empty": "暂无通知",
+			"aria": {
+				"bell": "通知",
+				"bellWithUnread": "通知（{count} 条未读）"
+			}
+		},
+		"time": {
+			"justNow": "刚刚",
+			"minutesAgo": "{count} 分钟前",
+			"hoursAgo": "{count} 小时前",
+			"daysAgo": "{count} 天前",
+			"dateSameYear": "{month}月{day}日 {hour}:{minute}",
+			"dateOtherYear": "{year}/{month}/{day}"
+		},
+		"smartInbox": {
+			"search": {
+				"placeholder": "搜索邮件、事项..."
+			},
+			"filter": {
+				"toggle": "筛选"
+			}
+		}
 	}
 }

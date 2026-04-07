@@ -21,41 +21,36 @@ import {
 	SparklesIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback } from "react";
 
-const TYPE_CONFIG: Record<
+const NOTIFICATION_TYPE_STYLE: Record<
 	string,
-	{ icon: typeof BellIcon; color: string; label: string }
+	{ icon: typeof BellIcon; color: string }
 > = {
 	DEADLINE_WARNING: {
 		icon: ClockIcon,
 		color: "text-yellow-500",
-		label: "截止提醒",
 	},
 	DEADLINE_OVERDUE: {
 		icon: AlertTriangleIcon,
 		color: "text-red-500",
-		label: "已过期",
 	},
 	APPROVAL_TIMEOUT: {
 		icon: ShieldCheckIcon,
 		color: "text-orange-500",
-		label: "审批超时",
 	},
 	NEW_ENTITY: {
 		icon: SparklesIcon,
 		color: "text-blue-500",
-		label: "新事项",
 	},
 	STATUS_CHANGED: {
 		icon: ArrowRightIcon,
 		color: "text-teal-500",
-		label: "状态变更",
 	},
 	DAILY_DIGEST: {
 		icon: MailIcon,
 		color: "text-muted-foreground",
-		label: "每日摘要",
 	},
 };
 
@@ -70,6 +65,8 @@ export function NotificationBell({
 	basePath,
 	collapsed,
 }: NotificationBellProps) {
+	const t = useTranslations("flowmail");
+	const locale = useLocale();
 	const queryClient = useQueryClient();
 
 	const { data: unreadData } = useQuery({
@@ -140,7 +137,13 @@ export function NotificationBell({
 						"relative flex items-center justify-center rounded-lg transition-colors hover:bg-muted/60",
 						collapsed ? "size-9" : "size-8",
 					)}
-					aria-label={`通知${unreadCount > 0 ? `（${unreadCount} 条未读）` : ""}`}
+					aria-label={
+						unreadCount > 0
+							? t("notification.aria.bellWithUnread", {
+									count: unreadCount,
+								})
+							: t("notification.aria.bell")
+					}
 				>
 					<BellIcon className="size-4 text-muted-foreground" />
 					{unreadCount > 0 && (
@@ -159,7 +162,9 @@ export function NotificationBell({
 			>
 				{/* Header */}
 				<div className="flex items-center justify-between border-b px-4 py-3">
-					<h3 className="text-sm font-semibold">通知</h3>
+					<h3 className="text-sm font-semibold">
+						{t("notification.panel.title")}
+					</h3>
 					{unreadCount > 0 && (
 						<Button
 							variant="ghost"
@@ -169,7 +174,7 @@ export function NotificationBell({
 							disabled={markReadMutation.isPending}
 						>
 							<CheckCheckIcon className="size-3" />
-							全部已读
+							{t("notification.action.markAllRead")}
 						</Button>
 					)}
 				</div>
@@ -179,15 +184,16 @@ export function NotificationBell({
 					{items.length === 0 ? (
 						<div className="flex flex-col items-center justify-center py-10 text-muted-foreground/40">
 							<InboxIcon className="size-8 mb-2 stroke-1" />
-							<p className="text-xs">暂无通知</p>
+							<p className="text-xs">{t("notification.empty")}</p>
 						</div>
 					) : (
 						<div className="divide-y">
 							{items.map((notification) => {
-								const cfg = TYPE_CONFIG[notification.type] ?? {
+								const cfg = NOTIFICATION_TYPE_STYLE[
+									notification.type
+								] ?? {
 									icon: BellIcon,
 									color: "text-muted-foreground",
-									label: notification.type,
 								};
 								const Icon = cfg.icon;
 
@@ -240,8 +246,10 @@ export function NotificationBell({
 											</p>
 											<div className="flex items-center gap-2 mt-1">
 												<span className="text-[10px] text-muted-foreground/60">
-													{formatTimeAgo(
+													{formatRelativeTime(
 														notification.createdAt,
+														t,
+														locale,
 													)}
 												</span>
 												{notification.entityId && (
@@ -258,7 +266,9 @@ export function NotificationBell({
 															}
 														}}
 													>
-														查看
+														{t(
+															"notification.action.view",
+														)}
 													</Link>
 												)}
 											</div>
@@ -274,25 +284,29 @@ export function NotificationBell({
 	);
 }
 
-function formatTimeAgo(dateStr: string): string {
+function formatRelativeTime(
+	dateStr: string,
+	t: (key: string, values?: { count: number }) => string,
+	locale: string,
+): string {
 	const d = new Date(dateStr);
 	const now = new Date();
 	const diffMs = now.getTime() - d.getTime();
 	const diffMins = Math.floor(diffMs / 60000);
 
 	if (diffMins < 1) {
-		return "刚刚";
+		return t("time.justNow");
 	}
 	if (diffMins < 60) {
-		return `${diffMins} 分钟前`;
+		return t("time.minutesAgo", { count: diffMins });
 	}
 	const diffHours = Math.floor(diffMs / 3600000);
 	if (diffHours < 24) {
-		return `${diffHours} 小时前`;
+		return t("time.hoursAgo", { count: diffHours });
 	}
 	const diffDays = Math.floor(diffMs / 86400000);
 	if (diffDays < 7) {
-		return `${diffDays} 天前`;
+		return t("time.daysAgo", { count: diffDays });
 	}
-	return d.toLocaleDateString("zh-CN");
+	return d.toLocaleDateString(locale);
 }

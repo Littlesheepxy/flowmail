@@ -22,6 +22,7 @@ import {
 	UnderlineIcon,
 	XIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 
 export type ReplyMode = "reply" | "replyAll" | "forward";
@@ -55,27 +56,33 @@ export function ReplyComposer({
 	isSending: externalSending,
 	className,
 }: ReplyComposerProps) {
+	const t = useTranslations("flowmail");
 	const [mode, setMode] = useState<ReplyMode>(defaultMode);
 	const [internalSending, setInternalSending] = useState(false);
 	const isSending = externalSending ?? internalSending;
 
-	const editor = useEditor({
-		immediatelyRender: false,
-		extensions: [
-			StarterKit.configure({ heading: { levels: [2, 3] } }),
-			TiptapUnderline,
-			TiptapLink.configure({
-				openOnClick: false,
-				HTMLAttributes: { class: "text-primary underline" },
-			}),
-			Placeholder.configure({ placeholder: "输入回复内容..." }),
-		],
-		editorProps: {
-			attributes: {
-				class: "prose prose-sm dark:prose-invert max-w-none min-h-[160px] overflow-y-auto px-4 py-3 text-sm outline-none",
+	const editor = useEditor(
+		{
+			immediatelyRender: false,
+			extensions: [
+				StarterKit.configure({ heading: { levels: [2, 3] } }),
+				TiptapUnderline,
+				TiptapLink.configure({
+					openOnClick: false,
+					HTMLAttributes: { class: "text-primary underline" },
+				}),
+				Placeholder.configure({
+					placeholder: t("replyComposer.placeholder"),
+				}),
+			],
+			editorProps: {
+				attributes: {
+					class: "prose prose-sm dark:prose-invert max-w-none min-h-[160px] overflow-y-auto px-4 py-3 text-sm outline-none",
+				},
 			},
 		},
-	});
+		[t],
+	);
 
 	const recipientDisplay =
 		mode === "reply"
@@ -128,10 +135,10 @@ export function ReplyComposer({
 					<ModeIcon className="size-3.5" />
 					<span className="text-xs font-medium">
 						{mode === "reply"
-							? "回复"
+							? t("replyComposer.mode.reply")
 							: mode === "replyAll"
-								? "全部回复"
-								: "转发"}
+								? t("replyComposer.mode.replyAll")
+								: t("replyComposer.mode.forward")}
 					</span>
 				</div>
 
@@ -145,19 +152,19 @@ export function ReplyComposer({
 						active={mode === "reply"}
 						onClick={() => setMode("reply")}
 						icon={ReplyIcon}
-						label="回复"
+						label={t("replyComposer.mode.reply")}
 					/>
 					<ModeButton
 						active={mode === "replyAll"}
 						onClick={() => setMode("replyAll")}
 						icon={ReplyAllIcon}
-						label="全部回复"
+						label={t("replyComposer.mode.replyAll")}
 					/>
 					<ModeButton
 						active={mode === "forward"}
 						onClick={() => setMode("forward")}
 						icon={ForwardIcon}
-						label="转发"
+						label={t("replyComposer.mode.forward")}
 					/>
 				</div>
 
@@ -184,7 +191,7 @@ export function ReplyComposer({
 					disabled={isSending || !editor?.getText().trim()}
 				>
 					<SendIcon className="size-4" />
-					发送
+					{t("replyComposer.action.send")}
 				</Button>
 
 				<div className="w-px h-5 bg-border mx-1 shrink-0" />
@@ -197,7 +204,7 @@ export function ReplyComposer({
 						}
 						active={editor?.isActive("bold")}
 						icon={BoldIcon}
-						title="加粗"
+						title={t("replyComposer.format.bold")}
 					/>
 					<ToolbarButton
 						onClick={() =>
@@ -205,7 +212,7 @@ export function ReplyComposer({
 						}
 						active={editor?.isActive("italic")}
 						icon={ItalicIcon}
-						title="斜体"
+						title={t("replyComposer.format.italic")}
 					/>
 					<ToolbarButton
 						onClick={() =>
@@ -213,7 +220,7 @@ export function ReplyComposer({
 						}
 						active={editor?.isActive("underline")}
 						icon={UnderlineIcon}
-						title="下划线"
+						title={t("replyComposer.format.underline")}
 					/>
 					<div className="w-px h-4 bg-border mx-1" />
 					<ToolbarButton
@@ -222,7 +229,7 @@ export function ReplyComposer({
 						}
 						active={editor?.isActive("bulletList")}
 						icon={ListIcon}
-						title="无序列表"
+						title={t("replyComposer.format.bulletList")}
 					/>
 					<ToolbarButton
 						onClick={() =>
@@ -230,7 +237,7 @@ export function ReplyComposer({
 						}
 						active={editor?.isActive("orderedList")}
 						icon={ListOrderedIcon}
-						title="有序列表"
+						title={t("replyComposer.format.orderedList")}
 					/>
 					<ToolbarButton
 						onClick={() =>
@@ -238,12 +245,14 @@ export function ReplyComposer({
 						}
 						active={editor?.isActive("blockquote")}
 						icon={QuoteIcon}
-						title="引用"
+						title={t("replyComposer.format.blockquote")}
 					/>
 					<div className="w-px h-4 bg-border mx-1" />
 					<ToolbarButton
 						onClick={() => {
-							const url = window.prompt("链接地址:");
+							const url = window.prompt(
+								t("replyComposer.format.linkPrompt"),
+							);
 							if (url) {
 								editor
 									?.chain()
@@ -254,13 +263,13 @@ export function ReplyComposer({
 						}}
 						active={editor?.isActive("link")}
 						icon={LinkIcon}
-						title="插入链接"
+						title={t("replyComposer.format.insertLink")}
 					/>
 					<ToolbarButton
 						onClick={() => {}}
 						icon={PaperclipIcon}
 						disabled
-						title="附件（即将支持）"
+						title={t("replyComposer.attachmentComingSoon")}
 					/>
 				</div>
 			</div>
