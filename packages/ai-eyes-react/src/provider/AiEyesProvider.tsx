@@ -1,17 +1,18 @@
 "use client";
 
 import {
-	ActionRecorder,
 	BehaviorSensor,
 	ConfusionDetector,
 	ContextCollector,
-	type AiEyesCoreConfig,
-	type ConfusionEvent,
-	type HelpSuggestion,
+} from "@ai-eyes/core";
+import type {
+	ActionRecorder,
+	AiEyesCoreConfig,
+	ConfusionEvent,
+	HelpSuggestion,
 } from "@ai-eyes/core";
 import {
 	createContext,
-	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -19,7 +20,7 @@ import {
 	useState,
 	type ReactNode,
 } from "react";
-import type { EyeMood } from "../hooks/use-eye-animation";
+import type { OrbMood } from "../hooks/use-orb-animation";
 
 interface AiEyesContextValue {
 	sensor: BehaviorSensor;
@@ -27,8 +28,8 @@ interface AiEyesContextValue {
 	collector: ContextCollector;
 	recorder: ActionRecorder;
 
-	mood: EyeMood;
-	setMood: (mood: EyeMood) => void;
+	mood: OrbMood;
+	setMood: (mood: OrbMood) => void;
 
 	activeSuggestion: HelpSuggestion | null;
 	setActiveSuggestion: (s: HelpSuggestion | null) => void;
@@ -36,13 +37,18 @@ interface AiEyesContextValue {
 	confusionScore: number;
 	enabled: boolean;
 	setEnabled: (v: boolean) => void;
+
+	panelOpen: boolean;
+	setPanelOpen: (v: boolean) => void;
+	panelPrefill: string;
+	setPanelPrefill: (v: string) => void;
 }
 
 const AiEyesContext = createContext<AiEyesContextValue | null>(null);
 
 interface AiEyesProviderProps {
 	config?: AiEyesCoreConfig;
-	onConfusion?: (event: ConfusionEvent) => Promise<HelpSuggestion | null> | void;
+	onConfusion?: (event: ConfusionEvent) => Promise<HelpSuggestion | null> | undefined;
 	children: ReactNode;
 }
 
@@ -51,17 +57,18 @@ export function AiEyesProvider({
 	onConfusion,
 	children,
 }: AiEyesProviderProps) {
-	const [mood, setMood] = useState<EyeMood>("idle");
+	const [mood, setMood] = useState<OrbMood>("idle");
 	const [activeSuggestion, setActiveSuggestion] =
 		useState<HelpSuggestion | null>(null);
 	const [confusionScore, setConfusionScore] = useState(0);
 	const [enabled, setEnabled] = useState(config?.enabled !== false);
+	const [panelOpen, setPanelOpen] = useState(false);
+	const [panelPrefill, setPanelPrefill] = useState("");
 	const onConfusionRef = useRef(onConfusion);
 	onConfusionRef.current = onConfusion;
 
 	const sensor = useMemo(
 		() => new BehaviorSensor(config?.sensor, config?.recorder),
-		// biome-ignore lint: config is a stable prop from parent
 		[],
 	);
 	const detector = useMemo(
@@ -120,8 +127,12 @@ export function AiEyesProvider({
 			confusionScore,
 			enabled,
 			setEnabled,
+			panelOpen,
+			setPanelOpen,
+			panelPrefill,
+			setPanelPrefill,
 		}),
-		[sensor, detector, collector, recorder, mood, activeSuggestion, confusionScore, enabled],
+		[sensor, detector, collector, recorder, mood, activeSuggestion, confusionScore, enabled, panelOpen, panelPrefill],
 	);
 
 	return (

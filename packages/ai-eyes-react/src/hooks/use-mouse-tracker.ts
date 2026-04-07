@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-interface MousePosition {
-	x: number;
-	y: number;
-}
-
 interface PupilOffset {
 	x: number;
 	y: number;
@@ -15,7 +10,6 @@ interface MouseTrackerConfig {
 	smoothing: number;
 	deadZone: number;
 	active: boolean;
-	lowPowerFps?: number;
 }
 
 export function useMouseTracker(
@@ -23,16 +17,16 @@ export function useMouseTracker(
 	config: MouseTrackerConfig,
 ): PupilOffset {
 	const [pupil, setPupil] = useState<PupilOffset>({ x: 0, y: 0 });
-	const mousePos = useRef<MousePosition>({ x: 0, y: 0 });
+	const mousePos = useRef({ x: 0, y: 0 });
 	const currentPupil = useRef<PupilOffset>({ x: 0, y: 0 });
-	const rafId = useRef<number>(0);
+	const rafId = useRef(0);
 	const lastFrame = useRef(0);
-
-	const minInterval = config.active ? 16 : 1000 / (config.lowPowerFps ?? 15);
+	const activeRef = useRef(config.active);
+	activeRef.current = config.active;
 
 	const animate = useCallback(() => {
 		const now = performance.now();
-		if (now - lastFrame.current < minInterval) {
+		if (now - lastFrame.current < 16) {
 			rafId.current = requestAnimationFrame(animate);
 			return;
 		}
@@ -55,7 +49,7 @@ export function useMouseTracker(
 		let targetX = 0;
 		let targetY = 0;
 
-		if (dist > config.deadZone) {
+		if (activeRef.current && dist > config.deadZone) {
 			const angle = Math.atan2(dy, dx);
 			const clampedDist = Math.min(dist, 600);
 			const normalized = clampedDist / 600;
@@ -76,7 +70,7 @@ export function useMouseTracker(
 		}
 
 		rafId.current = requestAnimationFrame(animate);
-	}, [eyeRef, config.maxOffset, config.smoothing, config.deadZone, minInterval]);
+	}, [eyeRef, config.maxOffset, config.smoothing, config.deadZone]);
 
 	useEffect(() => {
 		const onMouseMove = (e: MouseEvent) => {
@@ -84,7 +78,6 @@ export function useMouseTracker(
 		};
 		document.addEventListener("mousemove", onMouseMove, { passive: true });
 		rafId.current = requestAnimationFrame(animate);
-
 		return () => {
 			document.removeEventListener("mousemove", onMouseMove);
 			cancelAnimationFrame(rafId.current);

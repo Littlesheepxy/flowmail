@@ -7,9 +7,9 @@ interface Position {
 
 const STORAGE_KEY = "ai-eyes-position";
 
-function loadPosition(defaultPos: Position): Position {
+function loadPosition(): Position | null {
 	if (typeof window === "undefined") {
-		return defaultPos;
+		return null;
 	}
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
@@ -19,7 +19,7 @@ function loadPosition(defaultPos: Position): Position {
 	} catch {
 		// ignore
 	}
-	return defaultPos;
+	return null;
 }
 
 function savePosition(pos: Position): void {
@@ -32,22 +32,16 @@ function savePosition(pos: Position): void {
 
 export function useDragPosition(
 	enabled: boolean,
-	defaultPosition?: Position,
 	onPositionChange?: (pos: Position) => void,
 ): {
 	position: Position;
 	isDragging: boolean;
+	hasDragged: boolean;
 	handlePointerDown: (e: React.PointerEvent) => void;
 } {
-	const fallback = defaultPosition ?? {
-		x: typeof window !== "undefined" ? window.innerWidth - 72 : 0,
-		y: typeof window !== "undefined" ? window.innerHeight - 72 : 0,
-	};
-
-	const [position, setPosition] = useState<Position>(() =>
-		loadPosition(fallback),
-	);
+	const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
 	const [isDragging, setIsDragging] = useState(false);
+	const [hasDragged, setHasDragged] = useState(false);
 	const dragState = useRef<{
 		startX: number;
 		startY: number;
@@ -59,24 +53,36 @@ export function useDragPosition(
 	onPositionChangeRef.current = onPositionChange;
 
 	useEffect(() => {
-		onPositionChangeRef.current?.(position);
-	}, [position]);
+		const saved = loadPosition();
+		if (saved) {
+			setPosition(saved);
+			setHasDragged(true);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (hasDragged) {
+			onPositionChangeRef.current?.(position);
+		}
+	}, [position, hasDragged]);
 
 	const handlePointerDown = useCallback(
 		(e: React.PointerEvent) => {
-			if (!enabled) {
+			if (!enabled || e.button !== 0) {
 				return;
 			}
+			const el = e.currentTarget as HTMLElement;
+			const rect = el.getBoundingClientRect();
 			dragState.current = {
 				startX: e.clientX,
 				startY: e.clientY,
-				startPosX: position.x,
-				startPosY: position.y,
+				startPosX: rect.left,
+				startPosY: rect.top,
 				moved: false,
 			};
-			(e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+			el.setPointerCapture?.(e.pointerId);
 		},
-		[enabled, position],
+		[enabled],
 	);
 
 	useEffect(() => {
@@ -95,6 +101,7 @@ export function useDragPosition(
 			}
 			dragState.current.moved = true;
 			setIsDragging(true);
+			setHasDragged(true);
 
 			const newX = Math.max(
 				0,
@@ -126,8 +133,10 @@ export function useDragPosition(
 		return () => {
 			document.removeEventListener("pointermove", onMove);
 			document.removeEventListener("pointerup", onUp);
+			dragState.current = null;
+			setIsDragging(false);
 		};
 	}, [enabled, position]);
 
-	return { position, isDragging, handlePointerDown };
+	return { position, isDragging, hasDragged, handlePointerDown };
 }

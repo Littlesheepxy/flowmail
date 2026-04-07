@@ -7,9 +7,10 @@ import type {
 	RecorderConfig,
 } from "@ai-eyes/core";
 import { type ReactNode, useCallback, useMemo, useRef } from "react";
-import type { EyeMood } from "../hooks/use-eye-animation";
+import type { OrbMood } from "../hooks/use-orb-animation";
 import { AiEyesProvider } from "../provider/AiEyesProvider";
 import { AiEyes } from "./AiEyes";
+import type { RadialMenuItem } from "./RadialMoodMenu";
 
 interface AnalyzerAdapter {
 	analyze(event: ConfusionEvent, appContext?: Record<string, unknown>): Promise<HelpSuggestion | null>;
@@ -60,8 +61,12 @@ export interface AiEyesKitProps {
 	onClick?: () => void;
 	/** Callback when user accepts a help suggestion. */
 	onHelpAccepted?: (suggestion: HelpSuggestion) => void;
+	/** Callback when user selects a radial menu action. */
+	onMenuAction?: (actionId: string) => void;
+	/** Custom radial menu items. Uses default 8 actions if not provided. */
+	menuItems?: RadialMenuItem[];
 	/** Override eye mood externally. */
-	mood?: EyeMood;
+	mood?: OrbMood;
 	/** Disable the entire system. */
 	disabled?: boolean;
 	/** CSS custom properties / inline styles for the eye. */
@@ -107,6 +112,8 @@ export function AiEyesKit({
 	draggable = true,
 	onClick,
 	onHelpAccepted,
+	onMenuAction,
+	menuItems,
 	mood,
 	disabled,
 	eyeStyle,
@@ -153,6 +160,8 @@ export function AiEyesKit({
 				draggable={draggable}
 				onClick={onClick}
 				onHelpAccepted={onHelpAccepted}
+				onMenuAction={onMenuAction}
+				menuItems={menuItems}
 				mood={mood}
 				locale={locale}
 				className={eyeClassName}

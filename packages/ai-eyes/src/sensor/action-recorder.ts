@@ -346,10 +346,18 @@ export class ActionRecorder {
 
 	private listenKeyboard(): void {
 		let keyCount = 0;
+		let lastModule: string | undefined;
 		let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-		const handler = () => {
+		const handler = (e: KeyboardEvent) => {
+			const el = e.target instanceof Element ? e.target : null;
+			if (el && isIgnored(el)) {
+				return;
+			}
 			keyCount++;
+			if (el) {
+				lastModule = resolveModuleContext(el).module;
+			}
 			if (flushTimer) {
 				return;
 			}
@@ -357,11 +365,13 @@ export class ActionRecorder {
 				if (keyCount > 0) {
 					this.record({
 						type: "keypress",
+						module: lastModule,
 						timestamp: Date.now(),
 						detail: { keyCount },
 					});
 				}
 				keyCount = 0;
+				lastModule = undefined;
 				flushTimer = null;
 			}, 1000);
 		};
@@ -395,8 +405,10 @@ export class ActionRecorder {
 
 	private listenErrors(): void {
 		const handler = (e: ErrorEvent) => {
+			const viewportModule = this.resolveViewportModule();
 			this.record({
 				type: "error",
+				module: viewportModule,
 				timestamp: Date.now(),
 				detail: {
 					message: e.message?.slice(0, 100),

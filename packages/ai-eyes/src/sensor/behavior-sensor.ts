@@ -3,7 +3,6 @@ import type {
 	ConfusionSignal,
 	RecorderConfig,
 	SensorConfig,
-	SignalType,
 	UserAction,
 } from "../types";
 import { ActionRecorder } from "./action-recorder";
@@ -167,10 +166,6 @@ export class BehaviorSensor {
 		}
 	}
 
-	private recordAction(action: Omit<UserAction, "timestamp">): void {
-		this.recorder.record({ ...action, timestamp: Date.now() });
-	}
-
 	private clearTimers(): void {
 		if (this.idleTimer) {
 			clearTimeout(this.idleTimer);
@@ -236,13 +231,6 @@ export class BehaviorSensor {
 		const now = Date.now();
 		const el = e.target instanceof Element ? e.target : null;
 
-		this.recordAction({
-			type: "click",
-			target: el
-				? `${el.tagName.toLowerCase()}: ${(el.textContent ?? "").slice(0, 30).trim()}`
-				: undefined,
-		});
-
 		this.clickLog.push({ x: e.clientX, y: e.clientY, time: now });
 		const cutoff = now - this.config.rageClickWindow;
 		this.clickLog = this.clickLog.filter((c) => c.time > cutoff);
@@ -296,8 +284,6 @@ export class BehaviorSensor {
 			});
 			this.scrollLog = [];
 		}
-
-		this.recordAction({ type: "scroll" });
 	}
 
 	private startLongStayTimer(): void {

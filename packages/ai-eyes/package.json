@@ -7,8 +7,12 @@
 	"exports": {
 		".": "./src/index.ts"
 	},
+	"bin": {
+		"ai-eyes-detect": "./bin/detect-modules.mjs"
+	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"detect": "node bin/detect-modules.mjs",
 		"type-check": "tsc --noEmit"
 	},
 	"devDependencies": {
