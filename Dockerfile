@@ -12,18 +12,19 @@ ARG APP_NAME
 COPY . .
 RUN npx turbo prune ${APP_NAME} --docker
 
-# ── Stage 3: Install dependencies ──
+# ── Stage 3: Install dependencies (skip postinstall — source files not yet available) ──
 FROM base AS deps
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ── Stage 4: Build ──
 FROM base AS builder
 ARG APP_NAME
 COPY --from=deps /app/ .
 COPY --from=pruner /app/out/full/ .
+RUN pnpm install --frozen-lockfile
 RUN pnpm turbo build --filter=${APP_NAME}
 
 # ── Stage 5: Runner ──
