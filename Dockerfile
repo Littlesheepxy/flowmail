@@ -39,9 +39,12 @@ RUN addgroup --system --gid 1001 nodejs && \
 ARG APP_NAME
 ENV APP_NAME=${APP_NAME}
 
-COPY --from=builder /app/apps/${APP_NAME}/public ./public
+RUN mkdir -p ./public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+# public dir may not exist for all apps (e.g. docs), so copy conditionally via shell
+RUN --mount=from=builder,source=/app/apps/${APP_NAME}/public,target=/tmp/public,required=false \
+    if [ -d /tmp/public ] && [ "$(ls -A /tmp/public 2>/dev/null)" ]; then cp -a /tmp/public/. ./public/; fi
 
 USER nextjs
 
