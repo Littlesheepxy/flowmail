@@ -117,6 +117,7 @@
 			"userAlreadyExists": "This user already exists.",
 			"userAlreadyExistsUseAnotherEmail": "User already exists. Use another email.",
 			"invalidInvitation": "The invitation is invalid or expired.",
+			"invalidInviteCode": "Invalid or missing invite code. Contact us if you need access.",
 			"sessionExpired": "The session has expired.",
 			"failedToUnlinkLastAccount": "Failed to unlink account",
 			"accountNotFound": "Account not found"
@@ -179,7 +180,10 @@
 			"password": "Password",
 			"signIn": "Sign in",
 			"submit": "Create account",
-			"title": "Create an account"
+			"title": "Create an account",
+			"inviteCode": "Invite code",
+			"inviteCodePlaceholder": "Enter your invite code",
+			"inviteCodeRequired": "Invite code is required."
 		},
 		"verify": {
 			"title": "Verify your account",
@@ -285,11 +289,12 @@
 		"cta": "Get started free",
 		"docs": "Read the docs",
 		"tagline": "From inbox to execution. Automatically.",
-		"waitlist_cta": "Join the waitlist",
-		"waitlist_placeholder": "Enter your email",
-		"waitlist_success": "You're on the list! We'll be in touch.",
-		"waitlist_error": "Something went wrong. Please try again.",
-		"waitlist_submitting": "Submitting..."
+		"invite_code_placeholder": "Invite code",
+		"invite_email_placeholder": "Your email",
+		"invite_cta": "Continue to sign up",
+		"invite_submitting": "Checking…",
+		"invite_error": "Invalid invite code. Check and try again.",
+		"invite_has_account": "Already have an account?"
 	},
 	"howItWorks": {
 		"label": "How it works",

@@ -38,6 +38,35 @@
 			"feature2": "一键审批工作流",
 			"feature3": "MCP 原生 Agent 集成"
 		},
+		"errors": {
+			"invalidEmailOrPassword": "账号或密码不正确，请检查后重试。",
+			"unknown": "出了点问题，请稍后重试。",
+			"userNotFound": "该用户不存在。",
+			"failedToCreateUser": "无法创建用户，请重试。",
+			"failedToCreateSession": "无法创建会话，请重试。",
+			"failedToUpdateUser": "无法更新用户，请重试。",
+			"failedToGetSession": "无法获取会话。",
+			"invalidPassword": "密码不正确。",
+			"invalidEmail": "邮箱格式无效。",
+			"invalidToken": "令牌无效或已过期。",
+			"credentialAccountNotFound": "未找到账号。",
+			"emailCanNotBeUpdated": "无法更新邮箱，请重试。",
+			"emailNotVerified": "请先验证邮箱后再登录。",
+			"failedToGetUserInfo": "无法加载用户信息。",
+			"idTokenNotSupported": "不支持 ID Token。",
+			"passwordTooLong": "密码过长。",
+			"passwordTooShort": "密码过短。",
+			"providerNotFound": "不支持该登录方式。",
+			"socialAccountAlreadyLinked": "该社交账号已绑定到其他用户。",
+			"userEmailNotFound": "未找到该邮箱。",
+			"userAlreadyExists": "该用户已存在。",
+			"userAlreadyExistsUseAnotherEmail": "用户已存在，请使用其他邮箱。",
+			"invalidInvitation": "邀请无效或已过期。",
+			"invalidInviteCode": "邀请码无效或未填写。如需开通请联系我们。",
+			"sessionExpired": "会话已过期。",
+			"failedToUnlinkLastAccount": "无法解绑最后一个账号。",
+			"accountNotFound": "未找到账号。"
+		},
 		"login": {
 			"title": "欢迎回来",
 			"subtitle": "请输入你的账号信息登录。",
@@ -61,7 +90,10 @@
 			"password": "密码",
 			"submit": "创建账号",
 			"alreadyHaveAccount": "已有账号？",
-			"signIn": "登录"
+			"signIn": "登录",
+			"inviteCode": "邀请码",
+			"inviteCodePlaceholder": "请输入邀请码",
+			"inviteCodeRequired": "请填写邀请码。"
 		},
 		"forgotPassword": {
 			"title": "忘记密码？",
@@ -114,11 +146,12 @@
 		"cta": "免费开始",
 		"docs": "查看文档",
 		"tagline": "从收件箱，到执行，全自动。",
-		"waitlist_cta": "加入等待列表",
-		"waitlist_placeholder": "输入你的邮箱",
-		"waitlist_success": "已加入！我们会尽快联系你。",
-		"waitlist_error": "出了点问题，请重试。",
-		"waitlist_submitting": "提交中..."
+		"invite_code_placeholder": "邀请码",
+		"invite_email_placeholder": "你的邮箱",
+		"invite_cta": "去注册",
+		"invite_submitting": "校验中…",
+		"invite_error": "邀请码无效，请检查后重试。",
+		"invite_has_account": "已有账号？"
 	},
 	"howItWorks": {
 		"label": "如何使用",
