@@ -293,13 +293,14 @@ export function LoginForm() {
 						</p>
 					</div>
 
-					<div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-2">
+					<div className="flex flex-col items-stretch gap-2">
 						{authConfig.enableSignup &&
 							authConfig.enableSocialLogin &&
 							Object.keys(oAuthProviders).map(
 								(providerId) => (
 									<SocialSigninButton
 										key={providerId}
+										className="w-full"
 										provider={
 											providerId as OAuthProvider
 										}

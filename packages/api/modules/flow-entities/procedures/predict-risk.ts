@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
-import { textModel, generateObject } from "@repo/ai";
+import { textModel, generateText, Output } from "@repo/ai";
 import { z } from "zod";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -72,9 +72,9 @@ export const predictEntityRisk = protectedProcedure
 
 		const today = new Date().toISOString().split("T")[0];
 
-		const { object: prediction } = await generateObject({
+		const { output: prediction } = await generateText({
 			model: textModel,
-			schema: riskPredictionSchema,
+			output: Output.object({ schema: riskPredictionSchema }),
 			prompt: `You are a business risk analyst. Analyze this entity and predict risk.
 
 Entity: "${entity.title}"

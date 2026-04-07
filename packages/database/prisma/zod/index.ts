@@ -130,6 +130,12 @@ export const ApiTokenScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'na
 
 export type ApiTokenScalarFieldEnum = z.infer<typeof ApiTokenScalarFieldEnumSchema>;
 
+// File: AgentMemoryScalarFieldEnum.schema.ts
+
+export const AgentMemoryScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'category', 'scope', 'scopeId', 'content', 'metadata', 'importance', 'accessCount', 'lastAccessedAt', 'expiresAt', 'createdAt', 'updatedAt'])
+
+export type AgentMemoryScalarFieldEnum = z.infer<typeof AgentMemoryScalarFieldEnumSchema>;
+
 // File: SortOrder.schema.ts
 
 export const SortOrderSchema = z.enum(['asc', 'desc'])
@@ -532,4 +538,25 @@ export const ApiTokenSchema = z.object({
 });
 
 export type ApiTokenType = z.infer<typeof ApiTokenSchema>;
+
+
+// File: AgentMemory.schema.ts
+
+export const AgentMemorySchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  category: z.string(),
+  scope: z.string().default("org"),
+  scopeId: z.string().nullish(),
+  content: z.string(),
+  metadata: z.string().nullish(),
+  importance: z.number().int().default(5),
+  accessCount: z.number().int(),
+  lastAccessedAt: z.date().nullish(),
+  expiresAt: z.date().nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type AgentMemoryType = z.infer<typeof AgentMemorySchema>;
 

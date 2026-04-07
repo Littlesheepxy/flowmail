@@ -1,37 +1,46 @@
 ---
-title: Documentation
-description: This is a short description of this docs page that is also used as a meta description for SEO.
+title: Flowmail Documentation
+description: Learn how to use Flowmail to turn your emails into executable business workflows with AI-powered classification, extraction, and automation.
 ---
 
-Welcome to the documentation of acme. Here you will find all the information you need to work with our software. 
+Welcome to the Flowmail documentation. Here you'll find everything you need to get started and make the most of the platform.
 
+## What is Flowmail?
 
-## 1.1 Getting started - Overview
+Flowmail is an **AI-native business execution platform** that sits on top of your email inbox. It automatically classifies incoming emails, extracts structured business data, and enables you to take action — all without leaving a single interface.
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. 
+## Core Concepts
 
-Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi. Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. 
+- **Smart Inbox** — Your emails organized by business type: Approvals, Reports, Issues, and more
+- **Entities** — Structured business items extracted from emails with full timeline tracking
+- **Actions** — One-click operations: approve, reject, update status, assign, and follow up
+- **AI Pipeline** — Automatic classification and data extraction with human-in-the-loop confirmation
 
-### Another sub-section
+## Getting Started
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. 
+1. [Create your account](/docs/getting-started/overview) and set up your organization
+2. Connect your email (Gmail or Outlook) via secure OAuth
+3. Start processing emails — Flowmail's AI will classify and extract data automatically
+4. Review AI suggestions and take action
 
-Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi. Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. 
+## Scenarios
 
-## Code example
+### Approval Workflows
+Turn approval request emails into trackable items. See who's asking, what they need, and when it's due. Approve or reject with a single click.
 
-This is an example of code highlighting:
+### Report Tracking
+Automatically extract progress updates from team reports. Track status changes over time and get alerted when risks are detected.
 
-```python {1}
-def hello_world():
-    print("Hello World!")
-```
+## Architecture
 
-## Lists
+Flowmail exposes two API layers for maximum flexibility:
 
-This is an example of a list:
+- **oRPC** — Type-safe RPC for the web UI (used by the dashboard)
+- **MCP Server** — Model Context Protocol for AI agent integration (used by Claude, GPT, Cursor, and other agents)
 
-- Item 1
-- Item 2
-- Item 3
+Both layers share the same core business logic, ensuring consistency across all interfaces.
 
+## Need Help?
+
+- Check our [Getting Started guide](/docs/getting-started/overview)
+- Reach out at support@flowmail.ai

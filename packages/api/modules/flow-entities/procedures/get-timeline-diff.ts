@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
-import { textModel, generateObject } from "@repo/ai";
+import { textModel, generateText, Output } from "@repo/ai";
 import { z } from "zod";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -91,9 +91,9 @@ export const getTimelineDiff = protectedProcedure
 			.map((e) => `[${e.createdAt.toISOString()}] ${e.type}: ${e.content}`)
 			.join("\n");
 
-		const { object: diff } = await generateObject({
+		const { output: diff } = await generateText({
 			model: textModel,
-			schema: diffResultSchema,
+			output: Output.object({ schema: diffResultSchema }),
 			prompt: `You are analyzing timeline events for a business entity.
 
 Entity: "${entity.title}" (type: ${entity.type})

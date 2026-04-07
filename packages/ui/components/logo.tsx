@@ -7,6 +7,8 @@ export function Logo({
 	className?: string;
 	withLabel?: boolean;
 }) {
+	const size = withLabel ? 28 : 22;
+
 	return (
 		<span
 			className={cn(
@@ -15,17 +17,24 @@ export function Logo({
 			)}
 		>
 			<img
-				src="/logo.png"
+				src="/logo-dark.png"
 				alt="Flowmail"
-			width={withLabel ? 44 : 32}
-			height={withLabel ? 44 : 32}
-				className="shrink-0 dark:invert"
+				width={size}
+				height={size}
+				className="shrink-0 block dark:hidden"
 			/>
-		{withLabel && (
-			<span className="ml-2.5 text-base tracking-tight font-semibold transition-opacity duration-200">
-				Flowmail
-			</span>
-		)}
+			<img
+				src="/logo-light.png"
+				alt="Flowmail"
+				width={size}
+				height={size}
+				className="shrink-0 hidden dark:block"
+			/>
+			{withLabel && (
+				<span className="ml-2 text-base tracking-tight font-semibold">
+					Flowmail
+				</span>
+			)}
 		</span>
 	);
 }

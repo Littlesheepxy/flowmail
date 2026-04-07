@@ -1,5 +1,5 @@
 export { processEmail } from "./src/processor";
-export { classifyEmail } from "./src/classifier";
+export { classifyEmail, classifyEmailWithMemory } from "./src/classifier";
 export { extractApprovalFields, extractReportFields } from "./src/extractor";
 export { summarizeThread } from "./src/summarizer";
 export { generateSuggestions } from "./src/suggester";

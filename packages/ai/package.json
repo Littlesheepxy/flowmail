@@ -1,9 +1,10 @@
 {
 	"dependencies": {
-		"@ai-sdk/anthropic": "^2.0.44",
-		"@ai-sdk/openai": "^2.0.65",
-		"@ai-sdk/react": "^2.0.93",
-		"ai": "^5.0.93",
+		"@ai-sdk/anthropic": "^3.0.0",
+		"@ai-sdk/openai": "^3.0.0",
+		"@ai-sdk/react": "^3.0.0",
+		"@ai-sdk/mcp": "^1.0.0",
+		"ai": "^6.0.0",
 		"openai": "^6.9.0"
 	},
 	"devDependencies": {
@@ -18,6 +19,6 @@
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"type-check": "tsc --noEmit"
 	},
-	"types": "./**/.tsx",
+	"types": "./index.ts",
 	"version": "0.0.0"
 }

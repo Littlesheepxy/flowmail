@@ -564,11 +564,18 @@ export function AgentsVisual() {
 							transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
 					>
 						<Image
-								src="/logo.png"
+								src="/logo-dark.png"
 								alt="Flowmail"
 								width={40}
 								height={40}
-								className="h-10 w-10 dark:invert"
+								className="h-10 w-10 block dark:hidden"
+							/>
+							<Image
+								src="/logo-light.png"
+								alt="Flowmail"
+								width={40}
+								height={40}
+								className="h-10 w-10 hidden dark:block"
 							/>
 						</motion.div>
 					</NoiseBackground>

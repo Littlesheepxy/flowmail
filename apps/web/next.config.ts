@@ -60,6 +60,7 @@ const nextConfig: NextConfig = {
 		"@repo/api",
 		"@repo/auth",
 		"@repo/database",
+		"@repo/mail",
 		"@repo/ui",
 	],
 	async headers() {

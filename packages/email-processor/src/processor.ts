@@ -1,7 +1,8 @@
 import { db } from "@repo/database";
+import { MemoryManager } from "@repo/agent";
 import {
-	classifyEmail,
 	classifyEmailDynamic,
+	classifyEmailWithMemory,
 	type CategoryDefinition,
 } from "./classifier";
 import { extractApprovalFields, extractReportFields } from "./extractor";
@@ -9,6 +10,8 @@ import { generateSuggestions } from "./suggester";
 import { summarizeThread } from "./summarizer";
 
 import type { EmailRecipient, RawEmailAttachment } from "./connectors/types";
+
+const memoryManager = new MemoryManager();
 
 interface EmailInput {
 	threadId: string;
@@ -86,11 +89,15 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					SLUG_TO_ENTITY_TYPE[categorySlug] ??
 					(categorySlug === "unknown" ? "FEEDBACK" : "FEEDBACK");
 			} else {
-				const result = await classifyEmail({
-					subject: input.subject,
-					sender: input.sender,
-					content: input.content,
-				});
+				const result = await classifyEmailWithMemory(
+					{
+						subject: input.subject,
+						sender: input.sender,
+						content: input.content,
+					},
+					input.organizationId,
+					memoryManager,
+				);
 
 				if (result.type === "UNKNOWN") {
 					return {
@@ -366,6 +373,21 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				}),
 			},
 		});
+
+		// ─── Memory: record contact profile + classification learning ───
+		memoryManager
+			.recordContactProfile({
+				organizationId: input.organizationId,
+				contactEmail: input.senderEmail,
+				content: `${input.sender} (${input.senderEmail}) 发送了 ${categorySlug ?? entityType} 类型邮件: "${input.subject}"`,
+				metadata: {
+					senderName: input.sender,
+					lastEmailType: categorySlug ?? entityType,
+					lastSubject: input.subject,
+					entityId: entity.id,
+				},
+			})
+			.catch(() => {});
 
 		return {
 			success: true,

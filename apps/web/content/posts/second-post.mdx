@@ -1,29 +1,61 @@
 ---
-title: Awesome second post
-date: 2023-03-01
-image: https://picsum.photos/id/436/1200/800
-authorName: Jon Doe
-authorImage: https://picsum.photos/id/433/200/200
-excerpt: This is my first post. I'm so excited!
-tags: [first, post]
+title: How Flowmail Keeps Your Data Secure
+date: 2026-03-28
+image: /images/blog/security-post.jpg
+authorName: Flowmail Team
+authorImage: /images/blog/flowmail-avatar.png
+excerpt: Security isn't an afterthought at Flowmail. Here's how we protect your email data with AES-256 encryption, zero-training policies, and enterprise-grade access controls.
+tags: [security, privacy, enterprise]
 published: true
 ---
 
-## Hello world
+## Security-First Architecture
 
-This is my first post. I'm so excited! This blog posts needs some more text lines to fill up the page, so I'm just going to write some random stuff here. I'm going to write about my favorite things, like:
+When you connect your email to Flowmail, you're trusting us with some of your most sensitive business data. We take that responsibility seriously.
 
-### What's next?
+From day one, we've designed Flowmail with a security-first architecture that ensures your data is protected at every layer.
 
-I'm going to write a lot more posts. I'm going to write about my favorite things, like:
+## Encryption Everywhere
 
-- Cats
-- Dogs
-- Pizza
+### Data at Rest
+All sensitive data stored in Flowmail is encrypted using **AES-256-GCM**, the same encryption standard used by banks and government agencies. This includes:
+- Email content and metadata
+- OAuth tokens and credentials
+- Extracted business entities and fields
 
-You can even add some nice links here:
+### Data in Transit
+All communication between your browser, our servers, and third-party services uses **TLS 1.3** encryption. We enforce HTTPS everywhere with strict HSTS headers.
 
-- [My favorite cat](https://www.youtube.com/watch?v=5dsGWM5XGdg)
-- [My favorite dog](https://www.youtube.com/watch?v=5dsGWM5XGdg)
-- [My favorite pizza](https://www.youtube.com/watch?v=5dsGWM5XGdg)
-- [Homepage](/)
+## Authentication & Access Control
+
+Flowmail supports multiple authentication methods:
+- **Email OTP verification** — No passwords to leak or phish
+- **Passkey / WebAuthn** — Hardware-backed authentication
+- **Organization isolation** — Complete data separation between teams
+
+Every API request is authenticated and authorized. Rate limiting protects against brute-force attacks, and all sensitive actions are logged in an audit trail.
+
+## AI & Privacy
+
+Our AI processing follows strict privacy principles:
+
+- **Zero data training** — Your emails are never used to train AI models
+- **Minimal data retention** — We only store the structured data you need
+- **Processing transparency** — You can see exactly what the AI extracted and confirm before any action is taken
+
+## Infrastructure
+
+Flowmail runs on managed cloud infrastructure with:
+- Automatic backups and disaster recovery
+- DDoS protection at the network edge
+- Security headers (CSP, X-Frame-Options, X-Content-Type-Options)
+- Regular dependency updates and vulnerability scanning
+
+## Compliance Roadmap
+
+We're working toward formal compliance certifications:
+- **SOC 2 Type II** — Controls already implemented, audit planned
+- **GDPR** — Data minimization, right to erasure, and DPA support
+- **EU AI Act** — Transparency and human oversight built into our AI pipeline
+
+Want to learn more? Visit our [Security page](/security) for a detailed breakdown, or reach out to our team at security@flowmail.ai.

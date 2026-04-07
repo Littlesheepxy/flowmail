@@ -9,13 +9,13 @@ export const config = {
 	enableSocialLogin: true,
 
 	// Whether passkeys are enabled
-	enablePasskeys: true,
+	enablePasskeys: false,
 
 	// Whether password login is enabled
-	enablePasswordLogin: true,
+	enablePasswordLogin: false,
 
 	// Whether two factor authentication is enabled
-	enableTwoFactor: true,
+	enableTwoFactor: false,
 
 	// The maximum age of the session cookie in seconds
 	sessionCookieMaxAge: 60 * 60 * 24 * 30,

@@ -9,15 +9,18 @@ if (!gatewayBaseURL || !gatewayApiKey) {
 	);
 }
 
-const gatewayModel = process.env.AI_GATEWAY_MODEL || "gpt-4o-mini";
-
 const gateway = createOpenAI({
 	baseURL: gatewayBaseURL ?? "https://api.openai.com/v1",
 	apiKey: gatewayApiKey ?? "",
 });
 
-export const textModel = gateway.chat(gatewayModel);
-export const fastModel = gateway.chat(gatewayModel);
+const fastModelName = process.env.AI_FAST_MODEL || "gpt-4o-mini";
+const textModelName = process.env.AI_TEXT_MODEL || "gpt-4o";
+const reasoningModelName = process.env.AI_REASONING_MODEL || "o3-mini";
+
+export const fastModel = gateway.chat(fastModelName);
+export const textModel = gateway.chat(textModelName);
+export const reasoningModel = gateway.chat(reasoningModelName);
 
 export * from "ai";
 export * from "./lib";
