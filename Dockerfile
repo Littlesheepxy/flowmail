@@ -40,8 +40,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 ARG APP_NAME
 ENV APP_NAME=${APP_NAME}
 
-COPY --from=builder /app/apps/${APP_NAME}/public ./public
+# Standalone server chdir()s to apps/<app>/; public must be apps/<app>/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 
 USER nextjs

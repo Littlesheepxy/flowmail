@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { withContentCollections } from "@content-collections/next";
 // @ts-expect-error - PrismaPlugin is not typed
 import { PrismaPlugin } from "@prisma/nextjs-monorepo-workaround-plugin";
@@ -5,6 +7,11 @@ import type { NextConfig } from "next";
 import nextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = nextIntlPlugin("./modules/i18n/request.ts");
+
+const monorepoRoot = path.join(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"../..",
+);
 
 const securityHeaders = [
 	{
@@ -56,6 +63,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
 	output: "standalone",
+	outputFileTracingRoot: monorepoRoot,
 	typescript: {
 		ignoreBuildErrors: true,
 	},
