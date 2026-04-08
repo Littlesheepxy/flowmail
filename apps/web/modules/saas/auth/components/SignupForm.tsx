@@ -26,7 +26,7 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { withQuery } from "ufo";
 import { z } from "zod";
@@ -37,12 +37,6 @@ import {
 	oAuthProviders,
 } from "../constants/oauth-providers";
 import { SocialSigninButton } from "./SocialSigninButton";
-
-const formSchema = z.object({
-	email: z.string().email(),
-	name: z.string().min(1),
-	password: z.string(),
-});
 
 export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	const t = useTranslations();
@@ -57,16 +51,51 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 	const email = searchParams.get("email");
 	const redirectTo = searchParams.get("redirectTo");
 
+	const requireInviteField =
+		config.marketing.inviteCodeRequired && !invitationId;
+
+	const formSchema = useMemo(
+		() =>
+			z.object({
+					name: z.string().min(1),
+					email: z.string().email(),
+					password: z.string(),
+					inviteCode: requireInviteField
+						? z
+								.string()
+								.min(1, t("auth.signup.inviteCodeRequired"))
+								.trim()
+						: z.string().optional(),
+				}),
+		[requireInviteField, t],
+	);
+
 	const form = useForm({
 		resolver: zodResolver(formSchema),
 		values: {
 			name: "",
 			email: prefillEmail ?? email ?? "",
 			password: "",
+			inviteCode: "",
 		},
 	});
 
+	useEffect(() => {
+		if (invitationId || typeof sessionStorage === "undefined") {
+			return;
+		}
+		const stored = sessionStorage.getItem("flowmail_invite_code");
+		if (stored) {
+			form.setValue("inviteCode", stored);
+		}
+	}, [invitationId, form]);
+
 	const invitationOnlyMode = !authConfig.enableSignup && invitationId;
+
+	const showOAuthOnSignup =
+		authConfig.enableSignup &&
+		authConfig.enableSocialLogin &&
+		!requireInviteField;
 
 	const redirectPath = invitationId
 		? `/organization-invitation/${invitationId}`
@@ -78,17 +107,36 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 		}
 	}, [user, sessionLoaded]);
 
-	const onSubmit = form.handleSubmit(async ({ email, password, name }) => {
+	const onSubmit = form.handleSubmit(
+		async ({ email, password, name, inviteCode }) => {
 		try {
-			const { error } = await authClient.signUp.email({
+			const payload: {
+				email: string;
+				password: string;
+				name: string;
+				callbackURL: string;
+				inviteCode?: string;
+			} = {
 				email,
 				password,
 				name,
 				callbackURL: redirectPath,
-			});
+			};
+			const trimmed = inviteCode?.trim();
+			if (trimmed) {
+				payload.inviteCode = trimmed;
+			}
+
+			const { error } = await authClient.signUp.email(
+				payload as typeof payload & { inviteCode?: string },
+			);
 
 			if (error) {
 				throw error;
+			}
+
+			if (typeof sessionStorage !== "undefined") {
+				sessionStorage.removeItem("flowmail_invite_code");
 			}
 
 			if (invitationOnlyMode) {
@@ -103,6 +151,8 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 
 				router.push(config.saas.redirectAfterSignIn);
 			}
+			// 注册成功后 better-auth 会发验证邮件，session 不会立即建立。
+			// isSubmitSuccessful 会触发成功 Alert，无需手动跳转。
 		} catch (e) {
 			form.setError("root", {
 				message: getAuthErrorMessage(
@@ -112,7 +162,8 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 				),
 			});
 		}
-	});
+		},
+	);
 
 	return (
 		<div>
@@ -150,6 +201,30 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 										</AlertDescription>
 									</Alert>
 								)}
+
+							{requireInviteField && (
+								<FormField
+									control={form.control}
+									name="inviteCode"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												{t("auth.signup.inviteCode")}
+											</FormLabel>
+											<FormControl>
+												<Input
+													{...field}
+													autoComplete="off"
+													placeholder={t(
+														"auth.signup.inviteCodePlaceholder",
+													)}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
 
 							<FormField
 								control={form.control}
@@ -240,8 +315,7 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 						</form>
 					</Form>
 
-					{authConfig.enableSignup &&
-						authConfig.enableSocialLogin && (
+					{showOAuthOnSignup && (
 							<>
 								<div className="relative my-6 h-4">
 									<hr className="relative top-2" />

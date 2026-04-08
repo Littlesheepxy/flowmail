@@ -26,6 +26,7 @@ import {
 import { parse as parseCookies } from "cookie";
 import { config } from "./config";
 import { updateSeatsInOrganizationSubscription } from "./lib/organization";
+import { inviteCodePlugin } from "./plugins/invite-code";
 import { invitationOnlyPlugin } from "./plugins/invitation-only";
 
 const getLocaleFromRequest = (request?: Request) => {
@@ -244,6 +245,7 @@ export const auth = betterAuth({
 		}),
 		openAPI(),
 		invitationOnlyPlugin(),
+		inviteCodePlugin(),
 		twoFactor(),
 	],
 	onAPIError: {

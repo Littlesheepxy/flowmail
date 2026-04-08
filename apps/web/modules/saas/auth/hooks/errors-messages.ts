@@ -35,6 +35,7 @@ export function useAuthErrorMessages() {
 			"auth.errors.userAlreadyExistsUseAnotherEmail",
 		),
 		INVALID_INVITATION: t("auth.errors.invalidInvitation"),
+		INVALID_INVITE_CODE: t("auth.errors.invalidInviteCode"),
 		SESSION_EXPIRED: t("auth.errors.sessionExpired"),
 		FAILED_TO_UNLINK_LAST_ACCOUNT: t(
 			"auth.errors.failedToUnlinkLastAccount",

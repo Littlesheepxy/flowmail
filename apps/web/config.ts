@@ -30,7 +30,8 @@ export const config = {
 		// whether the marketing features should be enabled (otherwise all routes will be redirect to the saas part)
 		enabled: true,
 
-		// when true, Hero CTA becomes a waitlist email form instead of sign-up link
-		waitlistMode: true,
+		// when true, Hero CTA asks for invite code + email (requires FLOWMAIL_INVITE_CODES on server)
+		inviteCodeRequired:
+			process.env.NEXT_PUBLIC_INVITE_CODE_REQUIRED === "true",
 	},
 } as const;

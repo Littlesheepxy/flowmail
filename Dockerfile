@@ -49,6 +49,8 @@ USER nextjs
 
 ARG PORT=3000
 ENV PORT=${PORT}
+# Standalone defaults to localhost; without this, reverse proxies see connection refused → 502.
+ENV HOSTNAME=0.0.0.0
 EXPOSE ${PORT}
 
 CMD node apps/${APP_NAME}/server.js

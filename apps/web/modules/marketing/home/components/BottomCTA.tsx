@@ -7,7 +7,7 @@ import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { config } from "@/config";
-import { WaitlistForm } from "./WaitlistForm";
+import { InviteGateForm } from "./InviteGateForm";
 
 export function BottomCTA() {
 	const t = useTranslations();
@@ -31,8 +31,8 @@ export function BottomCTA() {
 
 					<BlurFade delay={0.2} inView>
 						<div className="mt-8 flex justify-center">
-							{config.marketing.waitlistMode ? (
-								<WaitlistForm />
+							{config.marketing.inviteCodeRequired ? (
+								<InviteGateForm tone="onDark" />
 							) : (
 								<Button size="lg" variant="secondary" asChild>
 									<Link href={authLoginHref(locale)}>

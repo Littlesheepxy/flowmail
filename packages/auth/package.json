@@ -15,13 +15,20 @@
 		"@repo/tsconfig": "workspace:*",
 		"@types/node": "^24.10.1"
 	},
+	"exports": {
+		".": "./index.ts",
+		"./client": "./client.ts",
+		"./config": "./config.ts",
+		"./lib/helper": "./lib/helper.ts",
+		"./server/invite-codes": "./lib/invite-codes.ts"
+	},
 	"main": "./index.ts",
 	"name": "@repo/auth",
+	"types": "./index.ts",
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"migrate": "dotenv -e ../../.env.local -- pnpm dlx @better-auth/cli@latest generate --config ./auth.ts --output ../database/prisma/schema.prisma",
 		"type-check": "tsc --noEmit"
 	},
-	"types": "./**/.tsx",
 	"version": "0.0.0"
 }

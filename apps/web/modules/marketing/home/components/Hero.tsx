@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { config } from "@/config";
 import { HeroDemoVisual } from "./HeroDemoVisual";
-import { WaitlistForm } from "./WaitlistForm";
+import { InviteGateForm } from "./InviteGateForm";
 
 export function Hero() {
 	const t = useTranslations();
@@ -63,8 +63,8 @@ export function Hero() {
 
 						<BlurFade delay={0.3} inView>
 							<div className="mt-6 flex items-center gap-2">
-								{config.marketing.waitlistMode ? (
-									<WaitlistForm />
+								{config.marketing.inviteCodeRequired ? (
+									<InviteGateForm />
 								) : (
 									<>
 										<Button
