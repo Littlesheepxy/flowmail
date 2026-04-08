@@ -74,8 +74,8 @@ const sections: SecuritySectionData[] = [
 		descriptionKey: "compliance",
 		icon: FlagIcon,
 		items: [
-			{ titleKey: "compliance.items.soc2", descriptionKey: "compliance.items.soc2", icon: ShieldCheckIcon },
 			{ titleKey: "compliance.items.gdpr", descriptionKey: "compliance.items.gdpr", icon: FlagIcon },
+			{ titleKey: "compliance.items.zeroTraining", descriptionKey: "compliance.items.zeroTraining", icon: EyeOffIcon },
 			{ titleKey: "compliance.items.auditLog", descriptionKey: "compliance.items.auditLog", icon: ScrollTextIcon },
 			{ titleKey: "compliance.items.dataExport", descriptionKey: "compliance.items.dataExport", icon: FileOutputIcon },
 		],
@@ -93,10 +93,12 @@ const sections: SecuritySectionData[] = [
 ];
 
 const trustBadges = [
-	{ key: "badge1", icon: ShieldCheckIcon },
-	{ key: "badge2", icon: FlagIcon },
-	{ key: "badge3", icon: LockIcon },
+	{ key: "badge1", icon: LockIcon },
+	{ key: "badge2", icon: KeyRoundIcon },
+	{ key: "badge3", icon: ScrollTextIcon },
 	{ key: "badge4", icon: EyeOffIcon },
+	{ key: "badge5", icon: FlagIcon },
+	{ key: "badge6", icon: GlobeIcon },
 ] as const;
 
 export function SecurityPage() {

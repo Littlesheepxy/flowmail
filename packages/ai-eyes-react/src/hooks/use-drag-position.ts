@@ -49,13 +49,21 @@ export function useDragPosition(
 		startPosY: number;
 		moved: boolean;
 	} | null>(null);
+	const positionRef = useRef(position);
+	positionRef.current = position;
 	const onPositionChangeRef = useRef(onPositionChange);
 	onPositionChangeRef.current = onPositionChange;
 
 	useEffect(() => {
 		const saved = loadPosition();
 		if (saved) {
-			setPosition(saved);
+			const vw = window.innerWidth;
+			const vh = window.innerHeight;
+			const clamped = {
+				x: Math.max(0, Math.min(vw - 56, saved.x)),
+				y: Math.max(0, Math.min(vh - 56, saved.y)),
+			};
+			setPosition(clamped);
 			setHasDragged(true);
 		}
 	}, []);
@@ -122,7 +130,7 @@ export function useDragPosition(
 
 		const onUp = () => {
 			if (dragState.current?.moved) {
-				savePosition(position);
+				savePosition(positionRef.current);
 			}
 			dragState.current = null;
 			setIsDragging(false);
@@ -133,10 +141,8 @@ export function useDragPosition(
 		return () => {
 			document.removeEventListener("pointermove", onMove);
 			document.removeEventListener("pointerup", onUp);
-			dragState.current = null;
-			setIsDragging(false);
 		};
-	}, [enabled, position]);
+	}, [enabled]);
 
 	return { position, isDragging, hasDragged, handlePointerDown };
 }

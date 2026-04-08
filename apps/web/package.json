@@ -75,6 +75,7 @@
 		"react-qr-code": "^2.0.17",
 		"recharts": "^2.15.4",
 		"remark-gfm": "^4.0.1",
+		"resend": "^6.9.3",
 		"server-only": "^0.0.1",
 		"sharp": "^0.34.5",
 		"slugify": "^1.6.6",

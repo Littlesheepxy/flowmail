@@ -8,6 +8,7 @@ import {
 import { extractApprovalFields, extractReportFields } from "./extractor";
 import { generateSuggestions } from "./suggester";
 import { summarizeThread } from "./summarizer";
+import { generateTags } from "./tagger";
 
 import type { EmailRecipient, RawEmailAttachment } from "./connectors/types";
 
@@ -220,17 +221,6 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				throw threadError;
 			}
 
-			// 更新 Entity updatedAt + summary（追加新摘要）
-			await db.flowEntity.update({
-				where: { id: existingEntityId },
-				data: {
-					updatedAt: new Date(),
-					...(summary && summary !== input.content.slice(0, 200)
-						? { aiSummary: summary }
-						: {}),
-				},
-			});
-
 			await db.timelineEvent.create({
 				data: {
 					entityId: existingEntityId,
@@ -242,6 +232,84 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					}),
 				},
 			});
+
+			// ─── Re-run AI analysis on follow-up email ───
+			if (hasAiKey) {
+				const existingEntity = await db.flowEntity.findUnique({
+					where: { id: existingEntityId },
+					select: { type: true, status: true, extractedFields: true },
+				});
+
+				const prevFields = parseJsonFields(existingEntity?.extractedFields);
+				const existingType = existingEntity?.type ?? entityType;
+				const existingStatus = existingEntity?.status ?? "pending";
+
+				let newExtractedFields: Record<string, unknown> = {};
+				if (existingType === "APPROVAL" || categorySlug === "approval") {
+					newExtractedFields = await extractApprovalFields(input.content);
+				} else if (existingType === "REPORT" || categorySlug === "report") {
+					newExtractedFields = await extractReportFields(input.content);
+				}
+
+				const mergedFields = mergeExtractedFields(prevFields, newExtractedFields);
+				const newSummary = await summarizeThread(input.content);
+
+				let suggestions: unknown[] = [];
+				try {
+					suggestions = await generateSuggestions({
+						entityType: existingType,
+						entityStatus: existingStatus,
+						extractedFields: mergedFields,
+						latestEmailContent: input.content.slice(0, 2000),
+						timelineSummary: newSummary,
+						availableTools: [
+							"add_timeline_event",
+							"approve_entity",
+							"reject_entity",
+							"update_entity_status",
+						],
+					});
+				} catch {
+					// suggestions generation is non-critical
+				}
+
+				const progressDelta = computeProgressDelta(prevFields, mergedFields);
+
+				await db.flowEntity.update({
+					where: { id: existingEntityId },
+					data: {
+						updatedAt: new Date(),
+						extractedFields: JSON.stringify(mergedFields),
+						aiSummary: newSummary,
+					},
+				});
+
+				await db.timelineEvent.create({
+					data: {
+						entityId: existingEntityId,
+						type: "ai_summary",
+						content: `AI updated analysis: ${newSummary}`,
+						metadata: JSON.stringify({
+							categorySlug: categorySlug ?? existingType.toLowerCase(),
+							confidence,
+							extractedFields: mergedFields,
+							...(progressDelta !== 0 ? { progressDelta } : {}),
+							...(suggestions.length > 0 ? { suggestions } : {}),
+							reasoning: "Follow-up email triggered re-analysis",
+						}),
+					},
+				});
+			} else {
+				await db.flowEntity.update({
+					where: { id: existingEntityId },
+					data: {
+						updatedAt: new Date(),
+						...(summary && summary !== input.content.slice(0, 200)
+							? { aiSummary: summary }
+							: {}),
+					},
+				});
+			}
 
 			return {
 				success: true,
@@ -374,6 +442,46 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 			},
 		});
 
+		// ─── AI Auto-tagging ───
+		if (hasAiKey) {
+			try {
+				const tagNames = await generateTags({
+					subject: input.subject,
+					content: input.content,
+					sender: input.sender,
+					extractedFields,
+				});
+				for (const tagName of tagNames) {
+					const tag = await db.tag.upsert({
+						where: {
+							organizationId_name: {
+								organizationId: input.organizationId,
+								name: tagName,
+							},
+						},
+						create: {
+							organizationId: input.organizationId,
+							name: tagName,
+							source: "AI",
+						},
+						update: {},
+					});
+					await db.entityTag.upsert({
+						where: {
+							entityId_tagId: {
+								entityId: entity.id,
+								tagId: tag.id,
+							},
+						},
+						create: { entityId: entity.id, tagId: tag.id },
+						update: {},
+					});
+				}
+			} catch {
+				// Auto-tagging is non-critical
+			}
+		}
+
 		// ─── Memory: record contact profile + classification learning ───
 		memoryManager
 			.recordContactProfile({
@@ -428,4 +536,60 @@ function determineInitialStatus(
 		default:
 			return "pending";
 	}
+}
+
+function parseJsonFields(raw: unknown): Record<string, unknown> {
+	if (!raw) {
+		return {};
+	}
+	if (typeof raw === "string") {
+		try {
+			return JSON.parse(raw);
+		} catch {
+			return {};
+		}
+	}
+	return raw as Record<string, unknown>;
+}
+
+function mergeExtractedFields(
+	prev: Record<string, unknown>,
+	next: Record<string, unknown>,
+): Record<string, unknown> {
+	const merged = { ...prev };
+	for (const [key, value] of Object.entries(next)) {
+		if (value === undefined || value === null) {
+			continue;
+		}
+		if (Array.isArray(value) && value.length === 0) {
+			continue;
+		}
+		merged[key] = value;
+	}
+	return merged;
+}
+
+function computeProgressDelta(
+	prev: Record<string, unknown>,
+	next: Record<string, unknown>,
+): number {
+	const prevProgress = parseProgressNumber(prev.progress);
+	const nextProgress = parseProgressNumber(next.progress);
+	if (prevProgress === null || nextProgress === null) {
+		return 0;
+	}
+	return nextProgress - prevProgress;
+}
+
+function parseProgressNumber(val: unknown): number | null {
+	if (typeof val === "number") {
+		return val;
+	}
+	if (typeof val === "string") {
+		const match = val.match(/(\d+)/);
+		if (match) {
+			return Number.parseInt(match[1], 10);
+		}
+	}
+	return null;
 }

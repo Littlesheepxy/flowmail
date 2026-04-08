@@ -39,6 +39,7 @@ interface AgentPanelProps {
 	organizationId?: string;
 	className?: string;
 	onClose?: () => void;
+	initialMessage?: string;
 }
 
 /** Tool 结果 → UI 卡片 */
@@ -453,9 +454,11 @@ export function AgentPanel({
 	organizationId,
 	className,
 	onClose,
+	initialMessage,
 }: AgentPanelProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
-	const [input, setInput] = useState("");
+	const [input, setInput] = useState(initialMessage ?? "");
+	const initialConsumedRef = useRef(false);
 	const [scope, setScope] = useState<AgentScope>("entity");
 	const pathname = usePathname();
 
@@ -529,7 +532,15 @@ export function AgentPanel({
 	useEffect(() => {
 		setMessages([]);
 		setInput("");
+		initialConsumedRef.current = false;
 	}, [entityId, setMessages]);
+
+	useEffect(() => {
+		if (initialMessage && !initialConsumedRef.current) {
+			initialConsumedRef.current = true;
+			setInput(initialMessage);
+		}
+	}, [initialMessage]);
 
 	useEffect(() => {
 		scrollRef.current?.scrollTo({

@@ -15,25 +15,33 @@ export const getSetupGuideStatus = protectedProcedure
 	.handler(async ({ input, context }): Promise<SetupGuideStatus> => {
 		await requireOrgMembership(input.organizationId, context.user.id);
 
-		const [org, connectionCount, categoryCount, entityCount] =
-			await Promise.all([
-				db.organization.findUnique({
-					where: { id: input.organizationId },
-					select: { metadata: true },
-				}),
-				db.emailConnection.count({
-					where: { organizationId: input.organizationId },
-				}),
-				db.category.count({
-					where: {
-						organizationId: input.organizationId,
-						isDefault: false,
-					},
-				}),
-				db.flowEntity.count({
-					where: { organizationId: input.organizationId },
-				}),
-			]);
+		const [
+			org,
+			connectionCount,
+			inboundCount,
+			categoryCount,
+			entityCount,
+		] = await Promise.all([
+			db.organization.findUnique({
+				where: { id: input.organizationId },
+				select: { metadata: true },
+			}),
+			db.emailConnection.count({
+				where: { organizationId: input.organizationId },
+			}),
+			db.inboundEmail.count({
+				where: { organizationId: input.organizationId },
+			}),
+			db.category.count({
+				where: {
+					organizationId: input.organizationId,
+					isDefault: false,
+				},
+			}),
+			db.flowEntity.count({
+				where: { organizationId: input.organizationId },
+			}),
+		]);
 
 		const metadata: SetupGuideMetadata = org?.metadata
 			? (() => {
@@ -47,7 +55,7 @@ export const getSetupGuideStatus = protectedProcedure
 			: {};
 
 		const steps = {
-			connectEmail: connectionCount > 0,
+			connectEmail: connectionCount > 0 || inboundCount > 0,
 			configureCategories: categoryCount > 0,
 			processFirstEmail: entityCount > 0,
 			checkNotifications: metadata.notificationChecked === true,

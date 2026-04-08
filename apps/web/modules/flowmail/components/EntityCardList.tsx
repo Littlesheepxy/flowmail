@@ -11,7 +11,13 @@ import {
 	AlertCircleIcon,
 	XCircleIcon,
 	InboxIcon,
+	MailIcon,
+	MessageSquareIcon,
+	XIcon,
 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { DemoBanner } from "./DemoBanner";
+import { InboxEmptyState } from "./InboxEmptyState";
 
 const STATUS_CONFIG: Record<
 	string,
@@ -58,14 +64,52 @@ export function EntityCardList({
 	});
 
 	const entities = data?.entities ?? [];
+	const [activeTagId, setActiveTagId] = useState<string | null>(null);
 
-	const filteredEntities = search
-		? entities.filter(
+	const hasDemo = entities.some((e) => {
+		try {
+			const fields =
+				typeof e.extractedFields === "string"
+					? JSON.parse(e.extractedFields)
+					: e.extractedFields;
+			return fields?._isDemo === true;
+		} catch {
+			return false;
+		}
+	});
+
+	const allTags = useMemo(() => {
+		const tagMap = new Map<string, { id: string; name: string; color: string; count: number }>();
+		for (const e of entities) {
+			for (const et of (e.tags ?? []) as TagInfo[]) {
+				const existing = tagMap.get(et.tag.id);
+				if (existing) {
+					existing.count++;
+				} else {
+					tagMap.set(et.tag.id, { ...et.tag, count: 1 });
+				}
+			}
+		}
+		return [...tagMap.values()].sort((a, b) => b.count - a.count);
+	}, [entities]);
+
+	const filteredEntities = useMemo(() => {
+		let result = entities;
+		if (search) {
+			const q = search.toLowerCase();
+			result = result.filter(
 				(e) =>
-					e.title.toLowerCase().includes(search.toLowerCase()) ||
-					e.aiSummary?.toLowerCase().includes(search.toLowerCase()),
-			)
-		: entities;
+					e.title.toLowerCase().includes(q) ||
+					e.aiSummary?.toLowerCase().includes(q),
+			);
+		}
+		if (activeTagId) {
+			result = result.filter((e) =>
+				((e.tags ?? []) as TagInfo[]).some((et) => et.tag.id === activeTagId),
+			);
+		}
+		return result;
+	}, [entities, search, activeTagId]);
 
 	type CategoryInfo = { name: string; color: string };
 	const grouped = !categorySlug;
@@ -90,27 +134,60 @@ export function EntityCardList({
 					items: [],
 				});
 			}
-			groupMap.get(key)!.items.push(entity);
+			groupMap.get(key)?.items.push(entity);
 		}
 		categoryGroups.push(...groupMap.values());
 	}
 
 	return (
 		<div className="flex-1 overflow-y-auto">
+			{allTags.length > 0 && (
+				<div className="flex items-center gap-1 px-3 py-1.5 border-b overflow-x-auto scrollbar-none">
+					{allTags.slice(0, 8).map((tag) => (
+						<button
+							key={tag.id}
+							type="button"
+							className={cn(
+								"inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors border",
+								activeTagId === tag.id
+									? "border-current"
+									: "border-transparent opacity-70 hover:opacity-100",
+							)}
+							style={{
+								backgroundColor: `${tag.color}15`,
+								color: tag.color,
+							}}
+							onClick={() => setActiveTagId(activeTagId === tag.id ? null : tag.id)}
+						>
+							{tag.name}
+							{activeTagId === tag.id && <XIcon className="size-2.5" />}
+						</button>
+					))}
+				</div>
+			)}
 			{isLoading ? (
 				<div className="flex items-center justify-center py-20">
 					<Spinner className="size-4 text-primary" />
 				</div>
 			) : filteredEntities.length === 0 ? (
-				<div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-					<InboxIcon className="size-10 text-muted-foreground/30 mb-3" />
-					<p className="text-sm text-muted-foreground">
-						{search
-							? "无匹配结果"
-							: "还没有邮件。连接邮箱开始处理。"}
-					</p>
-				</div>
-			) : grouped ? (
+				search ? (
+					<div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+						<InboxIcon className="size-10 text-muted-foreground/30 mb-3" />
+						<p className="text-sm text-muted-foreground">
+							无匹配结果
+						</p>
+					</div>
+				) : (
+					<InboxEmptyState />
+				)
+			) : (
+				<>
+				{hasDemo && (
+					<div className="px-3 py-2">
+						<DemoBanner />
+					</div>
+				)}
+				{grouped ? (
 				categoryGroups.map((group) => (
 					<div key={group.category.name}>
 						<div className="sticky top-0 z-10 flex items-center gap-2 px-3 py-1.5 bg-muted/50 backdrop-blur-sm border-b">
@@ -147,8 +224,14 @@ export function EntityCardList({
 					/>
 				))
 			)}
+				</>
+			)}
 		</div>
 	);
+}
+
+interface TagInfo {
+	tag: { id: string; name: string; color: string };
 }
 
 function EntityCard({
@@ -164,6 +247,8 @@ function EntityCard({
 		aiSummary: string | null;
 		updatedAt: Date | string;
 		category?: { name: string; color: string; slug: string } | null;
+		tags?: TagInfo[];
+		_count?: { threads?: number; timeline?: number };
 	};
 	isSelected: boolean;
 	onSelect: () => void;
@@ -171,10 +256,14 @@ function EntityCard({
 	const statusCfg = STATUS_CONFIG[entity.status] ?? STATUS_CONFIG.pending;
 	const catColor = entity.category?.color ?? "#94a3b8";
 	const catName = entity.category?.name ?? entity.type;
+	const threadCount = entity._count?.threads ?? 0;
+	const timelineCount = entity._count?.timeline ?? 0;
+	const tags = entity.tags ?? [];
 
 	return (
 		<button
 			type="button"
+			data-entity-card
 			onClick={onSelect}
 			className={cn(
 				"w-full text-left px-3 py-3 border-b transition-colors flex gap-2.5",
@@ -212,9 +301,42 @@ function EntityCard({
 						{entity.aiSummary}
 					</p>
 				)}
-				<p className="text-[10px] text-muted-foreground/60 mt-1">
-					{new Date(entity.updatedAt).toLocaleDateString()}
-				</p>
+				{tags.length > 0 && (
+					<div className="flex items-center gap-1 mt-1 flex-wrap">
+						{tags.slice(0, 3).map((et) => (
+							<span
+								key={et.tag.id}
+								className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-medium"
+								style={{
+									backgroundColor: `${et.tag.color}15`,
+									color: et.tag.color,
+								}}
+							>
+								{et.tag.name}
+							</span>
+						))}
+						{tags.length > 3 && (
+							<span className="text-[10px] text-muted-foreground/50">
+								+{tags.length - 3}
+							</span>
+						)}
+					</div>
+				)}
+				<div className="flex items-center gap-2.5 mt-1 text-[10px] text-muted-foreground/60">
+					<span>{new Date(entity.updatedAt).toLocaleDateString()}</span>
+					{threadCount > 1 && (
+						<span className="inline-flex items-center gap-0.5">
+							<MailIcon className="size-2.5" />
+							{threadCount}
+						</span>
+					)}
+					{timelineCount > 0 && (
+						<span className="inline-flex items-center gap-0.5">
+							<MessageSquareIcon className="size-2.5" />
+							{timelineCount}
+						</span>
+					)}
+				</div>
 			</div>
 		</button>
 	);

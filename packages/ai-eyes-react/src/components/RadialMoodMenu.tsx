@@ -173,6 +173,8 @@ export function RadialMoodMenu({
 	const menuSize = OUTER_RADIUS * 2 + 16;
 	const center = menuSize / 2;
 
+	const prevHoveredRef = useRef<number | null>(null);
+
 	const handleMouseMove = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
 			const rect = e.currentTarget.getBoundingClientRect();
@@ -180,18 +182,17 @@ export function RadialMoodMenu({
 			const my = e.clientY - rect.top;
 			const idx = getHoveredIndex(mx, my, center, items.length);
 
-			setHoveredIndex((prev) => {
-				if (prev === idx) {
-					return prev;
-				}
+			if (prevHoveredRef.current !== idx) {
+				prevHoveredRef.current = idx;
+				setHoveredIndex(idx);
 				onHover?.(idx !== null ? items[idx] : null);
-				return idx;
-			});
+			}
 		},
 		[center, items, onHover],
 	);
 
 	const handleMouseLeave = useCallback(() => {
+		prevHoveredRef.current = null;
 		setHoveredIndex(null);
 		onHover?.(null);
 	}, [onHover]);

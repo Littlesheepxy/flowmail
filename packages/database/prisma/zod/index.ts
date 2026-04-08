@@ -48,7 +48,7 @@ export type TwoFactorScalarFieldEnum = z.infer<typeof TwoFactorScalarFieldEnumSc
 
 // File: OrganizationScalarFieldEnum.schema.ts
 
-export const OrganizationScalarFieldEnumSchema = z.enum(['id', 'name', 'slug', 'logo', 'createdAt', 'metadata', 'paymentsCustomerId'])
+export const OrganizationScalarFieldEnumSchema = z.enum(['id', 'name', 'slug', 'logo', 'createdAt', 'metadata', 'paymentsCustomerId', 'inboundEmailAddress', 'inboundEmailShortId'])
 
 export type OrganizationScalarFieldEnum = z.infer<typeof OrganizationScalarFieldEnumSchema>;
 
@@ -76,6 +76,12 @@ export const WaitlistEntryScalarFieldEnumSchema = z.enum(['id', 'email', 'create
 
 export type WaitlistEntryScalarFieldEnum = z.infer<typeof WaitlistEntryScalarFieldEnumSchema>;
 
+// File: InboundEmailScalarFieldEnum.schema.ts
+
+export const InboundEmailScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'fromEmail', 'subject', 'textBody', 'htmlBody', 'rawHeaders', 'rawPayload', 'contentHash', 'entityId', 'processedAt', 'createdAt'])
+
+export type InboundEmailScalarFieldEnum = z.infer<typeof InboundEmailScalarFieldEnumSchema>;
+
 // File: EmailConnectionScalarFieldEnum.schema.ts
 
 export const EmailConnectionScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'provider', 'authType', 'email', 'accessToken', 'refreshToken', 'tokenExpiresAt', 'imapHost', 'imapPort', 'smtpHost', 'smtpPort', 'imapPassword', 'appId', 'appSecret', 'maxSyncCount', 'isActive', 'lastSyncAt', 'syncCursor', 'createdAt', 'updatedAt'])
@@ -99,6 +105,18 @@ export type EmailAttachmentScalarFieldEnum = z.infer<typeof EmailAttachmentScala
 export const CategoryScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'name', 'slug', 'icon', 'color', 'aiPrompt', 'sortOrder', 'isDefault', 'createdAt', 'updatedAt'])
 
 export type CategoryScalarFieldEnum = z.infer<typeof CategoryScalarFieldEnumSchema>;
+
+// File: TagScalarFieldEnum.schema.ts
+
+export const TagScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'name', 'color', 'source', 'createdAt'])
+
+export type TagScalarFieldEnum = z.infer<typeof TagScalarFieldEnumSchema>;
+
+// File: EntityTagScalarFieldEnum.schema.ts
+
+export const EntityTagScalarFieldEnumSchema = z.enum(['id', 'entityId', 'tagId'])
+
+export type EntityTagScalarFieldEnum = z.infer<typeof EntityTagScalarFieldEnumSchema>;
 
 // File: FlowEntityScalarFieldEnum.schema.ts
 
@@ -142,6 +160,12 @@ export const SortOrderSchema = z.enum(['asc', 'desc'])
 
 export type SortOrder = z.infer<typeof SortOrderSchema>;
 
+// File: NullableJsonNullValueInput.schema.ts
+
+export const NullableJsonNullValueInputSchema = z.enum(['DbNull', 'JsonNull'])
+
+export type NullableJsonNullValueInput = z.infer<typeof NullableJsonNullValueInputSchema>;
+
 // File: QueryMode.schema.ts
 
 export const QueryModeSchema = z.enum(['default', 'insensitive'])
@@ -154,11 +178,23 @@ export const NullsOrderSchema = z.enum(['first', 'last'])
 
 export type NullsOrder = z.infer<typeof NullsOrderSchema>;
 
+// File: JsonNullValueFilter.schema.ts
+
+export const JsonNullValueFilterSchema = z.enum(['DbNull', 'JsonNull', 'AnyNull'])
+
+export type JsonNullValueFilter = z.infer<typeof JsonNullValueFilterSchema>;
+
 // File: PurchaseType.schema.ts
 
 export const PurchaseTypeSchema = z.enum(['SUBSCRIPTION', 'ONE_TIME'])
 
 export type PurchaseType = z.infer<typeof PurchaseTypeSchema>;
+
+// File: TagSource.schema.ts
+
+export const TagSourceSchema = z.enum(['AI', 'USER'])
+
+export type TagSource = z.infer<typeof TagSourceSchema>;
 
 // File: EntityType.schema.ts
 
@@ -174,7 +210,7 @@ export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
 // File: AuditAction.schema.ts
 
-export const AuditActionSchema = z.enum(['LOGIN', 'LOGOUT', 'SIGNUP', 'OTP_REQUEST', 'OTP_VERIFY', 'PASSWORD_RESET', 'EMAIL_CONNECTION_CREATE', 'EMAIL_CONNECTION_DELETE', 'EMAIL_SYNC', 'EMAIL_SEND', 'ENTITY_STATUS_CHANGE', 'ENTITY_APPROVE', 'ENTITY_REJECT', 'API_TOKEN_CREATE', 'API_TOKEN_REVOKE', 'MEMBER_INVITE', 'MEMBER_REMOVE', 'ORGANIZATION_CREATE', 'ORGANIZATION_DELETE', 'SETTINGS_CHANGE', 'DATA_EXPORT'])
+export const AuditActionSchema = z.enum(['LOGIN', 'LOGOUT', 'SIGNUP', 'OTP_REQUEST', 'OTP_VERIFY', 'PASSWORD_RESET', 'EMAIL_CONNECTION_CREATE', 'EMAIL_CONNECTION_DELETE', 'EMAIL_SYNC', 'EMAIL_SEND', 'INBOUND_EMAIL_RECEIVED', 'ENTITY_STATUS_CHANGE', 'ENTITY_APPROVE', 'ENTITY_REJECT', 'API_TOKEN_CREATE', 'API_TOKEN_REVOKE', 'MEMBER_INVITE', 'MEMBER_REMOVE', 'ORGANIZATION_CREATE', 'ORGANIZATION_DELETE', 'SETTINGS_CHANGE', 'DATA_EXPORT'])
 
 export type AuditAction = z.infer<typeof AuditActionSchema>;
 
@@ -298,6 +334,8 @@ export const OrganizationSchema = z.object({
   createdAt: z.date(),
   metadata: z.string().nullish(),
   paymentsCustomerId: z.string().nullish(),
+  inboundEmailAddress: z.string().nullish(),
+  inboundEmailShortId: z.string().nullish(),
 });
 
 export type OrganizationType = z.infer<typeof OrganizationSchema>;
@@ -358,6 +396,26 @@ export const WaitlistEntrySchema = z.object({
 });
 
 export type WaitlistEntryType = z.infer<typeof WaitlistEntrySchema>;
+
+
+// File: InboundEmail.schema.ts
+
+export const InboundEmailSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  fromEmail: z.string(),
+  subject: z.string(),
+  textBody: z.string().nullish(),
+  htmlBody: z.string().nullish(),
+  rawHeaders: z.string().nullish(),
+  rawPayload: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  contentHash: z.string().nullish(),
+  entityId: z.string().nullish(),
+  processedAt: z.date().nullish(),
+  createdAt: z.date(),
+});
+
+export type InboundEmailType = z.infer<typeof InboundEmailSchema>;
 
 
 // File: EmailConnection.schema.ts
@@ -449,6 +507,31 @@ export const CategorySchema = z.object({
 });
 
 export type CategoryType = z.infer<typeof CategorySchema>;
+
+
+// File: Tag.schema.ts
+
+export const TagSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  name: z.string(),
+  color: z.string().default("#6366f1"),
+  source: TagSourceSchema.default("AI"),
+  createdAt: z.date(),
+});
+
+export type TagType = z.infer<typeof TagSchema>;
+
+
+// File: EntityTag.schema.ts
+
+export const EntityTagSchema = z.object({
+  id: z.string(),
+  entityId: z.string(),
+  tagId: z.string(),
+});
+
+export type EntityTagType = z.infer<typeof EntityTagSchema>;
 
 
 // File: FlowEntity.schema.ts

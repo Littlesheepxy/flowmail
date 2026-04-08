@@ -518,10 +518,12 @@
 				"description": "Passkeys, TOTP two-factor authentication, and email OTP verification keep your accounts secure."
 			}
 		},
-		"badge1": "SOC 2 Controls",
-		"badge2": "GDPR Committed",
-		"badge3": "AES-256 Encrypted",
+		"badge1": "AES-256 Encrypted",
+		"badge2": "OAuth 2.0",
+		"badge3": "Full Audit Trail",
 		"badge4": "Zero Data Training",
+		"badge5": "GDPR Ready",
+		"badge6": "TLS Encrypted",
 		"page": {
 			"hero": {
 				"title": "Safe, secure, and private.",
@@ -586,16 +588,16 @@
 				}
 			},
 			"compliance": {
-				"title": "Compliance",
-				"description": "We are building toward industry-standard certifications and maintain rigorous internal controls.",
+				"title": "Compliance & Transparency",
+				"description": "We protect your rights through rigorous internal controls and transparent data handling practices.",
 				"items": {
-					"soc2": {
-						"title": "SOC 2 controls implemented",
-						"description": "We have implemented the security controls required by SOC 2 Trust Services Criteria. Formal Type I audit is planned as we scale."
-					},
 					"gdpr": {
-						"title": "GDPR committed",
-						"description": "We are committed to GDPR principles: data minimization, purpose limitation, and data subject rights. A Data Processing Agreement (DPA) is available upon request."
+						"title": "GDPR Ready",
+						"description": "We follow core GDPR principles: data minimization, purpose limitation, and data subject rights. Data export and deletion supported. DPA available upon request."
+					},
+					"zeroTraining": {
+						"title": "Zero data training",
+						"description": "Your email content is never used to train or improve AI models. We enforce zero-data-retention policies with all AI providers."
 					},
 					"auditLog": {
 						"title": "Comprehensive audit logging",

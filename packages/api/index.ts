@@ -12,6 +12,10 @@ export { verifyApiToken } from "./modules/api-tokens/lib/token-utils";
 export { triggerNotification } from "./modules/notifications/lib/trigger";
 export { checkRateLimit, getClientIp, RATE_LIMITS } from "./lib/rate-limit";
 export { writeAuditLog, extractRequestMeta } from "./lib/audit-log";
+export {
+	getOrCreateInboundAddress,
+	resolveOrganizationByInboundAddress,
+} from "./modules/email-connections/lib/inbound-address";
 
 export const app = new Hono()
 	.basePath("/api")

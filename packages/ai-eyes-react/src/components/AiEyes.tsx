@@ -75,9 +75,12 @@ export function AiEyes({
 	const [previewMood, setPreviewMood] = useState<OrbMood | null>(null);
 	const [actionMood, setActionMood] = useState<OrbMood | null>(null);
 	const [cooldown, setCooldown] = useState(false);
+	const [showDiscoveryHint, setShowDiscoveryHint] = useState(false);
 	const moodBeforeMenuRef = useRef<OrbMood>("idle");
 	const actionTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 	const cooldownTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+	const longPressTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+	const longPressTriggeredRef = useRef(false);
 
 	const displayMood = actionMood ?? previewMood ?? effectiveMood;
 	const interactionLocked = menuOpen || actionMood !== null || cooldown;
@@ -103,8 +106,21 @@ export function AiEyes({
 		cooldownTimerRef.current = setTimeout(() => setCooldown(false), ms);
 	}, []);
 
+	const openMenu = useCallback(() => {
+		if (disabled) {
+			return;
+		}
+		moodBeforeMenuRef.current = effectiveMood;
+		setMenuOpen(true);
+		setShowDiscoveryHint(false);
+		try {
+			sessionStorage.setItem("ai-eyes-menu-discovered", "1");
+		} catch { /* noop */ }
+	}, [disabled, effectiveMood]);
+
 	const handleClick = useCallback(() => {
-		if (isDragging || disabled || menuOpen) {
+		if (isDragging || disabled || menuOpen || longPressTriggeredRef.current) {
+			longPressTriggeredRef.current = false;
 			return;
 		}
 		if (actionTimerRef.current) {
@@ -121,14 +137,49 @@ export function AiEyes({
 	const handleContextMenu = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
-			if (disabled) {
+			openMenu();
+		},
+		[openMenu],
+	);
+
+	const handlePointerDownForLongPress = useCallback(
+		(_e: React.PointerEvent) => {
+			if (menuOpen || disabled) {
 				return;
 			}
-			moodBeforeMenuRef.current = effectiveMood;
-			setMenuOpen(true);
+			longPressTriggeredRef.current = false;
+			longPressTimerRef.current = setTimeout(() => {
+				longPressTriggeredRef.current = true;
+				openMenu();
+			}, 500);
 		},
-		[disabled, effectiveMood],
+		[menuOpen, disabled, openMenu],
 	);
+
+	const handlePointerUpForLongPress = useCallback(() => {
+		if (longPressTimerRef.current) {
+			clearTimeout(longPressTimerRef.current);
+			longPressTimerRef.current = undefined;
+		}
+	}, []);
+
+	// Show discovery hint on first hover if menu hasn't been used
+	const handleMouseEnterWithHint = useCallback(() => {
+		setIsHovered(true);
+		if (menuOpen || activeSuggestion) {
+			return;
+		}
+		try {
+			if (!sessionStorage.getItem("ai-eyes-menu-discovered")) {
+				setShowDiscoveryHint(true);
+			}
+		} catch { /* noop */ }
+	}, [menuOpen, activeSuggestion]);
+
+	const handleMouseLeaveWithHint = useCallback(() => {
+		setIsHovered(false);
+		setShowDiscoveryHint(false);
+	}, []);
 
 	const handleMenuClose = useCallback(() => {
 		setMenuOpen(false);
@@ -280,11 +331,18 @@ export function AiEyes({
 					position: "relative",
 					zIndex: menuOpen ? 10001 : 1,
 				}}
-				onPointerDown={menuOpen ? undefined : handlePointerDown}
+				onPointerDown={(e) => {
+					if (!menuOpen) {
+						handlePointerDown(e);
+						handlePointerDownForLongPress(e);
+					}
+				}}
+				onPointerUp={handlePointerUpForLongPress}
+				onPointerCancel={handlePointerUpForLongPress}
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
+				onMouseEnter={handleMouseEnterWithHint}
+				onMouseLeave={handleMouseLeaveWithHint}
 				aria-label="AI Assistant"
 			>
 				<OrbDots
@@ -314,6 +372,28 @@ export function AiEyes({
 						dismiss: locale?.helpDismiss,
 					}}
 				/>
+			)}
+
+			{showDiscoveryHint && !activeSuggestion && !menuOpen && (
+				<div
+					style={{
+						position: "absolute",
+						bottom: "calc(100% + 8px)",
+						right: 0,
+						whiteSpace: "nowrap",
+						background: "var(--ai-eyes-bubble-bg, hsl(var(--card, 0 0% 100%)))",
+						color: "var(--ai-eyes-bubble-fg, hsl(var(--card-foreground, 0 0% 9%)))",
+						border: "1px solid var(--ai-eyes-bubble-border, hsl(var(--border, 0 0% 90%)))",
+						borderRadius: 10,
+						padding: "6px 12px",
+						fontSize: 11,
+						boxShadow: "0 4px 12px -2px rgba(0,0,0,0.1)",
+						pointerEvents: "none",
+						opacity: 0.9,
+					}}
+				>
+					💡 长按或右键查看更多
+				</div>
 			)}
 
 			<RadialMoodMenu

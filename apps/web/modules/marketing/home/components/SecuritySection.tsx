@@ -6,16 +6,21 @@ import {
 	ArrowRightIcon,
 	EyeOffIcon,
 	FlagIcon,
+	GlobeIcon,
+	KeyRoundIcon,
 	LockIcon,
+	ScrollTextIcon,
 	ShieldCheckIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const trustBadges = [
-	{ key: "badge1", icon: ShieldCheckIcon },
-	{ key: "badge2", icon: FlagIcon },
-	{ key: "badge3", icon: LockIcon },
+	{ key: "badge1", icon: LockIcon },
+	{ key: "badge2", icon: KeyRoundIcon },
+	{ key: "badge3", icon: ScrollTextIcon },
 	{ key: "badge4", icon: EyeOffIcon },
+	{ key: "badge5", icon: FlagIcon },
+	{ key: "badge6", icon: GlobeIcon },
 ] as const;
 
 export function SecuritySection() {

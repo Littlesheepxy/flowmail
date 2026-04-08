@@ -316,7 +316,9 @@ function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
 	const extractedFields = meta.extractedFields as Record<string, unknown> | undefined;
 	const riskSignals = meta.riskSignals as string[] | undefined;
 	const reasoning = meta.reasoning as string | undefined;
+	const progressDelta = meta.progressDelta as number | undefined;
 	const hasFields = extractedFields && Object.keys(extractedFields).length > 0;
+	const progress = extractedFields?.progress as string | undefined;
 
 	const content = aiEvent.content.replace(/^AI (解析完成|对比[^：：]*)[：:]?\s*/i, "");
 
@@ -326,6 +328,24 @@ function AiDetailPanel({ aiEvent }: { aiEvent: TimelineEvent }) {
 				<p className="text-xs leading-relaxed text-muted-foreground">
 					{content}
 				</p>
+			)}
+
+			{progressDelta != null && progressDelta !== 0 && progress && (
+				<div className={cn(
+					"flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium",
+					progressDelta > 0
+						? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+						: "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400",
+				)}>
+					{progressDelta > 0 ? (
+						<TrendingUpIcon className="size-3.5 shrink-0" />
+					) : (
+						<TrendingDownIcon className="size-3.5 shrink-0" />
+					)}
+					<span>
+						进度 {progress}（{progressDelta > 0 ? "+" : ""}{progressDelta}% vs 上次）
+					</span>
+				</div>
 			)}
 
 			{hasFields && (
@@ -631,7 +651,10 @@ export function EntityTimeline({
 		const map = new Map<string, TimelineEvent>();
 		let lastEmailId: string | null = null;
 
-		for (const ev of events) {
+		const chronological = [...events].sort(
+			(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+		);
+		for (const ev of chronological) {
 			if (ev.type === "email_received") {
 				lastEmailId = ev.id;
 			} else if (ev.type === "ai_summary" && lastEmailId) {

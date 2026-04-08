@@ -3,6 +3,36 @@ import {
 	buildAnalyzeUserMessage,
 } from "../prompts/analyze-confusion";
 
+function extractJson(text: string): Record<string, unknown> | null {
+	const trimmed = text.trim();
+
+	try {
+		return JSON.parse(trimmed);
+	} catch {
+		// Model may wrap JSON in markdown code fences
+	}
+
+	const fenceMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+	if (fenceMatch?.[1]) {
+		try {
+			return JSON.parse(fenceMatch[1].trim());
+		} catch {
+			// Still not valid JSON
+		}
+	}
+
+	const braceMatch = trimmed.match(/\{[\s\S]*\}/);
+	if (braceMatch?.[0]) {
+		try {
+			return JSON.parse(braceMatch[0]);
+		} catch {
+			// Give up
+		}
+	}
+
+	return null;
+}
+
 interface HandlerConfig {
 	generateText: (params: {
 		model: unknown;
@@ -67,13 +97,19 @@ export function createAnalyzeHandler(config: HandlerConfig) {
 
 			const result = await config.generateText({
 				model: config.model,
-				system: `${systemPrompt}\n\nRespond ONLY with valid JSON.`,
+				system: `${systemPrompt}\n\nRespond ONLY with valid JSON. No markdown, no code fences, no explanation.`,
 				prompt: userMessage,
 				maxTokens: config.maxTokens ?? 200,
 				temperature: 0.3,
 			});
 
-			const parsed = JSON.parse(result.text);
+			const parsed = extractJson(result.text);
+			if (!parsed) {
+				return Response.json(
+					{ shouldHelp: false, message: "", confidence: 0 },
+					{ status: 200 },
+				);
+			}
 
 			return Response.json({
 				shouldHelp: Boolean(parsed.shouldHelp),
@@ -86,8 +122,7 @@ export function createAnalyzeHandler(config: HandlerConfig) {
 					: undefined,
 				confidence: Number(parsed.confidence ?? 0),
 			});
-		} catch (err) {
-			console.error("[ai-eyes] Analyze handler error:", err);
+		} catch {
 			return Response.json(
 				{ shouldHelp: false, message: "", confidence: 0 },
 				{ status: 200 },

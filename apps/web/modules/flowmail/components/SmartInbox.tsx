@@ -1,18 +1,32 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useSidebar } from "@saas/shared/lib/sidebar-context";
 import {
+	CheckIcon,
 	SearchIcon,
 	SparklesIcon,
 	SlidersHorizontalIcon,
+	XIcon,
 } from "lucide-react";
 import { cn } from "@repo/ui";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@repo/ui/components/popover";
 import { EntityCardList } from "./EntityCardList";
 import { ThreadChatView } from "./ThreadChatView";
 import { AgentPanel } from "./AgentPanel";
 import { usePageGuide } from "../hooks/use-page-guide";
+
+const FILTER_CATEGORIES = [
+	{ value: "approval", label: "审批", color: "#3b82f6" },
+	{ value: "report", label: "汇报", color: "#10b981" },
+	{ value: "issue", label: "问题", color: "#ef4444" },
+	{ value: "feedback", label: "反馈", color: "#f59e0b" },
+] as const;
 
 function useIsWideScreen() {
 	const [isWide, setIsWide] = useState(false);
@@ -52,11 +66,14 @@ export function SmartInbox() {
 		},
 	]);
 
+	const router = useRouter();
+	const pathname = usePathname();
 	const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
 		null,
 	);
 	const [agentManualToggle, setAgentManualToggle] = useState<boolean | null>(null);
 	const [search, setSearch] = useState("");
+	const [filterOpen, setFilterOpen] = useState(false);
 	const [agentWidth, setAgentWidth] = useState(AGENT_DEFAULT_W);
 	const isDragging = useRef(false);
 	const startX = useRef(0);
@@ -96,6 +113,28 @@ export function SmartInbox() {
 
 	const categorySlug = searchParams.get("category") ?? undefined;
 
+	const toggleCategory = useCallback(
+		(value: string) => {
+			const params = new URLSearchParams(searchParams.toString());
+			if (categorySlug === value) {
+				params.delete("category");
+			} else {
+				params.set("category", value);
+			}
+			const qs = params.toString();
+			router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+		},
+		[categorySlug, searchParams, router, pathname],
+	);
+
+	const clearFilter = useCallback(() => {
+		const params = new URLSearchParams(searchParams.toString());
+		params.delete("category");
+		const qs = params.toString();
+		router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+		setFilterOpen(false);
+	}, [searchParams, router, pathname]);
+
 	return (
 		<div
 			data-module="inbox"
@@ -117,13 +156,69 @@ export function SmartInbox() {
 				</div>
 
 				<div className="flex items-center gap-1 ml-auto">
-					<button
-						type="button"
-						className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-background/60 transition-colors"
-					>
-						<SlidersHorizontalIcon className="size-3.5" />
-						<span className="hidden sm:inline">筛选</span>
-					</button>
+					<Popover open={filterOpen} onOpenChange={setFilterOpen}>
+						<div className="flex items-center">
+							<PopoverTrigger asChild>
+								<button
+									type="button"
+									className={cn(
+										"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+										categorySlug
+											? "bg-primary/10 text-primary rounded-r-none"
+											: "text-muted-foreground hover:bg-background/60",
+									)}
+								>
+									<SlidersHorizontalIcon className="size-3.5" />
+									<span className="hidden sm:inline">
+										{categorySlug
+											? FILTER_CATEGORIES.find((c) => c.value === categorySlug)?.label ?? "筛选"
+											: "筛选"}
+									</span>
+								</button>
+							</PopoverTrigger>
+							{categorySlug && (
+								<button
+									type="button"
+									className="rounded-lg rounded-l-none bg-primary/10 text-primary px-1.5 py-1.5 hover:bg-primary/20 transition-colors"
+									onClick={clearFilter}
+								>
+									<XIcon className="size-3" />
+								</button>
+							)}
+						</div>
+						<PopoverContent align="end" className="w-44 p-1.5">
+							<p className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">按分类筛选</p>
+							{FILTER_CATEGORIES.map((cat) => (
+								<button
+									key={cat.value}
+									type="button"
+									onClick={() => {
+										toggleCategory(cat.value);
+										setFilterOpen(false);
+									}}
+									className={cn(
+										"flex items-center gap-2.5 w-full rounded-md px-2 py-1.5 text-xs transition-colors",
+										categorySlug === cat.value
+											? "bg-primary/10 text-foreground"
+											: "text-muted-foreground hover:bg-muted hover:text-foreground",
+									)}
+								>
+									<span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+									<span className="flex-1 text-left">{cat.label}</span>
+									{categorySlug === cat.value && <CheckIcon className="size-3 text-primary" />}
+								</button>
+							))}
+							{categorySlug && (
+								<button
+									type="button"
+									onClick={clearFilter}
+									className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mt-0.5 border-t pt-1.5"
+								>
+									清除筛选
+								</button>
+							)}
+						</PopoverContent>
+					</Popover>
 
 					<button
 						type="button"
@@ -145,7 +240,7 @@ export function SmartInbox() {
 			<div className="flex-1 flex overflow-hidden min-w-0 mx-2 mb-2">
 				<div className="flex-1 flex overflow-hidden bg-background rounded-2xl border shadow-sm">
 					{/* Entity list panel */}
-					<div className="w-[300px] shrink-0 flex flex-col overflow-hidden" data-guide="inbox-entity-list">
+					<div className="w-[300px] shrink-0 flex flex-col overflow-hidden bg-muted/30" data-guide="inbox-entity-list">
 						<EntityCardList
 							selectedEntityId={selectedEntityId}
 							onSelectEntity={setSelectedEntityId}

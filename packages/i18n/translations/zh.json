@@ -334,10 +334,12 @@
 				"description": "支持 Passkey、TOTP 双因素认证和邮箱 OTP 验证，全方位保护您的账户安全。"
 			}
 		},
-		"badge1": "SOC 2 安全控制",
-		"badge2": "GDPR 承诺",
-		"badge3": "AES-256 加密",
+		"badge1": "AES-256 加密",
+		"badge2": "OAuth 2.0 授权",
+		"badge3": "全操作审计",
 		"badge4": "零数据训练",
+		"badge5": "GDPR Ready",
+		"badge6": "TLS 传输加密",
 		"page": {
 			"hero": {
 				"title": "安全、可靠、私密。",
@@ -402,16 +404,16 @@
 				}
 			},
 			"compliance": {
-				"title": "合规",
-				"description": "我们正在逐步达成行业标准认证，并维持严格的内部控制。",
+				"title": "合规与透明",
+				"description": "我们通过严格的内部控制和透明的数据处理实践保护您的权益。",
 				"items": {
-					"soc2": {
-						"title": "SOC 2 安全控制已实施",
-						"description": "我们已实施 SOC 2 信任服务准则所要求的安全控制。随着业务发展，将进行正式的 Type I 审计。"
-					},
 					"gdpr": {
-						"title": "GDPR 承诺",
-						"description": "我们遵循 GDPR 原则：数据最小化、目的限制和数据主体权利。可应要求提供数据处理协议（DPA）。"
+						"title": "GDPR Ready",
+						"description": "我们遵循 GDPR 核心原则：数据最小化、目的限制和数据主体权利。支持数据导出和删除，可应要求提供数据处理协议（DPA）。"
+					},
+					"zeroTraining": {
+						"title": "零数据训练承诺",
+						"description": "您的邮件内容绝不会被用于训练或改进 AI 模型。我们对所有 AI 提供商执行零数据留存策略。"
 					},
 					"auditLog": {
 						"title": "全面审计日志",

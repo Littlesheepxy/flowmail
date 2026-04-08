@@ -13,6 +13,11 @@ export async function extractApprovalFields(
 		output: Output.object({ schema: ApprovalExtractionSchema }),
 		prompt: `Extract approval-related information from this email. If a field is not present, use reasonable defaults.
 
+For nextActions: identify what needs to happen next (e.g. "review budget details", "approve request", "request additional documentation").
+For blockers: identify anything preventing approval (e.g. "missing ROI data", "budget exceeds authority limit").
+For inProgressItems: identify things currently being worked on (e.g. "applicant preparing supplementary materials").
+Return empty arrays if none apply.
+
 Email content:
 ${emailContent}`,
 	});

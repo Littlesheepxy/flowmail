@@ -26,6 +26,9 @@ export default function OAuthCallbackPage() {
 	const gmailMutation = useMutation(
 		orpc.emailConnections.connectGmail.mutationOptions(),
 	);
+	const outlookMutation = useMutation(
+		orpc.emailConnections.connectOutlook.mutationOptions(),
+	);
 	const oauthMutation = useMutation(
 		orpc.emailConnections.connectOAuth.mutationOptions(),
 	);
@@ -111,6 +114,23 @@ export default function OAuthCallbackPage() {
 					},
 				},
 			);
+		} else if (oauthState.provider === "outlook") {
+			outlookMutation.mutate(
+				{
+					organizationId: oauthState.organizationId,
+					authCode: code,
+					redirectUri,
+				},
+				{
+					onSuccess: (data) => {
+						triggerSync(data.id, data.email);
+					},
+					onError: (err) => {
+						setStatus("error");
+						setMessage(err.message || "Outlook 连接失败");
+					},
+				},
+			);
 		} else if (oauthState.appId && oauthState.appSecret) {
 			oauthMutation.mutate(
 				{
@@ -136,7 +156,7 @@ export default function OAuthCallbackPage() {
 			setStatus("error");
 			setMessage("缺少应用凭据，请重新连接。");
 		}
-	}, [code, organizationSlug, gmailMutation, oauthMutation]);
+	}, [code, organizationSlug, gmailMutation, outlookMutation, oauthMutation]);
 
 	return (
 		<div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -201,6 +221,18 @@ export default function OAuthCallbackPage() {
 					>
 						返回重试
 					</Button>
+					<div className="mt-4 rounded-lg border border-dashed p-4 max-w-md text-center">
+						<p className="text-sm text-muted-foreground">
+							企业邮箱 OAuth 受限？试试
+							<strong className="text-foreground">
+								{" "}转发邮件{" "}
+							</strong>
+							来体验 Flowmail
+						</p>
+						<p className="text-xs text-muted-foreground mt-1">
+							回到连接页面，找到「丢一封邮件进来试试」卡片即可开始
+						</p>
+					</div>
 				</>
 			)}
 		</div>

@@ -7,6 +7,7 @@ export const DEFAULT_SIGNAL_WEIGHTS: Record<SignalType, number> = {
 	scroll_bounce: 10,
 	long_page_stay: 15,
 	empty_state_stare: 25,
+	page_stall: 35,
 };
 
 export const DEFAULT_SENSOR_CONFIG = {
@@ -18,7 +19,8 @@ export const DEFAULT_SENSOR_CONFIG = {
 	scrollBounceCount: 4,
 	emptyStateDelay: 5000,
 	longPageStayDelay: 60000,
-	confusionThreshold: 50,
+	pageStallDelay: 8000,
+	confusionThreshold: 35,
 	cooldownMs: 15000,
 	windowMs: 30000,
 } as const;

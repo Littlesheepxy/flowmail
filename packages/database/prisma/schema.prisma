@@ -136,23 +136,27 @@ model TwoFactor {
 }
 
 model Organization {
-  id                 String            @id @default(cuid())
-  name               String
-  slug               String?
-  logo               String?
-  createdAt          DateTime
-  metadata           String?
-  paymentsCustomerId String?
-  members            Member[]
-  invitations        Invitation[]
-  purchases          Purchase[]
-  emailConnections   EmailConnection[]
-  emailThreads       EmailThread[]
-  flowEntities       FlowEntity[]
-  categories         Category[]
-  apiTokens          ApiToken[]
-  notifications      Notification[]
-  agentMemories      AgentMemory[]
+  id                  String            @id @default(cuid())
+  name                String
+  slug                String?
+  logo                String?
+  createdAt           DateTime
+  metadata            String?
+  paymentsCustomerId  String?
+  inboundEmailAddress String?           @unique
+  inboundEmailShortId String?           @unique
+  members             Member[]
+  invitations         Invitation[]
+  purchases           Purchase[]
+  emailConnections    EmailConnection[]
+  emailThreads        EmailThread[]
+  inboundEmails       InboundEmail[]
+  flowEntities        FlowEntity[]
+  categories          Category[]
+  tags                Tag[]
+  apiTokens           ApiToken[]
+  notifications       Notification[]
+  agentMemories       AgentMemory[]
 
   @@unique([slug])
   @@map("organization")
@@ -220,6 +224,31 @@ model WaitlistEntry {
   createdAt DateTime @default(now())
 
   @@map("waitlist_entry")
+}
+
+// ─── Flowmail: Inbound Email (received via forwarding / drop box) ───
+
+model InboundEmail {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromEmail      String
+  subject        String
+  textBody       String?      @db.Text
+  htmlBody       String?      @db.Text
+  rawHeaders     String?      @db.Text
+  rawPayload     Json?
+  contentHash    String?
+  entityId       String?
+  entity         FlowEntity?  @relation(fields: [entityId], references: [id])
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@unique([contentHash])
+  @@index([organizationId])
+  @@index([fromEmail])
+  @@index([entityId])
+  @@map("inbound_email")
 }
 
 // ─── Flowmail: Email Connection ───
@@ -326,6 +355,41 @@ model Category {
   @@map("category")
 }
 
+// ─── Flowmail: Tag (flexible labeling) ───
+
+enum TagSource {
+  AI
+  USER
+}
+
+model Tag {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  color          String       @default("#6366f1")
+  source         TagSource    @default(AI)
+  entities       EntityTag[]
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("tag")
+}
+
+model EntityTag {
+  id       String     @id @default(cuid())
+  entityId String
+  entity   FlowEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  tagId    String
+  tag      Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([entityId, tagId])
+  @@index([entityId])
+  @@index([tagId])
+  @@map("entity_tag")
+}
+
 // ─── Flowmail: Structured Entity (core model) ───
 
 enum EntityType {
@@ -351,8 +415,10 @@ model FlowEntity {
   assigneeId      String?
   assignee        User?           @relation("AssignedEntities", fields: [assigneeId], references: [id])
   threads         EmailThread[]
+  inboundEmails   InboundEmail[]
   timeline        TimelineEvent[]
   notifications   Notification[]
+  tags            EntityTag[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -425,6 +491,7 @@ enum AuditAction {
   EMAIL_CONNECTION_DELETE
   EMAIL_SYNC
   EMAIL_SEND
+  INBOUND_EMAIL_RECEIVED
   ENTITY_STATUS_CHANGE
   ENTITY_APPROVE
   ENTITY_REJECT

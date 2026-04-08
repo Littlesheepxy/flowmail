@@ -69,6 +69,7 @@ export class BehaviorSensor {
 			| "scrollBounceCount"
 			| "emptyStateDelay"
 			| "longPageStayDelay"
+			| "pageStallDelay"
 		>
 	>;
 	private handlers: SignalHandler[] = [];
@@ -84,6 +85,8 @@ export class BehaviorSensor {
 	private pageEnteredAt = 0;
 	private emptyStateTimer: ReturnType<typeof setTimeout> | null = null;
 	private longStayTimer: ReturnType<typeof setTimeout> | null = null;
+	private stallTimer: ReturnType<typeof setTimeout> | null = null;
+	private hasInteracted = false;
 
 	constructor(config?: SensorConfig, recorderConfig?: RecorderConfig) {
 		this.config = {
@@ -95,6 +98,7 @@ export class BehaviorSensor {
 			scrollBounceCount: config?.scrollBounceCount ?? DEFAULT_SENSOR_CONFIG.scrollBounceCount,
 			emptyStateDelay: config?.emptyStateDelay ?? DEFAULT_SENSOR_CONFIG.emptyStateDelay,
 			longPageStayDelay: config?.longPageStayDelay ?? DEFAULT_SENSOR_CONFIG.longPageStayDelay,
+			pageStallDelay: config?.pageStallDelay ?? DEFAULT_SENSOR_CONFIG.pageStallDelay,
 		};
 		this.recorder = new ActionRecorder(recorderConfig);
 	}
@@ -134,6 +138,7 @@ export class BehaviorSensor {
 		});
 
 		this.startLongStayTimer();
+		this.startStallTimer();
 		this.checkForEmptyStates();
 	}
 
@@ -151,11 +156,13 @@ export class BehaviorSensor {
 		this.hoverMap.clear();
 		this.clickLog = [];
 		this.scrollLog = [];
+		this.hasInteracted = false;
 		this.pageEnteredAt = Date.now();
 		this.recorder.recordNavigation(window.location.pathname);
 		this.clearTimers();
 		if (this.started) {
 			this.startLongStayTimer();
+			this.startStallTimer();
 			setTimeout(() => this.checkForEmptyStates(), 1000);
 		}
 	}
@@ -179,9 +186,38 @@ export class BehaviorSensor {
 			clearTimeout(this.longStayTimer);
 			this.longStayTimer = null;
 		}
+		if (this.stallTimer) {
+			clearTimeout(this.stallTimer);
+			this.stallTimer = null;
+		}
+	}
+
+	private cancelStallTimer(): void {
+		if (!this.hasInteracted) {
+			this.hasInteracted = true;
+			if (this.stallTimer) {
+				clearTimeout(this.stallTimer);
+				this.stallTimer = null;
+			}
+		}
+	}
+
+	private startStallTimer(): void {
+		this.hasInteracted = false;
+		this.stallTimer = setTimeout(() => {
+			if (!this.hasInteracted) {
+				this.emit({
+					type: "page_stall",
+					duration: this.config.pageStallDelay,
+					timestamp: Date.now(),
+				});
+			}
+		}, this.config.pageStallDelay);
 	}
 
 	private handleMouseMove(e: MouseEvent): void {
+		this.cancelStallTimer();
+
 		const el = document.elementFromPoint(e.clientX, e.clientY);
 		if (!el || isInputElement(el)) {
 			return;
@@ -228,6 +264,7 @@ export class BehaviorSensor {
 	}
 
 	private handleClick(e: MouseEvent): void {
+		this.cancelStallTimer();
 		const now = Date.now();
 		const el = e.target instanceof Element ? e.target : null;
 

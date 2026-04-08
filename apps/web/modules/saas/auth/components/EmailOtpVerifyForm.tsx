@@ -9,7 +9,6 @@ import {
 	FormControl,
 	FormField,
 	FormItem,
-	FormLabel,
 	FormMessage,
 } from "@repo/ui/components/form";
 import {
@@ -118,10 +117,10 @@ export function EmailOtpVerifyForm() {
 
 	return (
 		<>
-			<h1 className="font-bold text-xl md:text-2xl">
+			<h1 className="text-center font-bold text-xl md:text-2xl">
 				{t("auth.verifyOtp.title")}
 			</h1>
-			<p className="mt-1 mb-4 text-foreground/60">
+			<p className="mt-1 mb-6 text-center text-sm text-foreground/60">
 				{t("auth.verifyOtp.message", { email })}
 			</p>
 
@@ -143,10 +142,7 @@ export function EmailOtpVerifyForm() {
 						control={form.control}
 						name="code"
 						render={({ field }) => (
-							<FormItem>
-								<FormLabel>
-									{t("auth.verifyOtp.code")}
-								</FormLabel>
+							<FormItem className="flex flex-col items-center">
 								<FormControl>
 									<InputOTP
 										maxLength={6}

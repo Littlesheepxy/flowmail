@@ -53,20 +53,128 @@ export function AgentFloatingButton() {
 	const { setMood } = useAiEyes();
 
 	const [eyePos, setEyePos] = useState<AiEyesPosition>({ x: 0, y: 0 });
+	const [panelPrefill, setPanelPrefill] = useState("");
 	const panelRef = useRef<HTMLDivElement>(null);
 	const eyeRef = useRef<HTMLDivElement>(null);
 
-	const handleHelpAccepted = useCallback(
-		(_suggestion: HelpSuggestion) => {
-			setMood("happy");
+	const openPanelWith = useCallback(
+		(message: string) => {
+			setPanelPrefill(message);
 			setIsFloatingOpen(true);
 		},
-		[setMood, setIsFloatingOpen],
+		[setIsFloatingOpen],
+	);
+
+	const handleHelpAccepted = useCallback(
+		(suggestion: HelpSuggestion) => {
+			setMood("happy");
+
+			switch (suggestion.suggestedAction) {
+				case "open-forward-guide":
+				case "open-oauth": {
+					const connectDialog = document.querySelector('[data-connect-dialog-trigger]') as HTMLButtonElement | null;
+					if (connectDialog) {
+						connectDialog.click();
+					} else {
+						openPanelWith(suggestion.message);
+					}
+					break;
+				}
+				case "generate-demo": {
+					const demoBtn = document.querySelector('[data-demo-dialog-trigger]') as HTMLButtonElement | null;
+					if (demoBtn) {
+						demoBtn.click();
+					} else {
+						openPanelWith(suggestion.message);
+					}
+					break;
+				}
+				case "guide-click-entity": {
+					const firstCard = document.querySelector('[data-entity-card]') as HTMLButtonElement | null;
+					if (firstCard) {
+						firstCard.style.outline = "2px solid hsl(var(--primary))";
+						firstCard.style.outlineOffset = "-2px";
+						firstCard.style.transition = "outline 0.3s";
+						setTimeout(() => {
+							firstCard.style.outline = "none";
+						}, 3000);
+					}
+					break;
+				}
+				case "guide-tabs": {
+					const tabsTrigger = document.querySelector('[data-tab-trigger="todos"]') as HTMLButtonElement | null;
+					tabsTrigger?.click();
+					break;
+				}
+				case "open-chat":
+					openPanelWith(suggestion.message);
+					break;
+				default:
+					openPanelWith(suggestion.message);
+					break;
+			}
+		},
+		[setMood, openPanelWith],
 	);
 
 	const handleClick = useCallback(() => {
 		toggleFloating();
 	}, [toggleFloating]);
+
+	const handleMenuAction = useCallback(
+		(actionId: string) => {
+			const pageTitle = document.title;
+			const pageUrl = window.location.pathname;
+
+			switch (actionId) {
+				case "ask":
+					openPanelWith("");
+					break;
+				case "analyze":
+					openPanelWith(`请帮我分析当前页面的内容：\n📄 ${pageTitle}\n🔗 ${pageUrl}`);
+					break;
+				case "bookmark": {
+					const snapshot = {
+						title: pageTitle,
+						url: pageUrl,
+						time: new Date().toISOString(),
+					};
+					try {
+						const stored = JSON.parse(
+							localStorage.getItem("ai-eyes-bookmarks") ?? "[]",
+						) as unknown[];
+						stored.push(snapshot);
+						localStorage.setItem("ai-eyes-bookmarks", JSON.stringify(stored));
+					} catch {
+						/* noop */
+					}
+					break;
+				}
+				case "history":
+					openPanelWith("请显示我最近的操作记录摘要");
+					break;
+				case "share": {
+					const shareText = `📄 ${pageTitle}\n🔗 ${pageUrl}`;
+					if (navigator.clipboard) {
+						navigator.clipboard.writeText(shareText).catch(() => {});
+					}
+					break;
+				}
+				case "feedback":
+					openPanelWith("我想反馈一个问题：");
+					break;
+				case "pause":
+					break;
+				case "settings":
+					openPanelWith("/settings");
+					break;
+				default:
+					openPanelWith("");
+					break;
+			}
+		},
+		[openPanelWith],
+	);
 
 	const handlePositionChange = useCallback((pos: AiEyesPosition) => {
 		setEyePos(pos);
@@ -74,6 +182,7 @@ export function AgentFloatingButton() {
 
 	useEffect(() => {
 		if (!isFloatingOpen) {
+			setPanelPrefill("");
 			return;
 		}
 
@@ -117,7 +226,7 @@ export function AgentFloatingButton() {
 						top: panelPos.top,
 					}}
 				>
-					<AgentPanel entityId={null} />
+					<AgentPanel entityId={null} initialMessage={panelPrefill || undefined} />
 				</div>
 			)}
 
@@ -129,6 +238,7 @@ export function AgentFloatingButton() {
 						position="bottom-right"
 						draggable
 						onClick={handleClick}
+						onMenuAction={handleMenuAction}
 						onHelpAccepted={handleHelpAccepted}
 						onPositionChange={handlePositionChange}
 						mood={isFloatingOpen ? "happy" : undefined}

@@ -45,12 +45,17 @@ export const getEntity = protectedProcedure
 						},
 					},
 				},
-				timeline: {
-					orderBy: { createdAt: "asc" },
-					include: {
-						actor: { select: { id: true, name: true, image: true } },
-					},
+			timeline: {
+				orderBy: { createdAt: "desc" },
+				include: {
+					actor: { select: { id: true, name: true, image: true } },
 				},
+			},
+			tags: {
+				include: {
+					tag: { select: { id: true, name: true, color: true, source: true } },
+				},
+			},
 			},
 		});
 

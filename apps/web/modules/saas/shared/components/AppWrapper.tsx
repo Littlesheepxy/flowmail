@@ -6,6 +6,7 @@ import { AnalyzerEngine, createVercelAiAdapter } from "@ai-eyes/ai";
 import type { AiEyesCoreConfig, ConfusionEvent, HelpSuggestion } from "@ai-eyes/core";
 import { AgentFloatingButton } from "@flowmail/components/AgentFloatingButton";
 import { AgentProvider } from "@flowmail/components/AgentProvider";
+import { ProactiveHintWatcher } from "@flowmail/components/ProactiveHintWatcher";
 import { NavBar } from "@saas/shared/components/NavBar";
 import { useCallback, type PropsWithChildren } from "react";
 import { config } from "@/config";
@@ -51,6 +52,7 @@ function AppContent({ children }: PropsWithChildren) {
 				</main>
 			</div>
 			<AgentFloatingButton />
+			<ProactiveHintWatcher />
 		</div>
 	);
 }

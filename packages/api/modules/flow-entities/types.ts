@@ -30,7 +30,26 @@ export const submitFeedbackSchema = z.object({
 	comment: z.string().optional(),
 });
 
+export const mergeEntitiesSchema = z.object({
+	targetEntityId: z.string(),
+	sourceEntityId: z.string(),
+});
+
+export const splitEntitySchema = z.object({
+	entityId: z.string(),
+	threadIds: z.array(z.string()).min(1),
+});
+
+export const reclassifyEntitySchema = z.object({
+	entityId: z.string(),
+	type: entityTypeSchema,
+	categorySlug: z.string().optional(),
+});
+
 export type ListEntitiesInput = z.infer<typeof listEntitiesSchema>;
 export type GetEntityInput = z.infer<typeof getEntitySchema>;
 export type UpdateEntityStatusInput = z.infer<typeof updateEntityStatusSchema>;
 export type SubmitFeedbackInput = z.infer<typeof submitFeedbackSchema>;
+export type MergeEntitiesInput = z.infer<typeof mergeEntitiesSchema>;
+export type SplitEntityInput = z.infer<typeof splitEntitySchema>;
+export type ReclassifyEntityInput = z.infer<typeof reclassifyEntitySchema>;

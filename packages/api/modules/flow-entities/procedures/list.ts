@@ -44,6 +44,11 @@ export const listEntities = protectedProcedure
 				include: {
 					assignee: { select: { id: true, name: true, email: true, image: true } },
 					category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+					tags: {
+						include: {
+							tag: { select: { id: true, name: true, color: true } },
+						},
+					},
 					_count: { select: { timeline: true, threads: true } },
 				},
 				orderBy: { updatedAt: "desc" },

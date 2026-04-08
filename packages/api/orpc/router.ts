@@ -11,6 +11,7 @@ import { notificationsRouter } from "../modules/notifications/router";
 import { organizationsRouter } from "../modules/organizations/router";
 import { paymentsRouter } from "../modules/payments/router";
 import { setupGuideRouter } from "../modules/setup-guide/router";
+import { tagsRouter } from "../modules/tags/router";
 import { usersRouter } from "../modules/users/router";
 import { publicProcedure } from "./procedures";
 
@@ -25,6 +26,7 @@ export const router = publicProcedure.router({
 	approvals: approvalsRouter,
 	emailConnections: emailConnectionsRouter,
 	categories: categoriesRouter,
+	tags: tagsRouter,
 	apiTokens: apiTokensRouter,
 	notifications: notificationsRouter,
 	setupGuide: setupGuideRouter,

@@ -5,7 +5,8 @@ export type SignalType =
 	| "rage_click"
 	| "scroll_bounce"
 	| "long_page_stay"
-	| "empty_state_stare";
+	| "empty_state_stare"
+	| "page_stall";
 
 export interface ConfusionSignal {
 	type: SignalType;
@@ -90,6 +91,7 @@ export interface SensorConfig {
 	scrollBounceCount?: number;
 	emptyStateDelay?: number;
 	longPageStayDelay?: number;
+	pageStallDelay?: number;
 	signalWeights?: Partial<Record<SignalType, number>>;
 	confusionThreshold?: number;
 	cooldownMs?: number;

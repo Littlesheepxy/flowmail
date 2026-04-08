@@ -43,6 +43,20 @@ export default async function proxy(req: NextRequest) {
 			return NextResponse.redirect(new URL("/", origin));
 		}
 
+		const localeParam = req.nextUrl.searchParams.get("locale");
+		if (
+			localeParam &&
+			routing.locales.includes(
+				localeParam as (typeof routing.locales)[number],
+			)
+		) {
+			const url = req.nextUrl.clone();
+			url.searchParams.delete("locale");
+			const response = NextResponse.redirect(url);
+			response.cookies.set("NEXT_LOCALE", localeParam);
+			return response;
+		}
+
 		return NextResponse.next();
 	}
 
