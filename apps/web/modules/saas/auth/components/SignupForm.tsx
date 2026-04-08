@@ -56,21 +56,16 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 
 	const formSchema = useMemo(
 		() =>
-			z
-				.object({
+			z.object({
 					name: z.string().min(1),
 					email: z.string().email(),
 					password: z.string(),
-					inviteCode: z.string().optional(),
-				})
-				.superRefine((data, ctx) => {
-					if (requireInviteField && !data.inviteCode?.trim()) {
-						ctx.addIssue({
-							code: z.ZodIssueCode.custom,
-							message: t("auth.signup.inviteCodeRequired"),
-							path: ["inviteCode"],
-						});
-					}
+					inviteCode: requireInviteField
+						? z
+								.string()
+								.min(1, t("auth.signup.inviteCodeRequired"))
+								.trim()
+						: z.string().optional(),
 				}),
 		[requireInviteField, t],
 	);
@@ -140,6 +135,10 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 				throw error;
 			}
 
+			if (typeof sessionStorage !== "undefined") {
+				sessionStorage.removeItem("flowmail_invite_code");
+			}
+
 			if (invitationOnlyMode) {
 				const { error } =
 					await authClient.organization.acceptInvitation({
@@ -152,9 +151,8 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 
 				router.push(config.saas.redirectAfterSignIn);
 			}
-			if (typeof sessionStorage !== "undefined") {
-				sessionStorage.removeItem("flowmail_invite_code");
-			}
+			// 注册成功后 better-auth 会发验证邮件，session 不会立即建立。
+			// isSubmitSuccessful 会触发成功 Alert，无需手动跳转。
 		} catch (e) {
 			form.setError("root", {
 				message: getAuthErrorMessage(
