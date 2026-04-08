@@ -26,6 +26,8 @@ COPY --from=deps /app/ .
 COPY --from=pruner /app/out/full/ .
 RUN pnpm install --frozen-lockfile
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+ARG NEXT_PUBLIC_INVITE_CODE_REQUIRED="true"
+ENV NEXT_PUBLIC_INVITE_CODE_REQUIRED=${NEXT_PUBLIC_INVITE_CODE_REQUIRED}
 RUN pnpm turbo build --filter=${APP_NAME}
 RUN mkdir -p /app/apps/${APP_NAME}/public
 
