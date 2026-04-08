@@ -8,7 +8,13 @@ import {
 } from "@repo/api";
 import { logger } from "@repo/logs";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend() {
+	if (!_resend) {
+		_resend = new Resend(process.env.RESEND_API_KEY);
+	}
+	return _resend;
+}
 
 export const POST = async (request: NextRequest) => {
 	try {
@@ -57,7 +63,7 @@ export const POST = async (request: NextRequest) => {
 		let htmlBody: string | undefined;
 
 		try {
-			const emailDetail = await resend.emails.get(data.email_id);
+			const emailDetail = await getResend().emails.get(data.email_id);
 			if (emailDetail.data) {
 				const detail = emailDetail.data as unknown as Record<
 					string,
@@ -186,7 +192,7 @@ async function sendInboundProcessedReply(params: {
 		.filter(Boolean)
 		.join("\n");
 
-	await resend.emails.send({
+	await getResend().emails.send({
 		from: process.env.MAIL_FROM || "Flowmail <noreply@flowmail.ai>",
 		to: [params.toEmail],
 		subject: `Re: ${params.originalSubject}`,
