@@ -266,7 +266,7 @@ function EntityCard({
 			data-entity-card
 			onClick={onSelect}
 			className={cn(
-				"w-full text-left px-3 py-3 border-b transition-colors flex gap-2.5",
+				"w-full text-left px-3 py-3 md:py-3 border-b transition-colors flex gap-2.5 active:bg-muted/70",
 				isSelected
 					? "bg-primary/5 border-l-2 border-l-primary"
 					: "hover:bg-muted/50 border-l-2 border-l-transparent",

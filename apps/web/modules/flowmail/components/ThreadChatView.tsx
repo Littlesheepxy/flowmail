@@ -27,6 +27,7 @@ import { Input } from "@repo/ui/components/input";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	ArrowLeftIcon,
 	InboxIcon,
 	MailIcon,
 	ChevronDownIcon,
@@ -98,10 +99,11 @@ interface AISuggestion {
 
 interface ThreadChatViewProps {
 	entityId: string | null;
+	onBack?: () => void;
 }
 
 
-export function ThreadChatView({ entityId }: ThreadChatViewProps) {
+export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 	const queryClient = useQueryClient();
 	const { data: entity, isLoading } = useQuery({
 		...orpc.flowEntities.get.queryOptions({
@@ -261,10 +263,19 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 
 	return (
 		<div className="flex flex-col h-full">
-			<div className="px-5 py-3 border-b shrink-0 flex items-start justify-between gap-2">
+			<div className="px-3 md:px-5 py-3 border-b shrink-0 flex items-start justify-between gap-2">
+				{onBack && (
+					<button
+						type="button"
+						className="shrink-0 mt-0.5 flex items-center justify-center size-7 rounded-lg text-muted-foreground hover:bg-muted transition-colors md:hidden"
+						onClick={onBack}
+					>
+						<ArrowLeftIcon className="size-4" />
+					</button>
+				)}
 				<div className="min-w-0 flex-1">
 					<div className="flex items-center gap-2 mb-0.5">
-						<h2 className="text-base font-semibold truncate">{entity.title}</h2>
+						<h2 className="text-sm md:text-base font-semibold truncate">{entity.title}</h2>
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -350,7 +361,7 @@ export function ThreadChatView({ entityId }: ThreadChatViewProps) {
 
 		{/* Bottom action buttons */}
 		{!showComposer && threads.length > 0 && (
-			<div className="border-t px-5 py-3 shrink-0 flex items-center gap-2">
+			<div className="border-t px-3 md:px-5 py-3 shrink-0 flex items-center gap-2">
 				<Button
 					variant="secondary"
 					className="gap-2"
@@ -632,9 +643,9 @@ function EmailMessage({
 
 		{/* Expanded Content */}
 			{isExpanded && (
-				<div className="px-5 pb-5">
+				<div className="px-3 md:px-5 pb-5">
 					{/* Email Body */}
-					<div className="max-w-[680px] mx-auto">
+					<div className="md:max-w-[680px] md:mx-auto">
 						<EmailBody thread={thread} />
 
 						{/* Attachments */}
@@ -944,7 +955,7 @@ function EntityTabs({
 
 	return (
 		<Tabs defaultValue="emails" className="flex flex-col flex-1 min-h-0">
-			<div className="px-5 shrink-0">
+			<div className="px-3 md:px-5 shrink-0">
 				<TabsList className="w-full justify-start gap-0 border-b-0 bg-transparent">
 					<TabsTrigger value="emails" className="gap-1.5 text-xs">
 						<MailIcon className="size-3.5" />
@@ -1011,7 +1022,7 @@ function EntityTabs({
 				/>
 			</TabsContent>
 
-			<TabsContent value="activity" className="flex-1 overflow-y-auto mt-0 min-h-0 px-5 py-4">
+			<TabsContent value="activity" className="flex-1 overflow-y-auto mt-0 min-h-0 px-3 md:px-5 py-4">
 				<EntityTimeline
 					entityId={entity.id}
 					entityTitle={entity.title}
@@ -1029,7 +1040,7 @@ function EntityTabs({
 			</TabsContent>
 
 			{hasTodos && (
-				<TabsContent value="todos" className="flex-1 overflow-y-auto mt-0 min-h-0 px-5 py-4">
+				<TabsContent value="todos" className="flex-1 overflow-y-auto mt-0 min-h-0 px-3 md:px-5 py-4">
 					<TodoPanel
 						entityId={entity.id}
 						nextActions={nextActions}
@@ -1688,7 +1699,7 @@ function EntityActionBar({
 	}
 
 	return (
-		<div className="shrink-0 border-b bg-muted/20 px-5 py-3 space-y-2.5">
+		<div className="shrink-0 border-b bg-muted/20 px-3 md:px-5 py-3 space-y-2.5">
 			{keyFields.length > 0 && (
 				<div className="flex flex-wrap gap-x-4 gap-y-1">
 					{keyFields.map((f) => (

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useSidebar } from "@saas/shared/lib/sidebar-context";
 import {
+	ArrowLeftIcon,
 	CheckIcon,
 	SearchIcon,
 	SparklesIcon,
@@ -16,6 +17,10 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@repo/ui/components/popover";
+import {
+	Sheet,
+	SheetContent,
+} from "@repo/ui/components/sheet";
 import { EntityCardList } from "./EntityCardList";
 import { ThreadChatView } from "./ThreadChatView";
 import { AgentPanel } from "./AgentPanel";
@@ -28,16 +33,16 @@ const FILTER_CATEGORIES = [
 	{ value: "feedback", label: "反馈", color: "#f59e0b" },
 ] as const;
 
-function useIsWideScreen() {
-	const [isWide, setIsWide] = useState(false);
+function useMediaQuery(query: string) {
+	const [matches, setMatches] = useState(false);
 	useEffect(() => {
-		const mq = window.matchMedia("(min-width: 1440px)");
-		setIsWide(mq.matches);
-		const handler = (e: MediaQueryListEvent) => setIsWide(e.matches);
+		const mq = window.matchMedia(query);
+		setMatches(mq.matches);
+		const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
 		mq.addEventListener("change", handler);
 		return () => mq.removeEventListener("change", handler);
-	}, []);
-	return isWide;
+	}, [query]);
+	return matches;
 }
 
 const AGENT_MIN_W = 340;
@@ -46,7 +51,8 @@ const AGENT_DEFAULT_W = 380;
 
 export function SmartInbox() {
 	const { isCollapsed } = useSidebar();
-	const isWide = useIsWideScreen();
+	const isMobile = useMediaQuery("(max-width: 767px)");
+	const isWide = useMediaQuery("(min-width: 1440px)");
 	const searchParams = useSearchParams();
 
 	usePageGuide("processFirstEmail", [
@@ -75,11 +81,12 @@ export function SmartInbox() {
 	const [search, setSearch] = useState("");
 	const [filterOpen, setFilterOpen] = useState(false);
 	const [agentWidth, setAgentWidth] = useState(AGENT_DEFAULT_W);
+	const [mobileAgentOpen, setMobileAgentOpen] = useState(false);
 	const isDragging = useRef(false);
 	const startX = useRef(0);
 	const startW = useRef(AGENT_DEFAULT_W);
 
-	const agentOpen = agentManualToggle ?? (isWide || isCollapsed);
+	const agentOpen = isMobile ? false : (agentManualToggle ?? (isWide || isCollapsed));
 
 	const handleResizeStart = useCallback(
 		(e: React.MouseEvent) => {
@@ -135,97 +142,122 @@ export function SmartInbox() {
 		setFilterOpen(false);
 	}, [searchParams, router, pathname]);
 
+	const showMobileDetail = isMobile && !!selectedEntityId;
+
 	return (
 		<div
 			data-module="inbox"
 			className="flex flex-col h-dvh overflow-hidden fixed inset-0 z-10 bg-muted/40 transition-[left] duration-300 ease-in-out"
-			style={{ left: isCollapsed ? 64 : 260 }}
+			style={{ left: isMobile ? 0 : isCollapsed ? 64 : 260 }}
 		>
-			{/* Global top bar — outside content card */}
-			<div className="flex items-center gap-3 px-4 py-2 shrink-0">
-				{/* Search */}
-				<div className="relative flex-1 max-w-md" data-guide="inbox-search">
-					<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
-					<input
-						type="text"
-						placeholder="搜索邮件、审批、汇报..."
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						className="w-full rounded-full bg-background/80 py-1.5 pl-9 pr-4 text-sm outline-none border border-border/50 focus:bg-background focus:border-border focus:ring-1 focus:ring-primary/20 transition-colors"
-					/>
-				</div>
+			{/* Top bar */}
+			<div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 shrink-0">
+				{showMobileDetail && (
+					<button
+						type="button"
+						className="shrink-0 flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-background/60 transition-colors"
+						onClick={() => setSelectedEntityId(null)}
+					>
+						<ArrowLeftIcon className="size-4" />
+					</button>
+				)}
+
+				{!showMobileDetail && (
+					<div className="relative flex-1 md:max-w-md" data-guide="inbox-search">
+						<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
+						<input
+							type="text"
+							placeholder="搜索邮件、审批、汇报..."
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							className="w-full rounded-full bg-background/80 py-1.5 pl-9 pr-4 text-sm outline-none border border-border/50 focus:bg-background focus:border-border focus:ring-1 focus:ring-primary/20 transition-colors"
+						/>
+					</div>
+				)}
+
+				{showMobileDetail && (
+					<span className="flex-1 text-sm font-medium truncate">详情</span>
+				)}
 
 				<div className="flex items-center gap-1 ml-auto">
-					<Popover open={filterOpen} onOpenChange={setFilterOpen}>
-						<div className="flex items-center">
-							<PopoverTrigger asChild>
-								<button
-									type="button"
-									className={cn(
-										"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
-										categorySlug
-											? "bg-primary/10 text-primary rounded-r-none"
-											: "text-muted-foreground hover:bg-background/60",
-									)}
-								>
-									<SlidersHorizontalIcon className="size-3.5" />
-									<span className="hidden sm:inline">
-										{categorySlug
-											? FILTER_CATEGORIES.find((c) => c.value === categorySlug)?.label ?? "筛选"
-											: "筛选"}
-									</span>
-								</button>
-							</PopoverTrigger>
-							{categorySlug && (
-								<button
-									type="button"
-									className="rounded-lg rounded-l-none bg-primary/10 text-primary px-1.5 py-1.5 hover:bg-primary/20 transition-colors"
-									onClick={clearFilter}
-								>
-									<XIcon className="size-3" />
-								</button>
-							)}
-						</div>
-						<PopoverContent align="end" className="w-44 p-1.5">
-							<p className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">按分类筛选</p>
-							{FILTER_CATEGORIES.map((cat) => (
-								<button
-									key={cat.value}
-									type="button"
-									onClick={() => {
-										toggleCategory(cat.value);
-										setFilterOpen(false);
-									}}
-									className={cn(
-										"flex items-center gap-2.5 w-full rounded-md px-2 py-1.5 text-xs transition-colors",
-										categorySlug === cat.value
-											? "bg-primary/10 text-foreground"
-											: "text-muted-foreground hover:bg-muted hover:text-foreground",
-									)}
-								>
-									<span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-									<span className="flex-1 text-left">{cat.label}</span>
-									{categorySlug === cat.value && <CheckIcon className="size-3 text-primary" />}
-								</button>
-							))}
-							{categorySlug && (
-								<button
-									type="button"
-									onClick={clearFilter}
-									className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mt-0.5 border-t pt-1.5"
-								>
-									清除筛选
-								</button>
-							)}
-						</PopoverContent>
-					</Popover>
+					{!showMobileDetail && (
+						<Popover open={filterOpen} onOpenChange={setFilterOpen}>
+							<div className="flex items-center">
+								<PopoverTrigger asChild>
+									<button
+										type="button"
+										className={cn(
+											"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+											categorySlug
+												? "bg-primary/10 text-primary rounded-r-none"
+												: "text-muted-foreground hover:bg-background/60",
+										)}
+									>
+										<SlidersHorizontalIcon className="size-3.5" />
+										<span className="hidden sm:inline">
+											{categorySlug
+												? FILTER_CATEGORIES.find((c) => c.value === categorySlug)?.label ?? "筛选"
+												: "筛选"}
+										</span>
+									</button>
+								</PopoverTrigger>
+								{categorySlug && (
+									<button
+										type="button"
+										className="rounded-lg rounded-l-none bg-primary/10 text-primary px-1.5 py-1.5 hover:bg-primary/20 transition-colors"
+										onClick={clearFilter}
+									>
+										<XIcon className="size-3" />
+									</button>
+								)}
+							</div>
+							<PopoverContent align="end" className="w-44 p-1.5">
+								<p className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">按分类筛选</p>
+								{FILTER_CATEGORIES.map((cat) => (
+									<button
+										key={cat.value}
+										type="button"
+										onClick={() => {
+											toggleCategory(cat.value);
+											setFilterOpen(false);
+										}}
+										className={cn(
+											"flex items-center gap-2.5 w-full rounded-md px-2 py-1.5 text-xs transition-colors",
+											categorySlug === cat.value
+												? "bg-primary/10 text-foreground"
+												: "text-muted-foreground hover:bg-muted hover:text-foreground",
+										)}
+									>
+										<span className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+										<span className="flex-1 text-left">{cat.label}</span>
+										{categorySlug === cat.value && <CheckIcon className="size-3 text-primary" />}
+									</button>
+								))}
+								{categorySlug && (
+									<button
+										type="button"
+										onClick={clearFilter}
+										className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mt-0.5 border-t pt-1.5"
+									>
+										清除筛选
+									</button>
+								)}
+							</PopoverContent>
+						</Popover>
+					)}
 
 					<button
 						type="button"
-						onClick={() => setAgentManualToggle((prev) => !(prev ?? agentOpen))}
+						onClick={() => {
+							if (isMobile) {
+								setMobileAgentOpen(true);
+							} else {
+								setAgentManualToggle((prev) => !(prev ?? agentOpen));
+							}
+						}}
 						className={cn(
 							"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
-							agentOpen
+							(isMobile ? mobileAgentOpen : agentOpen)
 								? "bg-background text-primary shadow-sm"
 								: "text-muted-foreground hover:bg-background/60",
 						)}
@@ -236,11 +268,19 @@ export function SmartInbox() {
 				</div>
 			</div>
 
-			{/* Content area card */}
-			<div className="flex-1 flex overflow-hidden min-w-0 mx-2 mb-2">
-				<div className="flex-1 flex overflow-hidden bg-background rounded-2xl border shadow-sm">
-					{/* Entity list panel */}
-					<div className="w-[300px] shrink-0 flex flex-col overflow-hidden bg-muted/30" data-guide="inbox-entity-list">
+			{/* Content area */}
+			<div className="flex-1 flex overflow-hidden min-w-0 mx-1 mb-1 md:mx-2 md:mb-2">
+				<div className="flex-1 flex overflow-hidden bg-background rounded-xl md:rounded-2xl border shadow-sm">
+					{/* Entity list panel — full width on mobile, fixed 300px on desktop */}
+					<div
+						className={cn(
+							"shrink-0 flex flex-col overflow-hidden bg-muted/30",
+							isMobile
+								? showMobileDetail ? "hidden" : "w-full"
+								: "w-[300px]",
+						)}
+						data-guide="inbox-entity-list"
+					>
 						<EntityCardList
 							selectedEntityId={selectedEntityId}
 							onSelectEntity={setSelectedEntityId}
@@ -249,42 +289,65 @@ export function SmartInbox() {
 						/>
 					</div>
 
-					{/* Thread view */}
-					<div className="flex-1 flex flex-col overflow-hidden min-w-0 border-l">
-						<ThreadChatView entityId={selectedEntityId} />
-					</div>
-				</div>
-
-				{/* Agent panel — always mounted to avoid Radix id hydration mismatch */}
-				<div
-					className={cn(
-						"shrink-0 flex overflow-hidden transition-[width] duration-200",
-						!agentOpen && "hidden",
-					)}
-					style={{ width: agentOpen ? agentWidth : 0 }}
-				>
-					{/* Drag handle */}
-					{/* biome-ignore lint/a11y/useSemanticElements: drag handle is not a true separator */}
+					{/* Thread view — hidden on mobile when no entity selected */}
 					<div
-						role="separator"
-						tabIndex={0}
-						aria-orientation="vertical"
-						aria-valuenow={agentWidth}
-						aria-valuemin={AGENT_MIN_W}
-						aria-valuemax={AGENT_MAX_W}
-						className="w-2 shrink-0 cursor-col-resize flex items-center justify-center group"
-						onMouseDown={handleResizeStart}
+						className={cn(
+							"flex-1 flex flex-col overflow-hidden min-w-0",
+							isMobile
+								? showMobileDetail ? "" : "hidden"
+								: "border-l",
+						)}
 					>
-						<div className="w-0.5 h-8 rounded-full bg-border group-hover:bg-foreground/30 group-active:bg-foreground/50 transition-colors" />
-					</div>
-					<div className="flex-1 flex flex-col overflow-hidden min-w-0">
-						<AgentPanel
+						<ThreadChatView
 							entityId={selectedEntityId}
-							onClose={() => setAgentManualToggle(false)}
+							onBack={isMobile ? () => setSelectedEntityId(null) : undefined}
 						/>
 					</div>
 				</div>
+
+				{/* Desktop Agent panel */}
+				{!isMobile && (
+					<div
+						className={cn(
+							"shrink-0 flex overflow-hidden transition-[width] duration-200",
+							!agentOpen && "hidden",
+						)}
+						style={{ width: agentOpen ? agentWidth : 0 }}
+					>
+						{/* biome-ignore lint/a11y/useSemanticElements: drag handle is not a true separator */}
+						<div
+							role="separator"
+							tabIndex={0}
+							aria-orientation="vertical"
+							aria-valuenow={agentWidth}
+							aria-valuemin={AGENT_MIN_W}
+							aria-valuemax={AGENT_MAX_W}
+							className="w-2 shrink-0 cursor-col-resize flex items-center justify-center group"
+							onMouseDown={handleResizeStart}
+						>
+							<div className="w-0.5 h-8 rounded-full bg-border group-hover:bg-foreground/30 group-active:bg-foreground/50 transition-colors" />
+						</div>
+						<div className="flex-1 flex flex-col overflow-hidden min-w-0">
+							<AgentPanel
+								entityId={selectedEntityId}
+								onClose={() => setAgentManualToggle(false)}
+							/>
+						</div>
+					</div>
+				)}
 			</div>
+
+			{/* Mobile Agent Sheet */}
+			{isMobile && (
+				<Sheet open={mobileAgentOpen} onOpenChange={setMobileAgentOpen}>
+					<SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0 [&>.absolute]:hidden">
+						<AgentPanel
+							entityId={selectedEntityId}
+							onClose={() => setMobileAgentOpen(false)}
+						/>
+					</SheetContent>
+				</Sheet>
+			)}
 		</div>
 	);
 }

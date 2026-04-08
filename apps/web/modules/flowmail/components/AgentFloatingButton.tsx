@@ -216,11 +216,11 @@ export function AgentFloatingButton() {
 
 	return (
 		<>
-			{/* Floating panel — follows eye position */}
+			{/* Floating panel — follows eye position; responsive sizing on mobile */}
 			{isFloatingOpen && !isInboxPage && (
 				<div
 					ref={panelRef}
-					className="fixed z-50 w-[360px] h-[520px] shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200"
+					className="fixed z-50 w-[calc(100vw-16px)] max-w-[360px] h-[70vh] max-h-[520px] shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200 md:w-[360px] md:h-[520px] md:max-h-none"
 					style={{
 						left: panelPos.left,
 						top: panelPos.top,
