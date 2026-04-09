@@ -102,10 +102,20 @@ jobs:
             # Rolling restart (without migrate profile)
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
+            # Restart nginx so it re-resolves upstream IPs after container recreate
+            docker compose -f docker-compose.prod.yml restart nginx
+
             # Cleanup old images
             docker image prune -f
 
-            # Health check
-            sleep 10
-            curl -sf http://localhost:3000/api/health || echo "⚠️ Web health check failed"
+            # Health check with retry (web container may need startup time)
+            for i in 1 2 3 4 5 6; do
+              sleep 10
+              if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+                echo "✅ Web health check passed"
+                break
+              fi
+              echo "⏳ Web not ready yet (attempt $i/6)..."
+            done
+            curl -sf http://localhost:3000/api/health || echo "⚠️ Web health check failed after 60s"
             curl -sf http://localhost:3001 || echo "⚠️ Docs health check failed"
