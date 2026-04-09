@@ -28,6 +28,8 @@ RUN pnpm install --frozen-lockfile
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 ARG NEXT_PUBLIC_INVITE_CODE_REQUIRED="true"
 ENV NEXT_PUBLIC_INVITE_CODE_REQUIRED=${NEXT_PUBLIC_INVITE_CODE_REQUIRED}
+ARG NEXT_PUBLIC_SITE_URL="https://flowmail.work"
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 RUN pnpm turbo build --filter=${APP_NAME}
 RUN mkdir -p /app/apps/${APP_NAME}/public
 
