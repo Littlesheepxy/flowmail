@@ -75,15 +75,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy project files to server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "docker-compose.prod.yml,nginx/"
-          target: /opt/flowmail
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -99,6 +90,10 @@ jobs:
             # Set image tag (repository must be lowercase for Docker)
             export IMAGE_TAG=${{ github.sha }}
             export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+
+            # Pull latest config files directly from GitHub (replaces scp)
+            curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/docker-compose.prod.yml" -o docker-compose.prod.yml
+            curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/nginx/flowmail.conf" -o nginx/flowmail.conf
 
             # Pull latest images (including migrate image)
             docker compose -f docker-compose.prod.yml pull web docs migrate
