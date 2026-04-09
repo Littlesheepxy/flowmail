@@ -1,8 +1,8 @@
-import { db } from "@repo/database";
 import { createHash } from "node:crypto";
+import { db } from "@repo/database";
 
 const INBOUND_DOMAIN =
-	process.env.INBOUND_EMAIL_DOMAIN || "inbound.flowmail.ai";
+	process.env.INBOUND_EMAIL_DOMAIN || "flowmail.work";
 
 function generateShortId(orgId: string): string {
 	const hash = createHash("sha256").update(orgId).digest("hex");
