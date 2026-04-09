@@ -22,9 +22,15 @@ jobs:
           - app: web
             port: "3000"
             image_suffix: ""
+            dockerfile: Dockerfile
           - app: docs
             port: "3001"
             image_suffix: "-docs"
+            dockerfile: Dockerfile
+          - app: migrate
+            port: "0"
+            image_suffix: "-migrate"
+            dockerfile: Dockerfile.migrate
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +57,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -93,10 +100,10 @@ jobs:
             export IMAGE_TAG=${{ github.sha }}
             export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
 
-            # Pull latest images
-            docker compose -f docker-compose.prod.yml pull web docs
+            # Pull latest images (including migrate image)
+            docker compose -f docker-compose.prod.yml pull web docs migrate
 
-            # Run database migrations
+            # Run database migrations from pre-built image
             docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate
 
             # Rolling restart (without migrate profile)
