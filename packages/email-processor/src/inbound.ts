@@ -70,6 +70,7 @@ export async function processInboundEmail(
 			new Date(),
 		);
 
+		// ── Dedup check ──────────────────────────────────────────────────────────
 		const existingByHash = await db.inboundEmail.findUnique({
 			where: { contentHash },
 		});
@@ -106,6 +107,12 @@ export async function processInboundEmail(
 			};
 		}
 
+		// ── Step 1: 立即写库，前台秒显示 ──────────────────────────────────────────
+		// 不等 AI，先用 subject 作为 title、FEEDBACK 作为默认类型创建 entity + thread
+		const entityTitle =
+			input.subject.replace(/^(Fwd?:|Fw:|转发：)\s*/gi, "").trim() ||
+			"Untitled";
+
 		const inboundEmail = await db.inboundEmail.create({
 			data: {
 				organizationId: input.organizationId,
@@ -119,107 +126,16 @@ export async function processInboundEmail(
 			},
 		});
 
-		const orgCategories = await db.category.findMany({
-			where: { organizationId: input.organizationId },
-			select: { id: true, name: true, slug: true, aiPrompt: true },
-			orderBy: { sortOrder: "asc" },
-		});
-
-		let categoryId: string | undefined;
-		let categorySlug: string | undefined;
-		let entityType = "FEEDBACK";
-		let confidence = 0;
-		let extractedFields: Record<string, unknown> = {};
-		let summary: string = content.slice(0, 200);
-		let requiresReview = true;
-
-		const hasAiKey = !!(
-			process.env.OPENAI_API_KEY ||
-			process.env.ANTHROPIC_API_KEY ||
-			process.env.ANTHROPIC_AUTH_TOKEN ||
-			process.env.AI_GATEWAY_API_KEY
-		);
-
-		if (hasAiKey) {
-			if (orgCategories.length > 0) {
-				const result = await classifyEmailDynamic(
-					{
-						subject: input.subject,
-						sender: input.fromEmail,
-						content,
-					},
-					orgCategories as CategoryDefinition[],
-				);
-
-				categorySlug = result.categorySlug;
-				confidence = result.confidence;
-
-				const matched = orgCategories.find(
-					(c) => c.slug === categorySlug,
-				);
-				categoryId = matched?.id;
-				entityType =
-					SLUG_TO_ENTITY_TYPE[categorySlug] ??
-					(categorySlug === "unknown" ? "FEEDBACK" : "FEEDBACK");
-
-				// If unknown and no category match, fall back to FEEDBACK instead of skipping
-				if (categorySlug === "unknown" && !categoryId) {
-					categorySlug = "feedback";
-					entityType = "FEEDBACK";
-					confidence = 0.5;
-				}
-			} else {
-				// No custom categories — use AI to classify into built-in types
-				const result = await classifyEmailWithMemory(
-					{
-						subject: input.subject,
-						sender: input.fromEmail,
-						content,
-					},
-					input.organizationId,
-					memoryManager,
-				);
-
-				// Default to FEEDBACK instead of dropping the email
-				entityType = result.type === "UNKNOWN" ? "FEEDBACK" : result.type;
-				confidence = result.type === "UNKNOWN" ? 0.5 : result.confidence;
-				categorySlug = entityType.toLowerCase();
-			}
-
-			requiresReview = confidence < 0.7;
-
-			if (entityType === "APPROVAL" || categorySlug === "approval") {
-				extractedFields = await extractApprovalFields(content);
-			} else if (entityType === "REPORT" || categorySlug === "report") {
-				extractedFields = await extractReportFields(content);
-			}
-
-			summary = await summarizeThread(content);
-		} else {
-			const uncategorized =
-				orgCategories.find((c) => c.slug === "uncategorized") ??
-				orgCategories[0];
-			if (uncategorized) {
-				categoryId = uncategorized.id;
-				categorySlug = uncategorized.slug;
-			}
-		}
-
-		const entityTitle =
-			input.subject.replace(/^(Fwd?:|Fw:|转发：)\s*/gi, "").trim() ||
-			"Untitled";
-
 		const entity = await db.flowEntity.create({
 			data: {
 				organizationId: input.organizationId,
-				type: entityType as never,
-				categoryId,
+				type: "FEEDBACK" as never,
 				title: entityTitle,
 				status: "pending",
-				extractedFields: JSON.stringify(extractedFields),
-				aiSummary: summary,
-				aiConfidence: confidence,
-				requiresReview,
+				extractedFields: JSON.stringify({}),
+				aiSummary: "",
+				aiConfidence: 0,
+				requiresReview: true,
 			},
 		});
 
@@ -228,8 +144,7 @@ export async function processInboundEmail(
 			data: { entityId: entity.id, processedAt: new Date() },
 		});
 
-		// Create an email_thread record so the frontend can display the email content.
-		// Inbound emails don't have an OAuth connection, so connectionId is left null.
+		// Create email_thread so frontend can display the email immediately
 		let thread: { id: string };
 		try {
 			thread = await db.emailThread.create({
@@ -249,13 +164,12 @@ export async function processInboundEmail(
 				},
 			});
 		} catch (threadError) {
-			// Log the error but don't fail the whole process — the entity was already created.
 			console.error("[inbound] Failed to create email_thread:", {
 				entityId: entity.id,
 				inboundEmailId: inboundEmail.id,
 				error: threadError instanceof Error ? threadError.message : String(threadError),
 			});
-			// Fallback: create a minimal thread record with a unique id suffix
+			// Fallback with unique externalThreadId
 			thread = await db.emailThread.create({
 				data: {
 					organizationId: input.organizationId,
@@ -272,7 +186,7 @@ export async function processInboundEmail(
 			});
 		}
 
-		// Create attachment records if any were provided
+		// Create attachment records
 		if (input.attachments && input.attachments.length > 0) {
 			await db.emailAttachment.createMany({
 				data: input.attachments.map((att) => ({
@@ -300,14 +214,24 @@ export async function processInboundEmail(
 			},
 		});
 
+		// ── Step 2: 后台异步 AI 处理，不阻塞响应 ─────────────────────────────────
+		// 用 void + 独立 async 函数，失败不影响已显示的 entity
+		void enrichEntityWithAI({
+			entityId: entity.id,
+			inboundEmailId: inboundEmail.id,
+			organizationId: input.organizationId,
+			subject: input.subject,
+			fromEmail: input.fromEmail,
+			content,
+		});
+
 		return {
 			success: true,
 			duplicate: false,
 			inboundEmailId: inboundEmail.id,
 			entityId: entity.id,
 			entityTitle,
-			categorySlug,
-			aiSummary: summary,
+			categorySlug: "feedback",
 		};
 	} catch (error) {
 		return {
@@ -315,6 +239,108 @@ export async function processInboundEmail(
 			duplicate: false,
 			error: error instanceof Error ? error.message : "Unknown error",
 		};
+	}
+}
+
+// ── 异步 AI 增强：分类、提取字段、生成摘要，然后更新 entity ─────────────────────
+async function enrichEntityWithAI(params: {
+	entityId: string;
+	inboundEmailId: string;
+	organizationId: string;
+	subject: string;
+	fromEmail: string;
+	content: string;
+}) {
+	const hasAiKey = !!(
+		process.env.OPENAI_API_KEY ||
+		process.env.ANTHROPIC_API_KEY ||
+		process.env.ANTHROPIC_AUTH_TOKEN ||
+		process.env.AI_GATEWAY_API_KEY
+	);
+
+	if (!hasAiKey) { return; }
+
+	try {
+		const orgCategories = await db.category.findMany({
+			where: { organizationId: params.organizationId },
+			select: { id: true, name: true, slug: true, aiPrompt: true },
+			orderBy: { sortOrder: "asc" },
+		});
+
+		let categoryId: string | undefined;
+		let categorySlug = "feedback";
+		let entityType = "FEEDBACK";
+		let confidence = 0.5;
+		let extractedFields: Record<string, unknown> = {};
+
+		if (orgCategories.length > 0) {
+			const result = await classifyEmailDynamic(
+				{
+					subject: params.subject,
+					sender: params.fromEmail,
+					content: params.content,
+				},
+				orgCategories as CategoryDefinition[],
+			);
+			categorySlug = result.categorySlug === "unknown" ? "feedback" : result.categorySlug;
+			confidence = result.confidence;
+			const matched = orgCategories.find((c) => c.slug === categorySlug);
+			categoryId = matched?.id;
+			entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
+		} else {
+			const result = await classifyEmailWithMemory(
+				{
+					subject: params.subject,
+					sender: params.fromEmail,
+					content: params.content,
+				},
+				params.organizationId,
+				memoryManager,
+			);
+			entityType = result.type === "UNKNOWN" ? "FEEDBACK" : result.type;
+			confidence = result.type === "UNKNOWN" ? 0.5 : result.confidence;
+			categorySlug = entityType.toLowerCase();
+		}
+
+		if (entityType === "APPROVAL" || categorySlug === "approval") {
+			extractedFields = await extractApprovalFields(params.content);
+		} else if (entityType === "REPORT" || categorySlug === "report") {
+			extractedFields = await extractReportFields(params.content);
+		}
+
+		const summary = await summarizeThread(params.content);
+
+		// Update entity with AI results
+		await db.flowEntity.update({
+			where: { id: params.entityId },
+			data: {
+				type: entityType as never,
+				categoryId,
+				extractedFields: JSON.stringify(extractedFields),
+				aiSummary: summary,
+				aiConfidence: confidence,
+				requiresReview: confidence < 0.7,
+			},
+		});
+
+		// Add AI classification timeline event
+		await db.timelineEvent.create({
+			data: {
+				entityId: params.entityId,
+				type: "ai_summary",
+				content: `AI 已完成分类：${entityType}（置信度 ${Math.round(confidence * 100)}%）${summary ? `\n\n${summary}` : ""}`,
+				metadata: JSON.stringify({
+					entityType,
+					categorySlug,
+					confidence,
+				}),
+			},
+		});
+	} catch (err) {
+		console.error("[inbound] AI enrichment failed:", {
+			entityId: params.entityId,
+			error: err instanceof Error ? err.message : String(err),
+		});
 	}
 }
 
