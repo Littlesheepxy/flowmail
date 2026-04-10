@@ -15,9 +15,10 @@ import {
 	MessageSquareIcon,
 	XIcon,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { DemoBanner } from "./DemoBanner";
 import { InboxEmptyState } from "./InboxEmptyState";
+import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<
 	string,
@@ -50,6 +51,7 @@ export function EntityCardList({
 	search = "",
 }: EntityCardListProps) {
 	const { activeOrganization } = useActiveOrganization();
+	const prevCountRef = useRef<number | null>(null);
 
 	const { data, isLoading } = useQuery({
 		...orpc.flowEntities.list.queryOptions({
@@ -64,6 +66,23 @@ export function EntityCardList({
 	});
 
 	const entities = data?.entities ?? [];
+
+	// 检测新邮件到达，弹出 toast 提示
+	useEffect(() => {
+		if (prevCountRef.current === null) {
+			prevCountRef.current = entities.length;
+			return;
+		}
+		if (entities.length > prevCountRef.current) {
+			const newCount = entities.length - prevCountRef.current;
+			toast.success(`收到 ${newCount} 封新邮件`, {
+				description: "已显示在列表中，AI 正在后台分析...",
+				duration: 4000,
+			});
+		}
+		prevCountRef.current = entities.length;
+	}, [entities.length, toast]);
+
 	const [activeTagId, setActiveTagId] = useState<string | null>(null);
 
 	const hasDemo = entities.some((e) => {
