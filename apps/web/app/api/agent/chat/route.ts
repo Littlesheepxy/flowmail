@@ -162,15 +162,37 @@ export async function POST(req: Request) {
 		messages: modelMessages,
 	});
 
-	if (ctx.organizationId && ctx.entityId) {
-		memoryManager
-			.recordDecision({
-				organizationId: ctx.organizationId,
-				entityId: ctx.entityId,
-				decision: `Agent 响应用户请求: "${userMessage.slice(0, 100)}"`,
-				metadata: { userId: session.user.id },
-			})
-			.catch(() => {});
+	if (ctx.organizationId) {
+		// 检测用户消息中的纠正/确认信号，写入反馈记忆
+		const correctionPatterns = /不对|不是|错了|别这样|取消|不要|停止|这不对|重新|改成/;
+		const confirmationPatterns = /好的|对|没错|就这样|确认|通过|就是这个|很好|完全正确|继续/;
+
+		if (userMessage.length > 2) {
+			if (correctionPatterns.test(userMessage)) {
+				memoryManager
+					.recordFeedback({
+						organizationId: ctx.organizationId,
+						origin: "correction",
+						content: `用户纠正了操作: "${userMessage.slice(0, 150)}"`,
+						scopeId: ctx.entityId,
+						scope: ctx.entityId ? "project" : "org",
+						metadata: { userId: session.user.id, entityId: ctx.entityId },
+					})
+					.catch(() => {});
+			} else if (confirmationPatterns.test(userMessage) && messages.length > 2) {
+				// 确认信号需要至少有一轮对话（不是第一句话）
+				memoryManager
+					.recordFeedback({
+						organizationId: ctx.organizationId,
+						origin: "confirmation",
+						content: `用户确认了操作方向: "${userMessage.slice(0, 150)}"`,
+						scopeId: ctx.entityId,
+						scope: ctx.entityId ? "project" : "org",
+						metadata: { userId: session.user.id, entityId: ctx.entityId },
+					})
+					.catch(() => {});
+			}
+		}
 	}
 
 	return result.toUIMessageStreamResponse();

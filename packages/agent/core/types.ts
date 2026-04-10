@@ -33,6 +33,14 @@ export const CATEGORY_LABELS: Record<MemoryCategory, string> = {
 	org_insight: "组织洞察",
 };
 
+/**
+ * 记忆条目的记录来源，区分"纠正"和"确认"两类信号
+ * correction: 用户否定了 Agent 的操作/判断
+ * confirmation: 用户接受/认可了 Agent 的操作/判断（验证已有方向正确）
+ * observation: Agent 主动观察到的信息，无用户明确反馈
+ */
+export type MemoryOrigin = "correction" | "confirmation" | "observation";
+
 export interface MemoryEntry {
 	id: string;
 	category: MemoryCategory;
@@ -42,6 +50,7 @@ export interface MemoryEntry {
 	metadata?: Record<string, unknown>;
 	importance: number;
 	createdAt: Date;
+	origin?: MemoryOrigin;
 }
 
 export interface RecallOptions {

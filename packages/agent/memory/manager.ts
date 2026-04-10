@@ -3,6 +3,7 @@ import type {
 	MemoryEntry,
 	MemoryCategory,
 	MemoryScope,
+	MemoryOrigin,
 	RecallOptions,
 } from "../core/types";
 import { MEMORY_CATEGORIES, MEMORY_SCOPES } from "../core/types";
@@ -18,6 +19,7 @@ export interface WriteMemoryParams {
 	metadata?: Record<string, unknown>;
 	importance?: number;
 	expiresAt?: Date;
+	origin?: MemoryOrigin;
 }
 
 export interface RecordClassificationParams {
@@ -55,6 +57,50 @@ export interface RecordInsightParams {
 	scope?: MemoryScope;
 	scopeId?: string;
 	importance?: number;
+	origin?: MemoryOrigin;
+}
+
+// ─── Claude Code 四分类对应的写入参数 ───
+
+/** 用户画像：角色、专业度、工作习惯 */
+export interface RecordUserProfileParams {
+	organizationId: string;
+	userId: string;
+	content: string;
+	metadata?: Record<string, unknown>;
+}
+
+/** 操作反馈：用户纠正了 Agent 或明确认可了某个操作 */
+export interface RecordFeedbackParams {
+	organizationId: string;
+	/** correction: 用户否定了 Agent  |  confirmation: 用户接受了 Agent 的做法 */
+	origin: "correction" | "confirmation";
+	content: string;
+	/** 为什么（用户给的理由，用于判断边界情况） */
+	reason?: string;
+	/** 适用范围（entityId / contactEmail / 全局） */
+	scopeId?: string;
+	scope?: MemoryScope;
+	metadata?: Record<string, unknown>;
+}
+
+/** 业务背景：进展、截止日期、决策动机 */
+export interface RecordProjectContextParams {
+	organizationId: string;
+	entityId?: string;
+	content: string;
+	/** 为什么（动机、约束条件） */
+	reason?: string;
+	metadata?: Record<string, unknown>;
+	expiresAt?: Date;
+}
+
+/** 外部资源指针：联系人角色、邮箱习惯、外部系统 */
+export interface RecordReferenceParams {
+	organizationId: string;
+	contactEmail?: string;
+	content: string;
+	metadata?: Record<string, unknown>;
 }
 
 // ─── Legacy compat (used by classifier MemoryRecaller interface) ───
@@ -73,6 +119,10 @@ export class MemoryManager {
 	// ─── Core Write ───
 
 	async write(params: WriteMemoryParams): Promise<string> {
+		const meta = {
+			...(params.metadata ?? {}),
+			...(params.origin ? { origin: params.origin } : {}),
+		};
 		const record = await db.agentMemory.create({
 			data: {
 				organizationId: params.organizationId,
@@ -80,8 +130,8 @@ export class MemoryManager {
 				scope: params.scope ?? MEMORY_SCOPES.org,
 				scopeId: params.scopeId,
 				content: params.content,
-				metadata: params.metadata
-					? JSON.stringify(params.metadata)
+				metadata: Object.keys(meta).length > 0
+					? JSON.stringify(meta)
 					: undefined,
 				importance: params.importance ?? 5,
 				expiresAt: params.expiresAt,
@@ -277,6 +327,97 @@ export class MemoryManager {
 			content: params.content,
 			metadata: params.metadata,
 			importance: params.importance,
+			origin: params.origin,
+		});
+	}
+
+	// ─── 四分类写入（Claude Code 风格） ───
+
+	/**
+	 * 记录用户画像信息（角色、专业度、偏好风格）
+	 * 对应 Claude Code memory type: user
+	 */
+	async recordUserProfile(params: RecordUserProfileParams): Promise<void> {
+		await this.write({
+			organizationId: params.organizationId,
+			category: MEMORY_CATEGORIES.user_preference,
+			scope: MEMORY_SCOPES.user,
+			scopeId: params.userId,
+			content: params.content,
+			metadata: { userId: params.userId, ...params.metadata },
+			importance: 7,
+			origin: "observation",
+		});
+	}
+
+	/**
+	 * 记录操作反馈——纠正或确认
+	 * 对应 Claude Code memory type: feedback
+	 * 只记纠正会让 Agent 过于保守；确认也要记，以强化已验证的方向
+	 */
+	async recordFeedback(params: RecordFeedbackParams): Promise<void> {
+		const prefix = params.origin === "correction" ? "【纠正】" : "【确认】";
+		const reasonSuffix = params.reason ? `\n原因：${params.reason}` : "";
+		const content = `${prefix}${params.content}${reasonSuffix}`;
+
+		// 纠正比确认重要性更高（需要更强地影响未来行为）
+		const importance = params.origin === "correction" ? 9 : 7;
+
+		await this.write({
+			organizationId: params.organizationId,
+			category: MEMORY_CATEGORIES.behavior_pattern,
+			scope: params.scope ?? MEMORY_SCOPES.org,
+			scopeId: params.scopeId,
+			content,
+			metadata: {
+				origin: params.origin,
+				reason: params.reason,
+				...params.metadata,
+			},
+			importance,
+			origin: params.origin,
+		});
+	}
+
+	/**
+	 * 记录业务背景（进展、截止日期、决策动机）
+	 * 对应 Claude Code memory type: project
+	 * 包含"为什么"，帮助 Agent 判断记忆是否仍然有效
+	 */
+	async recordProjectContext(params: RecordProjectContextParams): Promise<void> {
+		const reasonSuffix = params.reason ? `\n背景：${params.reason}` : "";
+		const content = `${params.content}${reasonSuffix}`;
+
+		await this.write({
+			organizationId: params.organizationId,
+			category: MEMORY_CATEGORIES.project_context,
+			scope: params.entityId ? MEMORY_SCOPES.project : MEMORY_SCOPES.org,
+			scopeId: params.entityId,
+			content,
+			metadata: { entityId: params.entityId, ...params.metadata },
+			importance: 6,
+			expiresAt: params.expiresAt,
+			origin: "observation",
+		});
+	}
+
+	/**
+	 * 记录外部资源指针（联系人角色、邮件习惯、外部系统位置）
+	 * 对应 Claude Code memory type: reference
+	 */
+	async recordReference(params: RecordReferenceParams): Promise<void> {
+		await this.write({
+			organizationId: params.organizationId,
+			category: MEMORY_CATEGORIES.contact_profile,
+			scope: params.contactEmail ? MEMORY_SCOPES.contact : MEMORY_SCOPES.org,
+			scopeId: params.contactEmail,
+			content: params.content,
+			metadata: {
+				contactEmail: params.contactEmail,
+				...params.metadata,
+			},
+			importance: 6,
+			origin: "observation",
 		});
 	}
 
@@ -353,15 +494,18 @@ export class MemoryManager {
 		importance: number;
 		createdAt: Date;
 	}): MemoryEntry {
+		const meta = r.metadata ? (JSON.parse(r.metadata) as Record<string, unknown>) : undefined;
+		const origin = meta?.origin as MemoryOrigin | undefined;
 		return {
 			id: r.id,
 			category: r.category as MemoryCategory,
 			scope: r.scope as MemoryScope,
 			scopeId: r.scopeId,
 			content: r.content,
-			metadata: r.metadata ? JSON.parse(r.metadata) : undefined,
+			metadata: meta,
 			importance: r.importance,
 			createdAt: r.createdAt,
+			origin,
 		};
 	}
 }

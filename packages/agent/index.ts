@@ -22,6 +22,7 @@ export type {
 	MemoryEntry,
 	MemoryCategory,
 	MemoryScope,
+	MemoryOrigin,
 	RecallOptions,
 } from "./core/types";
 
@@ -33,4 +34,8 @@ export type {
 	RecordInsightParams,
 	RecordDecisionParams,
 	RecordContactProfileParams,
+	RecordUserProfileParams,
+	RecordFeedbackParams,
+	RecordProjectContextParams,
+	RecordReferenceParams,
 } from "./memory/manager";
