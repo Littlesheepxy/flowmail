@@ -18,6 +18,7 @@ import {
 	createAnalysisTools,
 	createEmailTools,
 	createInboxTools,
+	createAttachmentTools,
 	type PageContext,
 } from "@repo/agent";
 
@@ -52,6 +53,7 @@ function createAgentToolRegistry() {
 	);
 
 	registry.registerBuiltin(createInboxTools());
+	registry.registerBuiltin(createAttachmentTools());
 
 	return registry;
 }

@@ -7,6 +7,7 @@ export { createEntityTools } from "./tools/entity-tools";
 export { createAnalysisTools } from "./tools/analysis-tools";
 export { createEmailTools } from "./tools/email-tools";
 export { createInboxTools } from "./tools/inbox-tools";
+export { createAttachmentTools } from "./tools/attachment-tools";
 
 export {
 	MEMORY_CATEGORIES,
