@@ -6,6 +6,7 @@ import { verifyApiToken } from "@repo/api";
 import { getSignedUrl } from "@repo/storage";
 import { z } from "zod";
 import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
 
 function getOrgId(extra: { authInfo?: AuthInfo }): string {
 	const orgId = extra.authInfo?.extra?.organizationId as string | undefined;
@@ -679,11 +680,18 @@ const rawHandler = createMcpHandler(
 					};
 				}
 
-				const mime = attachment.mimeType ?? "";
-				const isImage = mime.startsWith("image/");
-				const isPdf = mime === "application/pdf";
-				const isText = mime.startsWith("text/") || mime === "application/json";
-				const isWord = mime.includes("word") || mime.includes("officedocument.wordprocessing");
+			const mime = attachment.mimeType ?? "";
+			const filename = attachment.filename ?? "";
+			const isImage = mime.startsWith("image/");
+			const isPdf = mime === "application/pdf" || filename.toLowerCase().endsWith(".pdf");
+			const isText = mime.startsWith("text/") || mime === "application/json";
+			// .docx = officedocument.wordprocessingml, .doc = msword, mammoth supports both
+			const isWord =
+				mime.includes("wordprocessingml") ||
+				mime.includes("msword") ||
+				mime.includes("word") ||
+				filename.toLowerCase().endsWith(".docx") ||
+				filename.toLowerCase().endsWith(".doc");
 
 				if (isImage) {
 					// For images, return a download URL and instruct the agent to use vision
@@ -713,19 +721,32 @@ const rawHandler = createMcpHandler(
 
 						let extractedText: string;
 
-					if (isText) {
-						extractedText = buf.toString("utf-8");
-					} else if (isPdf) {
-						try {
-							const parsed = await pdfParse(buf);
-							extractedText = parsed.text || "[PDF parsed but no text content found]";
-						} catch (parseErr) {
-							extractedText = `[PDF parse failed: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}]\n\nDownload URL: ${downloadUrl}`;
-						}
-					} else {
-						// Word and other binary formats: return download URL
-						extractedText = `[Binary file: ${attachment.filename}, ${buf.length} bytes, type: ${mime}]\n\nDownload URL for processing: ${downloadUrl}`;
+				if (isText) {
+					extractedText = buf.toString("utf-8");
+				} else if (isPdf) {
+					try {
+						const parsed = await pdfParse(buf);
+						extractedText = parsed.text || "[PDF parsed but no text content found]";
+					} catch (parseErr) {
+						extractedText = `[PDF parse failed: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}]\n\nDownload URL: ${downloadUrl}`;
 					}
+				} else if (isWord) {
+					try {
+						const result = await mammoth.extractRawText({ buffer: buf });
+						extractedText = result.value || "[Word document parsed but no text content found]";
+						if (result.messages.length > 0) {
+							const warnings = result.messages.filter(m => m.type === "warning").map(m => m.message).join("; ");
+							if (warnings) {
+								extractedText += `\n\n[Parse warnings: ${warnings}]`;
+							}
+						}
+					} catch (parseErr) {
+						extractedText = `[Word parse failed: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}]\n\nDownload URL: ${downloadUrl}`;
+					}
+				} else {
+					// Other binary formats: return metadata + download URL
+					extractedText = `[Unsupported format: ${attachment.filename}, ${buf.length} bytes, type: ${mime}]\n\nDownload URL for manual processing: ${downloadUrl}`;
+				}
 
 						return {
 							content: [{
