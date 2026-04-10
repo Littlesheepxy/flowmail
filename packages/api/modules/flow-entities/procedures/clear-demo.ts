@@ -4,7 +4,7 @@ import { requireOrgMembership } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 
 const DEMO_MARKER = "_isDemo";
-const DEMO_CONNECTION_EMAIL = "demo@flowmail.ai";
+const DEMO_CONNECTION_EMAIL = "demo@flowmail.work";
 
 export const clearDemo = protectedProcedure
 	.route({

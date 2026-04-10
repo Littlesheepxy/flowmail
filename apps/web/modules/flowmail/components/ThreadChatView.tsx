@@ -393,6 +393,7 @@ interface AttachmentItem {
 	size?: number | null;
 	externalId: string;
 	contentId?: string | null;
+	storageKey?: string | null;
 }
 
 interface ThreadItem {
@@ -784,6 +785,37 @@ function AttachmentBar({ attachments }: { attachments: AttachmentItem[] }) {
 function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 	const Icon = getFileIcon(attachment.mimeType);
 	const sizeStr = attachment.size ? formatFileSize(attachment.size) : "";
+	const [downloading, setDownloading] = useState(false);
+
+	const hasStorage = !!attachment.storageKey;
+
+	async function handleDownload() {
+		if (!hasStorage) { return; }
+		setDownloading(true);
+		try {
+			const res = await fetch("/api/rpc/flowEntities/getAttachmentUrl", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ attachmentId: attachment.id }),
+			});
+			if (res.ok) {
+				const data = (await res.json()) as { json?: { url?: string } };
+				const url = data?.json?.url;
+				if (url) {
+					const a = document.createElement("a");
+					a.href = url;
+					a.download = attachment.filename;
+					a.target = "_blank";
+					a.rel = "noopener noreferrer";
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+				}
+			}
+		} finally {
+			setDownloading(false);
+		}
+	}
 
 	return (
 		<div className="flex items-center gap-2 rounded-lg border px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors group max-w-[240px]">
@@ -793,14 +825,25 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 				{sizeStr && (
 					<p className="text-[10px] text-muted-foreground">{sizeStr}</p>
 				)}
+				{!hasStorage && (
+					<p className="text-[10px] text-amber-500">暂不可下载</p>
+				)}
 			</div>
-			<button
-				type="button"
-				className="size-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-background transition-all"
-				title="下载"
-			>
-				<DownloadIcon className="size-3.5 text-muted-foreground" />
-			</button>
+			{hasStorage && (
+				<button
+					type="button"
+					onClick={handleDownload}
+					disabled={downloading}
+					className="size-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-background transition-all disabled:opacity-50"
+					title="下载"
+				>
+					{downloading ? (
+						<Spinner className="size-3.5" />
+					) : (
+						<DownloadIcon className="size-3.5 text-muted-foreground" />
+					)}
+				</button>
+			)}
 		</div>
 	);
 }

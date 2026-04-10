@@ -10,6 +10,7 @@ import { splitEntity } from "./procedures/split";
 import { reclassifyEntity } from "./procedures/reclassify";
 import { seedDemo } from "./procedures/seed-demo";
 import { clearDemo } from "./procedures/clear-demo";
+import { getAttachmentUrl } from "./procedures/get-attachment-url";
 
 export const flowEntitiesRouter = {
 	list: listEntities,
@@ -24,4 +25,5 @@ export const flowEntitiesRouter = {
 	reclassify: reclassifyEntity,
 	seedDemo,
 	clearDemo,
+	getAttachmentUrl,
 };

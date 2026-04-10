@@ -328,6 +328,7 @@ model EmailAttachment {
   size       Int?
   externalId String
   contentId  String?
+  storageKey String?     // S3/storage object key for the uploaded file
   createdAt  DateTime    @default(now())
 
   @@index([threadId])

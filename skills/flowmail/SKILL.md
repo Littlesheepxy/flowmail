@@ -6,7 +6,7 @@ metadata:
     "openclaw":
       {
         "emoji": "📬",
-        "homepage": "https://flowmail.ai",
+        "homepage": "https://flowmail.work",
         "requires": { "env": ["FLOWMAIL_API_TOKEN"] },
         "primaryEnv": "FLOWMAIL_API_TOKEN"
       }
@@ -32,7 +32,7 @@ Flowmail is an email-native business execution platform. It automatically conver
   "mcp": {
     "servers": {
       "flowmail": {
-        "url": "https://app.flowmail.ai/mcp/streamable-http",
+        "url": "https://app.flowmail.work/mcp/streamable-http",
         "headers": {
           "Authorization": "Bearer fm_your_token_here"
         }
@@ -48,7 +48,7 @@ Flowmail is an email-native business execution platform. It automatically conver
 {
   "mcpServers": {
     "flowmail": {
-      "url": "https://app.flowmail.ai/mcp/streamable-http",
+      "url": "https://app.flowmail.work/mcp/streamable-http",
       "headers": {
         "Authorization": "Bearer fm_your_token_here"
       }
@@ -106,7 +106,7 @@ All MCP tool calls require a valid API Token in the `Authorization: Bearer <toke
 When executing multi-step tasks, agents can report results back:
 
 ```
-POST https://app.flowmail.ai/api/agent/callback
+POST https://app.flowmail.work/api/agent/callback
 Authorization: Bearer fm_your_token_here
 Content-Type: application/json
 

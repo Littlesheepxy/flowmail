@@ -21,3 +21,12 @@ export type GetSignedUrlHander = (
 		expiresIn?: number;
 	},
 ) => Promise<string>;
+
+export type UploadObjectHandler = (
+	path: string,
+	body: Buffer | Uint8Array,
+	options: {
+		bucket: keyof typeof config.bucketNames;
+		contentType?: string;
+	},
+) => Promise<void>;

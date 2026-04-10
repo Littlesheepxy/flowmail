@@ -3,8 +3,9 @@ import {
 	triggerNotification,
 	writeAuditLog,
 } from "@repo/api";
-import { processInboundEmail } from "@repo/email-processor";
+import { processInboundEmail, type InboundAttachment } from "@repo/email-processor";
 import { logger } from "@repo/logs";
+import { uploadObject } from "@repo/storage";
 import { type NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
@@ -97,6 +98,48 @@ export const POST = async (request: NextRequest) => {
 
 		const fromEmail = extractEmailAddress(data.from);
 
+		// Parse and upload attachments from the Resend inbound payload
+		const attachments: InboundAttachment[] = [];
+		const rawAttachments = (data.attachments as ResendAttachment[] | undefined) ?? [];
+
+		const storageEnabled = !!(
+			process.env.S3_ENDPOINT &&
+			process.env.S3_ACCESS_KEY_ID &&
+			process.env.S3_SECRET_ACCESS_KEY
+		);
+
+		for (const att of rawAttachments) {
+			if (!att.filename) { continue; }
+
+			const attachment: InboundAttachment = {
+				filename: att.filename,
+				mimeType: att.content_type ?? att.mimeType,
+				size: att.size,
+				externalId: att.id ?? `${data.email_id}-${att.filename}`,
+				contentId: att.content_id,
+			};
+
+			if (storageEnabled && att.content) {
+				try {
+					const buf = Buffer.from(att.content, "base64");
+					const storageKey = `attachments/${organizationId}/${data.email_id}/${att.filename}`;
+					await uploadObject(storageKey, buf, {
+						bucket: "attachments",
+						contentType: att.content_type ?? "application/octet-stream",
+					});
+					attachment.storageKey = storageKey;
+					attachment.size = buf.length;
+				} catch (uploadErr) {
+					logger.warn("Failed to upload attachment to storage", {
+						filename: att.filename,
+						error: uploadErr instanceof Error ? uploadErr.message : String(uploadErr),
+					});
+				}
+			}
+
+			attachments.push(attachment);
+		}
+
 		const result = await processInboundEmail({
 			organizationId,
 			fromEmail,
@@ -104,6 +147,7 @@ export const POST = async (request: NextRequest) => {
 			textBody,
 			htmlBody,
 			rawPayload: data,
+			attachments,
 		});
 
 		if (result.duplicate) {
@@ -165,6 +209,16 @@ export const POST = async (request: NextRequest) => {
 		);
 	}
 };
+
+interface ResendAttachment {
+	id?: string;
+	filename?: string;
+	content?: string; // base64-encoded file content
+	content_type?: string;
+	mimeType?: string;
+	content_id?: string;
+	size?: number;
+}
 
 function extractEmailAddress(from: string): string {
 	const match = from.match(/<([^>]+)>/);

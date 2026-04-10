@@ -99,5 +99,5 @@ We may update these Terms from time to time. We will notify you of material chan
 ## 14. Contact
 
 For questions about these Terms:
-- Email: legal@flowmail.ai
+- Email: legal@flowmail.work
 - Address: Flowmail Inc.

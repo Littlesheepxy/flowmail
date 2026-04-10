@@ -96,7 +96,7 @@ export type EmailThreadScalarFieldEnum = z.infer<typeof EmailThreadScalarFieldEn
 
 // File: EmailAttachmentScalarFieldEnum.schema.ts
 
-export const EmailAttachmentScalarFieldEnumSchema = z.enum(['id', 'threadId', 'filename', 'mimeType', 'size', 'externalId', 'contentId', 'createdAt'])
+export const EmailAttachmentScalarFieldEnumSchema = z.enum(['id', 'threadId', 'filename', 'mimeType', 'size', 'externalId', 'contentId', 'storageKey', 'createdAt'])
 
 export type EmailAttachmentScalarFieldEnum = z.infer<typeof EmailAttachmentScalarFieldEnumSchema>;
 
@@ -484,6 +484,7 @@ export const EmailAttachmentSchema = z.object({
   size: z.number().int().nullish(),
   externalId: z.string(),
   contentId: z.string().nullish(),
+  storageKey: z.string().nullish(),
   createdAt: z.date(),
 });
 

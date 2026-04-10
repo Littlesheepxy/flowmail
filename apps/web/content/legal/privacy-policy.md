@@ -78,7 +78,7 @@ Depending on your jurisdiction, you may have the right to:
 - **Object** to certain processing activities
 - **Restrict** processing of your data
 
-To exercise any of these rights, contact us at privacy@flowmail.ai.
+To exercise any of these rights, contact us at privacy@flowmail.work.
 
 ## 7. GDPR (European Users)
 
@@ -104,5 +104,5 @@ We may update this Privacy Policy from time to time. We will notify you of mater
 ## 11. Contact Us
 
 For privacy-related inquiries:
-- Email: privacy@flowmail.ai
+- Email: privacy@flowmail.work
 - Address: Flowmail Inc.

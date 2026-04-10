@@ -11,6 +11,15 @@ import { MemoryManager } from "@repo/agent";
 
 const memoryManager = new MemoryManager();
 
+export interface InboundAttachment {
+	filename: string;
+	mimeType?: string;
+	size?: number;
+	externalId: string;
+	contentId?: string;
+	storageKey?: string; // S3 key if already uploaded by caller
+}
+
 interface InboundEmailInput {
 	organizationId: string;
 	fromEmail: string;
@@ -19,6 +28,7 @@ interface InboundEmailInput {
 	htmlBody?: string;
 	rawHeaders?: string;
 	rawPayload?: unknown;
+	attachments?: InboundAttachment[];
 }
 
 interface InboundProcessResult {
@@ -224,7 +234,7 @@ export async function processInboundEmail(
 
 		// Create an email_thread record so the frontend can display the email content.
 		// Inbound emails don't have an OAuth connection, so connectionId is left null.
-		await db.emailThread.create({
+		const thread = await db.emailThread.create({
 			data: {
 				organizationId: input.organizationId,
 				entityId: entity.id,
@@ -240,6 +250,21 @@ export async function processInboundEmail(
 				receivedAt: new Date(),
 			},
 		});
+
+		// Create attachment records if any were provided
+		if (input.attachments && input.attachments.length > 0) {
+			await db.emailAttachment.createMany({
+				data: input.attachments.map((att) => ({
+					threadId: thread.id,
+					filename: att.filename,
+					mimeType: att.mimeType,
+					size: att.size,
+					externalId: att.externalId,
+					contentId: att.contentId,
+					storageKey: att.storageKey,
+				})),
+			});
+		}
 
 		await db.timelineEvent.create({
 			data: {

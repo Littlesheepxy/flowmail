@@ -9,6 +9,7 @@ import { config } from "../../config";
 import type {
 	GetSignedUploadUrlHandler,
 	GetSignedUrlHander,
+	UploadObjectHandler,
 } from "../../types";
 
 let s3Client: S3Client | null = null;
@@ -72,6 +73,34 @@ export const getSignedUploadUrl: GetSignedUploadUrlHandler = async (
 		logger.error(e);
 
 		throw new Error("Could not get signed upload url");
+	}
+};
+
+export const uploadObject: UploadObjectHandler = async (
+	path,
+	body,
+	{ bucket, contentType },
+) => {
+	const bucketName =
+		config.bucketNames[bucket as keyof typeof config.bucketNames];
+
+	if (!bucketName) {
+		throw new Error("Invalid bucket");
+	}
+
+	const s3Client = getS3Client();
+	try {
+		await s3Client.send(
+			new PutObjectCommand({
+				Bucket: bucketName,
+				Key: path,
+				Body: body,
+				ContentType: contentType ?? "application/octet-stream",
+			}),
+		);
+	} catch (e) {
+		logger.error(e);
+		throw new Error("Could not upload object to storage");
 	}
 };
 

@@ -2,7 +2,7 @@
   "mcpServers": {
     "flowmail": {
       "url": "http://localhost:3000/mcp",
-      "_comment": "Local development. For production, use https://app.flowmail.ai/mcp"
+      "_comment": "Local development. For production, use https://app.flowmail.work/mcp"
     }
   }
 }

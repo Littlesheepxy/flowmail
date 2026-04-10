@@ -1,5 +1,6 @@
 "use client";
 
+import { Spinner } from "@repo/ui";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
@@ -20,7 +21,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/components/select";
-import { Spinner } from "@repo/ui";
 import {
 	Table,
 	TableBody,
@@ -31,7 +31,7 @@ import {
 } from "@repo/ui/components/table";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	ArrowLeftIcon,
 	ArrowRightIcon,
@@ -55,8 +55,20 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { usePageGuide } from "../hooks/use-page-guide";
 
-type ConnectionMethod = "oauth-gmail" | "oauth-outlook" | "oauth-platform" | "imap" | "forward";
-type DialogStep = "detect" | "gmail" | "outlook" | "platform-choice" | "platform" | "imap" | "forward";
+type ConnectionMethod =
+	| "oauth-gmail"
+	| "oauth-outlook"
+	| "oauth-platform"
+	| "imap"
+	| "forward";
+type DialogStep =
+	| "detect"
+	| "gmail"
+	| "outlook"
+	| "platform-choice"
+	| "platform"
+	| "imap"
+	| "forward";
 
 interface DetectedRoute {
 	method: ConnectionMethod;
@@ -122,9 +134,10 @@ function apiResultToRoute(result: {
 		return {
 			method: providerMethodMap[result.provider],
 			label: result.label,
-			description: result.method === "oauth"
-				? `通过 ${result.label} OAuth 安全连接，一键完成`
-				: `通过 IMAP 协议连接 ${result.label}`,
+			description:
+				result.method === "oauth"
+					? `通过 ${result.label} OAuth 安全连接，一键完成`
+					: `通过 IMAP 协议连接 ${result.label}`,
 			providerId: result.provider,
 		};
 	}
@@ -169,10 +182,15 @@ export function EmailConnectionsList() {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [dialogStep, setDialogStep] = useState<DialogStep>("detect");
 	const [emailInput, setEmailInput] = useState("");
-	const [detectedRoute, setDetectedRoute] = useState<DetectedRoute | null>(null);
+	const [detectedRoute, setDetectedRoute] = useState<DetectedRoute | null>(
+		null,
+	);
 	const [isDetecting, setIsDetecting] = useState(false);
 	const [platformId, setPlatformId] = useState<string>("");
-	const [passwordDialogConn, setPasswordDialogConn] = useState<{ id: string; email: string } | null>(null);
+	const [passwordDialogConn, setPasswordDialogConn] = useState<{
+		id: string;
+		email: string;
+	} | null>(null);
 	const [newImapPassword, setNewImapPassword] = useState("");
 
 	const detectMutation = useMutation(
@@ -284,10 +302,10 @@ export function EmailConnectionsList() {
 			case "oauth-outlook":
 				setDialogStep("outlook");
 				break;
-		case "oauth-platform":
-			setPlatformId(route.providerId);
-			setDialogStep("platform-choice");
-			break;
+			case "oauth-platform":
+				setPlatformId(route.providerId);
+				setDialogStep("platform-choice");
+				break;
 			case "imap":
 				setDialogStep("imap");
 				break;
@@ -306,9 +324,26 @@ export function EmailConnectionsList() {
 						Flowmail 监听这些邮箱并自动提取业务事项。
 					</p>
 				</div>
-				<Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) { handleClose(); } else { setDialogOpen(true); } }}>
+				<Dialog
+					open={dialogOpen}
+					onOpenChange={(open) => {
+						if (!open) {
+							handleClose();
+						} else {
+							setDialogOpen(true);
+						}
+					}}
+				>
 					<DialogTrigger asChild>
-						<Button data-guide="connect-email-btn" data-connect-dialog-trigger onClick={() => { setDialogStep("detect"); setEmailInput(""); setDetectedRoute(null); }}>
+						<Button
+							data-guide="connect-email-btn"
+							data-connect-dialog-trigger
+							onClick={() => {
+								setDialogStep("detect");
+								setEmailInput("");
+								setDetectedRoute(null);
+							}}
+						>
 							<PlusIcon className="mr-2 size-4" />
 							连接邮箱
 						</Button>
@@ -341,46 +376,56 @@ export function EmailConnectionsList() {
 								onBack={() => setDialogStep("detect")}
 							/>
 						)}
-				{dialogStep === "platform-choice" && PLATFORMS[platformId] && (
-					<PlatformChoiceStep
-						platform={PLATFORMS[platformId]}
-						onForward={() => setDialogStep("forward")}
-						onOAuth={() => setDialogStep("platform")}
-						onBack={() => setDialogStep("detect")}
-					/>
-				)}
-				{dialogStep === "platform" && PLATFORMS[platformId] && (
-					<PlatformOAuthStep
-						platform={PLATFORMS[platformId]}
-						organizationId={activeOrganization?.id ?? ""}
-						organizationSlug={organizationSlug}
-						onBack={() => setDialogStep("platform-choice")}
-					/>
-				)}
-					{dialogStep === "imap" && (
-						<ImapConnectStep
-							organizationId={activeOrganization?.id ?? ""}
-							email={emailInput}
-							detectedImapHost={detectedRoute?.imapHost}
-							detectedImapPort={detectedRoute?.imapPort}
-							onBack={() => setDialogStep("detect")}
-							onFallbackForward={() => setDialogStep("forward")}
-							onSuccess={() => {
-								handleClose();
-								queryClient.invalidateQueries({
-									queryKey: orpc.emailConnections.list.key(),
-								});
-							}}
-						/>
-					)}
-				{dialogStep === "forward" && (
-					<ForwardFallbackStep
-						organizationId={activeOrganization?.id ?? ""}
-						detectedProvider={platformId || undefined}
-						onBack={() => setDialogStep(platformId ? "platform-choice" : "detect")}
-						onClose={handleClose}
-					/>
-				)}
+						{dialogStep === "platform-choice" &&
+							PLATFORMS[platformId] && (
+								<PlatformChoiceStep
+									platform={PLATFORMS[platformId]}
+									onForward={() => setDialogStep("forward")}
+									onOAuth={() => setDialogStep("platform")}
+									onBack={() => setDialogStep("detect")}
+								/>
+							)}
+						{dialogStep === "platform" && PLATFORMS[platformId] && (
+							<PlatformOAuthStep
+								platform={PLATFORMS[platformId]}
+								organizationId={activeOrganization?.id ?? ""}
+								organizationSlug={organizationSlug}
+								onBack={() => setDialogStep("platform-choice")}
+							/>
+						)}
+						{dialogStep === "imap" && (
+							<ImapConnectStep
+								organizationId={activeOrganization?.id ?? ""}
+								email={emailInput}
+								detectedImapHost={detectedRoute?.imapHost}
+								detectedImapPort={detectedRoute?.imapPort}
+								onBack={() => setDialogStep("detect")}
+								onFallbackForward={() =>
+									setDialogStep("forward")
+								}
+								onSuccess={() => {
+									handleClose();
+									queryClient.invalidateQueries({
+										queryKey:
+											orpc.emailConnections.list.key(),
+									});
+								}}
+							/>
+						)}
+						{dialogStep === "forward" && (
+							<ForwardFallbackStep
+								organizationId={activeOrganization?.id ?? ""}
+								detectedProvider={platformId || undefined}
+								onBack={() =>
+									setDialogStep(
+										platformId
+											? "platform-choice"
+											: "detect",
+									)
+								}
+								onClose={handleClose}
+							/>
+						)}
 					</DialogContent>
 				</Dialog>
 			</div>
@@ -399,7 +444,10 @@ export function EmailConnectionsList() {
 					<TableBody>
 						{isLoading ? (
 							<TableRow>
-								<TableCell colSpan={5} className="h-32 text-center">
+								<TableCell
+									colSpan={5}
+									className="h-32 text-center"
+								>
 									<div className="flex items-center justify-center gap-2">
 										<Spinner className="size-4 text-primary" />
 										加载中...
@@ -433,42 +481,76 @@ export function EmailConnectionsList() {
 										</div>
 									</TableCell>
 									<TableCell>
-										<Badge status="info">{providerLabel(conn.provider)}</Badge>
+										<Badge status="info">
+											{providerLabel(conn.provider)}
+										</Badge>
 									</TableCell>
 									<TableCell>
-										{conn.isActive && !["gmail", "outlook", "feishu"].includes(conn.provider) && !conn.hasImapPassword ? (
-											<Badge status="warning">需配置 IMAP 密码</Badge>
+										{conn.isActive &&
+										![
+											"gmail",
+											"outlook",
+											"feishu",
+										].includes(conn.provider) &&
+										!conn.hasImapPassword ? (
+											<Badge status="warning">
+												需配置 IMAP 密码
+											</Badge>
 										) : (
-											<Badge status={conn.isActive ? "success" : "error"}>
-												{conn.isActive ? "已连接" : "已断开"}
+											<Badge
+												status={
+													conn.isActive
+														? "success"
+														: "error"
+												}
+											>
+												{conn.isActive
+													? "已连接"
+													: "已断开"}
 											</Badge>
 										)}
 									</TableCell>
 									<TableCell className="text-sm text-muted-foreground">
 										{conn.lastSyncAt
-											? new Date(conn.lastSyncAt).toLocaleString()
+											? new Date(
+													conn.lastSyncAt,
+												).toLocaleString()
 											: "从未同步"}
 									</TableCell>
 									<TableCell>
 										<div className="flex justify-end gap-1">
-											{!["gmail", "outlook", "feishu"].includes(conn.provider) && !conn.hasImapPassword && (
-												<Button
-													size="icon"
-													variant="ghost"
-													title="设置 IMAP 密码"
-													onClick={() => {
-														setPasswordDialogConn({ id: conn.id, email: conn.email });
-														setNewImapPassword("");
-													}}
-												>
-													<KeyIcon className="size-4 text-amber-500" />
-												</Button>
-											)}
+											{![
+												"gmail",
+												"outlook",
+												"feishu",
+											].includes(conn.provider) &&
+												!conn.hasImapPassword && (
+													<Button
+														size="icon"
+														variant="ghost"
+														title="设置 IMAP 密码"
+														onClick={() => {
+															setPasswordDialogConn(
+																{
+																	id: conn.id,
+																	email: conn.email,
+																},
+															);
+															setNewImapPassword(
+																"",
+															);
+														}}
+													>
+														<KeyIcon className="size-4 text-amber-500" />
+													</Button>
+												)}
 											<Button
 												size="icon"
 												variant="ghost"
 												title="同步邮件"
-												disabled={syncMutation.isPending}
+												disabled={
+													syncMutation.isPending
+												}
 												onClick={() =>
 													syncMutation.mutate({
 														connectionId: conn.id,
@@ -485,7 +567,9 @@ export function EmailConnectionsList() {
 												size="icon"
 												variant="ghost"
 												title="断开连接"
-												disabled={disconnectMutation.isPending}
+												disabled={
+													disconnectMutation.isPending
+												}
 												onClick={() =>
 													disconnectMutation.mutate({
 														connectionId: conn.id,
@@ -515,7 +599,8 @@ export function EmailConnectionsList() {
 					<DialogHeader>
 						<DialogTitle>设置 IMAP 密码</DialogTitle>
 						<DialogDescription>
-							为 {passwordDialogConn?.email} 设置 IMAP 专用密码以启用邮件同步。
+							为 {passwordDialogConn?.email} 设置 IMAP
+							专用密码以启用邮件同步。
 						</DialogDescription>
 					</DialogHeader>
 					<form
@@ -536,7 +621,9 @@ export function EmailConnectionsList() {
 								type="password"
 								placeholder="在邮箱设置中生成的应用专用密码"
 								value={newImapPassword}
-								onChange={(e) => setNewImapPassword(e.target.value)}
+								onChange={(e) =>
+									setNewImapPassword(e.target.value)
+								}
 								required
 							/>
 							<p className="text-xs text-muted-foreground">
@@ -546,9 +633,14 @@ export function EmailConnectionsList() {
 						<Button
 							type="submit"
 							className="w-full"
-							disabled={!newImapPassword.trim() || updatePwMutation.isPending}
+							disabled={
+								!newImapPassword.trim() ||
+								updatePwMutation.isPending
+							}
 						>
-							{updatePwMutation.isPending ? "保存中..." : "保存并启用同步"}
+							{updatePwMutation.isPending
+								? "保存中..."
+								: "保存并启用同步"}
 						</Button>
 					</form>
 				</DialogContent>
@@ -610,7 +702,12 @@ function SmartDetectStep({
 							}}
 							className="flex-1"
 						/>
-						<Button type="submit" disabled={!isValidEmail || isDetecting} size="sm" className="shrink-0 px-4">
+						<Button
+							type="submit"
+							disabled={!isValidEmail || isDetecting}
+							size="sm"
+							className="shrink-0 px-4"
+						>
 							{isDetecting ? (
 								<>
 									<Loader2Icon className="size-4 mr-1 animate-spin" />
@@ -630,7 +727,9 @@ function SmartDetectStep({
 					<div className="flex items-center gap-3 rounded-lg border border-dashed p-4 animate-pulse">
 						<Spinner className="size-4 text-primary" />
 						<div className="space-y-1">
-							<p className="text-sm text-foreground font-medium">正在查询 MX 记录...</p>
+							<p className="text-sm text-foreground font-medium">
+								正在查询 MX 记录...
+							</p>
 							<p className="text-xs text-muted-foreground">
 								分析域名 {emailInput.split("@")[1]} 的邮件服务商
 							</p>
@@ -644,15 +743,41 @@ function SmartDetectStep({
 							<div className="flex items-start justify-between gap-3">
 								<div className="flex items-center gap-3">
 									<div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
-										{detectedRoute.method === "oauth-gmail" && (
-											<Image src="/icons/integrations/gmail.svg" alt="Gmail" width={24} height={24} />
+										{detectedRoute.method ===
+											"oauth-gmail" && (
+											<Image
+												src="/icons/integrations/gmail.svg"
+												alt="Gmail"
+												width={24}
+												height={24}
+											/>
 										)}
-										{detectedRoute.method === "oauth-outlook" && (
-											<Image src="/icons/integrations/outlook.svg" alt="Outlook" width={24} height={24} />
+										{detectedRoute.method ===
+											"oauth-outlook" && (
+											<Image
+												src="/icons/integrations/outlook.svg"
+												alt="Outlook"
+												width={24}
+												height={24}
+											/>
 										)}
-										{detectedRoute.method === "oauth-platform" && PLATFORMS[detectedRoute.providerId] && (
-											<Image src={PLATFORMS[detectedRoute.providerId].icon} alt="" width={24} height={24} />
-										)}
+										{detectedRoute.method ===
+											"oauth-platform" &&
+											PLATFORMS[
+												detectedRoute.providerId
+											] && (
+												<Image
+													src={
+														PLATFORMS[
+															detectedRoute
+																.providerId
+														].icon
+													}
+													alt=""
+													width={24}
+													height={24}
+												/>
+											)}
 										{detectedRoute.method === "imap" && (
 											<GlobeIcon className="size-5 text-primary" />
 										)}
@@ -666,7 +791,9 @@ function SmartDetectStep({
 										</p>
 									</div>
 								</div>
-								{(detectedRoute.method === "oauth-gmail" || detectedRoute.method === "oauth-outlook") && (
+								{(detectedRoute.method === "oauth-gmail" ||
+									detectedRoute.method ===
+										"oauth-outlook") && (
 									<span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 rounded-full bg-emerald-500/10 px-2 py-0.5 shrink-0">
 										<ShieldCheckIcon className="size-3" />
 										推荐
@@ -674,8 +801,12 @@ function SmartDetectStep({
 								)}
 							</div>
 
-							<Button onClick={() => onProceed(detectedRoute)} className="w-full gap-2">
-								{(detectedRoute.method === "oauth-gmail" || detectedRoute.method === "oauth-outlook") ? (
+							<Button
+								onClick={() => onProceed(detectedRoute)}
+								className="w-full gap-2"
+							>
+								{detectedRoute.method === "oauth-gmail" ||
+								detectedRoute.method === "oauth-outlook" ? (
 									<>
 										<ExternalLinkIcon className="size-4" />
 										一键授权连接
@@ -730,7 +861,8 @@ function SmartDetectStep({
 									onProceed({
 										method: "oauth-gmail",
 										label: "Google 一键授权",
-										description: "通过 Google OAuth 安全连接",
+										description:
+											"通过 Google OAuth 安全连接",
 										providerId: "gmail",
 									});
 								}}
@@ -743,7 +875,8 @@ function SmartDetectStep({
 									onProceed({
 										method: "oauth-outlook",
 										label: "Microsoft 一键授权",
-										description: "通过 Microsoft OAuth 安全连接",
+										description:
+											"通过 Microsoft OAuth 安全连接",
 										providerId: "outlook",
 									});
 								}}
@@ -759,7 +892,9 @@ function SmartDetectStep({
 								<SendIcon className="size-4 text-amber-600 dark:text-amber-400" />
 							</div>
 							<div className="flex-1 min-w-0">
-								<p className="text-sm font-medium text-foreground">邮件转发（兜底方案）</p>
+								<p className="text-sm font-medium text-foreground">
+									邮件转发（兜底方案）
+								</p>
 								<p className="text-xs text-muted-foreground">
 									无需配置，直接转发一封邮件体验 AI 解析
 								</p>
@@ -830,7 +965,10 @@ function GmailOAuthStep({
 		authUrl.searchParams.set("client_id", clientId);
 		authUrl.searchParams.set("redirect_uri", redirectUri);
 		authUrl.searchParams.set("response_type", "code");
-		authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send");
+		authUrl.searchParams.set(
+			"scope",
+			"https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
+		);
 		authUrl.searchParams.set("access_type", "offline");
 		authUrl.searchParams.set("prompt", "consent");
 		authUrl.searchParams.set("state", organizationId);
@@ -845,7 +983,11 @@ function GmailOAuthStep({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>连接 Gmail</DialogTitle>
@@ -856,10 +998,17 @@ function GmailOAuthStep({
 			</DialogHeader>
 
 			<div className="flex flex-col items-center gap-4 py-4">
-				<Image src="/icons/integrations/gmail.svg" alt="Gmail" width={48} height={48} />
+				<Image
+					src="/icons/integrations/gmail.svg"
+					alt="Gmail"
+					width={48}
+					height={48}
+				/>
 
 				{email?.includes("@") && (
-					<p className="text-sm text-foreground font-medium">{email}</p>
+					<p className="text-sm text-foreground font-medium">
+						{email}
+					</p>
 				)}
 
 				<div className="text-center space-y-1">
@@ -920,11 +1069,16 @@ function OutlookOAuthStep({
 			JSON.stringify({ provider: "outlook", organizationId }),
 		);
 
-		const authUrl = new URL("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
+		const authUrl = new URL(
+			"https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+		);
 		authUrl.searchParams.set("client_id", clientId);
 		authUrl.searchParams.set("redirect_uri", redirectUri);
 		authUrl.searchParams.set("response_type", "code");
-		authUrl.searchParams.set("scope", "openid email profile Mail.Read Mail.ReadWrite offline_access");
+		authUrl.searchParams.set(
+			"scope",
+			"openid email profile Mail.Read Mail.ReadWrite offline_access",
+		);
 		authUrl.searchParams.set("state", organizationId);
 		authUrl.searchParams.set("prompt", "consent");
 		if (email?.includes("@")) {
@@ -938,21 +1092,33 @@ function OutlookOAuthStep({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>连接 Outlook</DialogTitle>
 				</div>
 				<DialogDescription>
-					通过 Microsoft OAuth 安全授权，支持 Outlook、Hotmail、Live 等邮箱。
+					通过 Microsoft OAuth 安全授权，支持 Outlook、Hotmail、Live
+					等邮箱。
 				</DialogDescription>
 			</DialogHeader>
 
 			<div className="flex flex-col items-center gap-4 py-4">
-				<Image src="/icons/integrations/outlook.svg" alt="Outlook" width={48} height={48} />
+				<Image
+					src="/icons/integrations/outlook.svg"
+					alt="Outlook"
+					width={48}
+					height={48}
+				/>
 
 				{email?.includes("@") && (
-					<p className="text-sm text-foreground font-medium">{email}</p>
+					<p className="text-sm text-foreground font-medium">
+						{email}
+					</p>
 				)}
 
 				<div className="text-center space-y-1">
@@ -989,7 +1155,10 @@ function OutlookOAuthStep({
    Step 2b-2: Platform Choice — 国产平台二选一
    ============================================================ */
 
-const PLATFORM_CAPABILITIES: Record<string, { canRead: boolean; canSend: boolean }> = {
+const PLATFORM_CAPABILITIES: Record<
+	string,
+	{ canRead: boolean; canSend: boolean }
+> = {
 	feishu: { canRead: true, canSend: true },
 	dingtalk: { canRead: false, canSend: false },
 	wecom: { canRead: true, canSend: true },
@@ -1011,7 +1180,11 @@ function PlatformChoiceStep({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>连接 {platform.name}</DialogTitle>
@@ -1033,11 +1206,14 @@ function PlatformChoiceStep({
 						</div>
 						<div className="flex-1 min-w-0">
 							<div className="flex items-center gap-2">
-								<span className="text-sm font-semibold text-foreground">邮件转发</span>
+								<span className="text-sm font-semibold text-foreground">
+									邮件转发
+								</span>
 								<Badge status="info">推荐</Badge>
 							</div>
 							<p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-								零配置，10 秒体验 AI 解析。只需转发一封邮件即可开始，支持设置自动转发持续同步。
+								零配置，10 秒体验 AI
+								解析。只需转发一封邮件即可开始，支持设置自动转发持续同步。
 							</p>
 						</div>
 						<ArrowRightIcon className="size-4 mt-1 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -1055,7 +1231,9 @@ function PlatformChoiceStep({
 						</div>
 						<div className="flex-1 min-w-0">
 							<div className="flex items-center gap-2">
-								<span className="text-sm font-semibold text-foreground">高级接入（OAuth）</span>
+								<span className="text-sm font-semibold text-foreground">
+									高级接入（OAuth）
+								</span>
 								{caps?.canSend && (
 									<span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
 										<SparklesIcon className="size-2.5" />
@@ -1070,7 +1248,8 @@ function PlatformChoiceStep({
 							</p>
 							{!caps?.canSend && platform.id === "dingtalk" && (
 								<p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
-									注：钉钉暂无邮件读写 API，OAuth 仅用于身份验证
+									注：钉钉暂无邮件读写 API，OAuth
+									仅用于身份验证
 								</p>
 							)}
 						</div>
@@ -1114,18 +1293,25 @@ function PlatformOAuthStep({
 				organizationId,
 				appId: appId.trim(),
 				appSecret: appSecret.trim(),
-				...(imapPassword.trim() ? { imapPassword: imapPassword.trim() } : {}),
+				...(imapPassword.trim()
+					? { imapPassword: imapPassword.trim() }
+					: {}),
 			}),
 		);
 
 		let authUrl: URL;
 
 		if (platform.id === "feishu") {
-			authUrl = new URL("https://accounts.feishu.cn/open-apis/authen/v1/authorize");
+			authUrl = new URL(
+				"https://accounts.feishu.cn/open-apis/authen/v1/authorize",
+			);
 			authUrl.searchParams.set("client_id", appId.trim());
 			authUrl.searchParams.set("redirect_uri", redirectUri);
 			authUrl.searchParams.set("response_type", "code");
-			authUrl.searchParams.set("scope", "contact:user.email:readonly mail:user_mailbox.message:readonly mail:user_mailbox.message.subject:read mail:user_mailbox.message.address:read mail:user_mailbox.message.body:read");
+			authUrl.searchParams.set(
+				"scope",
+				"contact:user.email:readonly mail:user_mailbox.message:readonly mail:user_mailbox.message.subject:read mail:user_mailbox.message.address:read mail:user_mailbox.message.body:read",
+			);
 			authUrl.searchParams.set("state", organizationId);
 		} else if (platform.id === "dingtalk") {
 			authUrl = new URL("https://login.dingtalk.com/oauth2/auth");
@@ -1136,7 +1322,9 @@ function PlatformOAuthStep({
 			authUrl.searchParams.set("prompt", "consent");
 			authUrl.searchParams.set("state", organizationId);
 		} else if (platform.id === "wecom") {
-			authUrl = new URL("https://open.weixin.qq.com/connect/oauth2/authorize");
+			authUrl = new URL(
+				"https://open.weixin.qq.com/connect/oauth2/authorize",
+			);
 			authUrl.searchParams.set("appid", appId.trim());
 			authUrl.searchParams.set("redirect_uri", redirectUri);
 			authUrl.searchParams.set("response_type", "code");
@@ -1202,7 +1390,11 @@ function PlatformOAuthStep({
 		<div data-platform-oauth-open>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>高级接入 — {platform.name}</DialogTitle>
@@ -1217,7 +1409,12 @@ function PlatformOAuthStep({
 					<div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 p-3">
 						<SparklesIcon className="size-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
 						<div className="text-xs leading-relaxed text-emerald-700 dark:text-emerald-300">
-							<span className="font-medium">OAuth 接入解锁 AI 发送能力</span> — 接入后 Flowmail 可代你发送审批回复、汇报跟进邮件，实现完整的 AI 自动化工作流。
+							<span className="font-medium">
+								OAuth 接入解锁 AI 发送能力
+							</span>{" "}
+							— 接入后 Flowmail
+							可代你发送审批回复、汇报跟进邮件，实现完整的 AI
+							自动化工作流。
 						</div>
 					</div>
 				)}
@@ -1225,7 +1422,8 @@ function PlatformOAuthStep({
 					<div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3">
 						<ZapIcon className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
 						<div className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-							钉钉暂无邮件读写 API，OAuth 接入仅用于身份验证。邮件同步建议使用转发方式。
+							钉钉暂无邮件读写 API，OAuth
+							接入仅用于身份验证。邮件同步建议使用转发方式。
 						</div>
 					</div>
 				)}
@@ -1238,11 +1436,22 @@ function PlatformOAuthStep({
 					}}
 				>
 					<div className="flex items-center gap-3 rounded-lg bg-muted/50 border p-3">
-						<Image src={platform.icon} alt={platform.name} width={28} height={28} />
+						<Image
+							src={platform.icon}
+							alt={platform.name}
+							width={28}
+							height={28}
+						/>
 						<div className="flex-1">
-							<p className="text-sm font-medium text-foreground">{platform.name}</p>
+							<p className="text-sm font-medium text-foreground">
+								{platform.name}
+							</p>
 							<p className="text-[10px] text-muted-foreground">
-								{caps?.canSend ? "支持 AI 读取 + 发送" : caps?.canRead ? "支持 AI 读取" : "仅身份验证"}
+								{caps?.canSend
+									? "支持 AI 读取 + 发送"
+									: caps?.canRead
+										? "支持 AI 读取"
+										: "仅身份验证"}
 							</p>
 						</div>
 					</div>
@@ -1271,25 +1480,35 @@ function PlatformOAuthStep({
 						<div className="space-y-2">
 							<Label>
 								IMAP 专用密码
-								<span className="text-muted-foreground font-normal ml-1">(同步邮件必填)</span>
+								<span className="text-muted-foreground font-normal ml-1">
+									(同步邮件必填)
+								</span>
 							</Label>
 							<Input
 								type="password"
 								placeholder="在邮箱设置中生成的应用专用密码"
 								value={imapPassword}
-								onChange={(e) => setImapPassword(e.target.value)}
+								onChange={(e) =>
+									setImapPassword(e.target.value)
+								}
 							/>
 						</div>
 					)}
 
-					<Button type="submit" className="w-full gap-2" disabled={!appId.trim() || !appSecret.trim()}>
+					<Button
+						type="submit"
+						className="w-full gap-2"
+						disabled={!appId.trim() || !appSecret.trim()}
+					>
 						<ExternalLinkIcon className="size-4" />
 						前往授权
 					</Button>
 				</form>
 
 				<div className="border-t pt-3 space-y-2">
-					<p className="text-xs font-medium text-foreground">没有凭据？</p>
+					<p className="text-xs font-medium text-foreground">
+						没有凭据？
+					</p>
 					<div className="flex flex-col gap-2">
 						<a
 							href={platform.docUrl}
@@ -1337,26 +1556,43 @@ function PlatformOAuthStep({
 						className="flex items-center gap-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-2.5 text-xs text-primary hover:bg-primary/10 transition-colors text-left w-full"
 					>
 						<SparklesIcon className="size-3.5 shrink-0" />
-						<span className="flex-1">让桌面 AI 助手帮我完成（OpenClaw / Cowork 等）</span>
+						<span className="flex-1">
+							让桌面 AI 助手帮我完成（OpenClaw / Cowork 等）
+						</span>
 						<ArrowRightIcon className="size-3 shrink-0" />
 					</button>
 
 					{showAgentPrompt && (
 						<div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-3">
 							<div className="space-y-1.5">
-								<p className="text-[11px] font-medium text-foreground">使用方法</p>
+								<p className="text-[11px] font-medium text-foreground">
+									使用方法
+								</p>
 								<div className="space-y-1">
 									<div className="flex items-start gap-2 text-[11px] text-muted-foreground">
-										<span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">1</span>
+										<span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">
+											1
+										</span>
 										<span>复制下方 Prompt</span>
 									</div>
 									<div className="flex items-start gap-2 text-[11px] text-muted-foreground">
-										<span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">2</span>
-										<span>粘贴到你的桌面 AI 助手（OpenClaw、Cowork、WorkBuddy、Claude Desktop 等）</span>
+										<span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">
+											2
+										</span>
+										<span>
+											粘贴到你的桌面 AI
+											助手（OpenClaw、Cowork、WorkBuddy、Claude
+											Desktop 等）
+										</span>
 									</div>
 									<div className="flex items-start gap-2 text-[11px] text-muted-foreground">
-										<span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">3</span>
-										<span>AI 会自动打开浏览器、创建应用、回传凭据</span>
+										<span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[9px] font-semibold text-primary">
+											3
+										</span>
+										<span>
+											AI
+											会自动打开浏览器、创建应用、回传凭据
+										</span>
 									</div>
 								</div>
 							</div>
@@ -1382,9 +1618,10 @@ function PlatformOAuthStep({
 							</Button>
 
 							<p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-								需要你的 AI 助手已配置 Flowmail MCP 连接和浏览器控制能力。
+								需要你的 AI 助手已配置 Flowmail MCP
+								连接和浏览器控制能力。
 								<a
-									href="https://flowmail.ai/docs/agent-setup"
+									href="https://flowmail.work/docs/agent-setup"
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-primary/70 hover:underline ml-0.5"
@@ -1423,7 +1660,9 @@ function ImapConnectStep({
 	const [email, setEmail] = useState(initialEmail);
 	const [password, setPassword] = useState("");
 	const [imapHost, setImapHost] = useState(detectedImapHost ?? "");
-	const [imapPort, setImapPort] = useState(detectedImapPort ? String(detectedImapPort) : "");
+	const [imapPort, setImapPort] = useState(
+		detectedImapPort ? String(detectedImapPort) : "",
+	);
 	const [maxSyncCount, setMaxSyncCount] = useState("500");
 
 	const connectMutation = useMutation(
@@ -1434,7 +1673,11 @@ function ImapConnectStep({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>IMAP 连接</DialogTitle>
@@ -1454,7 +1697,9 @@ function ImapConnectStep({
 						email,
 						password,
 						...(imapHost ? { imapHost } : {}),
-						...(imapPort ? { imapPort: Number.parseInt(imapPort) } : {}),
+						...(imapPort
+							? { imapPort: Number.parseInt(imapPort) }
+							: {}),
 						maxSyncCount: Number.parseInt(maxSyncCount),
 					});
 				}}
@@ -1481,16 +1726,23 @@ function ImapConnectStep({
 				</div>
 				<div className="space-y-2">
 					<Label>首次同步数量</Label>
-					<Select value={maxSyncCount} onValueChange={setMaxSyncCount}>
+					<Select
+						value={maxSyncCount}
+						onValueChange={setMaxSyncCount}
+					>
 						<SelectTrigger>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="100">最近 100 封</SelectItem>
-							<SelectItem value="500">最近 500 封（推荐）</SelectItem>
+							<SelectItem value="500">
+								最近 500 封（推荐）
+							</SelectItem>
 							<SelectItem value="1000">最近 1000 封</SelectItem>
 							<SelectItem value="5000">最近 5000 封</SelectItem>
-							<SelectItem value="10000">全部（最多 10000 封）</SelectItem>
+							<SelectItem value="10000">
+								全部（最多 10000 封）
+							</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>
@@ -1524,8 +1776,14 @@ function ImapConnectStep({
 					</p>
 				)}
 
-				<Button type="submit" className="w-full" disabled={connectMutation.isPending}>
-					{connectMutation.isPending && <Spinner className="mr-2 size-4" />}
+				<Button
+					type="submit"
+					className="w-full"
+					disabled={connectMutation.isPending}
+				>
+					{connectMutation.isPending && (
+						<Spinner className="mr-2 size-4" />
+					)}
 					测试并连接
 				</Button>
 
@@ -1550,13 +1808,19 @@ function ImapConnectStep({
 /* ============================================================
    Step 2e: Forward Fallback — 转发兜底
    ============================================================ */
-const PLATFORM_FORWARD_GUIDES: Record<string, { name: string; steps: { text: string; link?: string }[] }> = {
+const PLATFORM_FORWARD_GUIDES: Record<
+	string,
+	{ name: string; steps: { text: string; link?: string }[] }
+> = {
 	feishu: {
 		name: "飞书",
 		steps: [
 			{ text: "打开飞书客户端，点击左侧「邮箱」" },
 			{ text: "点击右上角齿轮图标进入邮箱设置" },
-			{ text: "找到「自动转发」，添加下方地址并保存", link: "https://www.feishu.cn/hc/zh-CN/articles/803023924253" },
+			{
+				text: "找到「自动转发」，添加下方地址并保存",
+				link: "https://www.feishu.cn/hc/zh-CN/articles/803023924253",
+			},
 			{ text: "前往收件箱，点击飞书发送的验证邮件完成确认" },
 		],
 	},
@@ -1572,7 +1836,10 @@ const PLATFORM_FORWARD_GUIDES: Record<string, { name: string; steps: { text: str
 	wecom: {
 		name: "企业微信",
 		steps: [
-			{ text: "登录网页版企业邮箱 exmail.qq.com", link: "https://exmail.qq.com" },
+			{
+				text: "登录网页版企业邮箱 exmail.qq.com",
+				link: "https://exmail.qq.com",
+			},
 			{ text: "点击右上角「设置」→「常规设置」→「自动转发」" },
 			{ text: "用微信扫码完成安全验证" },
 			{ text: "输入下方转发地址，点击「更新」保存" },
@@ -1623,7 +1890,11 @@ function ForwardFallbackStep({
 		<>
 			<DialogHeader>
 				<div className="flex items-center gap-2">
-					<button type="button" onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+					<button
+						type="button"
+						onClick={onBack}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
 						<ArrowLeftIcon className="size-4" />
 					</button>
 					<DialogTitle>邮件转发</DialogTitle>
@@ -1644,7 +1915,9 @@ function ForwardFallbackStep({
 					{addressLoading ? (
 						<div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-2.5">
 							<Spinner className="size-4" />
-							<span className="text-sm text-muted-foreground">加载地址中...</span>
+							<span className="text-sm text-muted-foreground">
+								加载地址中...
+							</span>
 						</div>
 					) : (
 						<div className="flex items-center gap-2">
@@ -1668,37 +1941,44 @@ function ForwardFallbackStep({
 					)}
 				</div>
 
-				{detectedProvider && PLATFORM_FORWARD_GUIDES[detectedProvider] && (
-					<div className="space-y-2">
-						<div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-							<GlobeIcon className="size-3.5" />
-							{PLATFORM_FORWARD_GUIDES[detectedProvider].name} 自动转发设置教程
+				{detectedProvider &&
+					PLATFORM_FORWARD_GUIDES[detectedProvider] && (
+						<div className="space-y-2">
+							<div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+								<GlobeIcon className="size-3.5" />
+								{PLATFORM_FORWARD_GUIDES[detectedProvider].name}{" "}
+								自动转发设置教程
+							</div>
+							<div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+								{PLATFORM_FORWARD_GUIDES[
+									detectedProvider
+								].steps.map((step, i) => (
+									<div
+										key={i}
+										className="flex items-start gap-2 text-xs"
+									>
+										<span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/15 text-[10px] font-semibold text-muted-foreground">
+											{i + 1}
+										</span>
+										<span className="text-muted-foreground leading-relaxed">
+											{step.text}
+											{step.link && (
+												<a
+													href={step.link}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-primary hover:underline ml-1 inline-flex items-center gap-0.5"
+												>
+													查看详情
+													<ExternalLinkIcon className="size-2.5" />
+												</a>
+											)}
+										</span>
+									</div>
+								))}
+							</div>
 						</div>
-						<div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-							{PLATFORM_FORWARD_GUIDES[detectedProvider].steps.map((step, i) => (
-								<div key={i} className="flex items-start gap-2 text-xs">
-									<span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/15 text-[10px] font-semibold text-muted-foreground">
-										{i + 1}
-									</span>
-									<span className="text-muted-foreground leading-relaxed">
-										{step.text}
-										{step.link && (
-											<a
-												href={step.link}
-												target="_blank"
-												rel="noopener noreferrer"
-												className="text-primary hover:underline ml-1 inline-flex items-center gap-0.5"
-											>
-												查看详情
-												<ExternalLinkIcon className="size-2.5" />
-											</a>
-										)}
-									</span>
-								</div>
-							))}
-						</div>
-					</div>
-				)}
+					)}
 
 				<div className="space-y-2">
 					<div className="flex items-center gap-2 text-sm font-medium">
@@ -1740,7 +2020,8 @@ function ForwardFallbackStep({
 				<div className="flex items-start gap-2 rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground">
 					<ShieldCheckIcon className="h-4 w-4 shrink-0 mt-0.5" />
 					<span>
-						Flowmail 仅解析邮件内容用于生成待办和提醒，不会代你发送任何邮件。
+						Flowmail
+						仅解析邮件内容用于生成待办和提醒，不会代你发送任何邮件。
 					</span>
 				</div>
 			</div>

@@ -36,7 +36,7 @@ Flowmail 的业务能力通过**三层接入**支持所有 Agent 形态：
 {
   "mcpServers": {
     "flowmail": {
-      "url": "https://app.flowmail.ai/mcp",
+      "url": "https://app.flowmail.work/mcp",
       "headers": { "Authorization": "Bearer <API_TOKEN>" }
     }
   }
@@ -252,7 +252,7 @@ const handler = createMcpHandler({
 {
   "mcpServers": {
     "flowmail": {
-      "url": "https://app.flowmail.ai/mcp",
+      "url": "https://app.flowmail.work/mcp",
       "headers": {
         "Authorization": "Bearer <用户的 API Token>"
       }

@@ -6,7 +6,7 @@ metadata:
     "openclaw":
       {
         "emoji": "🔧",
-        "homepage": "https://flowmail.ai",
+        "homepage": "https://flowmail.work",
         "requires": { "env": ["FLOWMAIL_API_TOKEN"], "tools": ["browser"] },
         "primaryEnv": "FLOWMAIL_API_TOKEN"
       },
