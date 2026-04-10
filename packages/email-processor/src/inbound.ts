@@ -222,6 +222,25 @@ export async function processInboundEmail(
 			data: { entityId: entity.id, processedAt: new Date() },
 		});
 
+		// Create an email_thread record so the frontend can display the email content.
+		// Inbound emails don't have an OAuth connection, so connectionId is left null.
+		await db.emailThread.create({
+			data: {
+				organizationId: input.organizationId,
+				entityId: entity.id,
+				externalThreadId: inboundEmail.id,
+				subject: input.subject,
+				sender: input.fromEmail,
+				senderName: input.fromEmail.split("@")[0],
+				snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
+				bodyHtml: input.htmlBody,
+				bodyText: input.textBody,
+				messageId: (input.rawPayload as Record<string, unknown>)?.message_id as string | undefined,
+				participants: JSON.stringify([input.fromEmail]),
+				receivedAt: new Date(),
+			},
+		});
+
 		await db.timelineEvent.create({
 			data: {
 				entityId: entity.id,

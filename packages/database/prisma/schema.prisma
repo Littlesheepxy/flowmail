@@ -289,8 +289,8 @@ model EmailThread {
   id               String            @id @default(cuid())
   organizationId   String
   organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  connectionId     String
-  connection       EmailConnection   @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId     String?
+  connection       EmailConnection?  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   externalThreadId String
   subject          String
   sender           String
@@ -313,6 +313,7 @@ model EmailThread {
   @@unique([connectionId, externalThreadId])
   @@index([organizationId])
   @@index([entityId])
+  @@index([externalThreadId])
   @@map("email_thread")
 }
 
