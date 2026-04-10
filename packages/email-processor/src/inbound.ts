@@ -133,7 +133,12 @@ export async function processInboundEmail(
 		let summary: string = content.slice(0, 200);
 		let requiresReview = true;
 
-		const hasAiKey = !!process.env.OPENAI_API_KEY;
+		const hasAiKey = !!(
+			process.env.OPENAI_API_KEY ||
+			process.env.ANTHROPIC_API_KEY ||
+			process.env.ANTHROPIC_AUTH_TOKEN ||
+			process.env.AI_GATEWAY_API_KEY
+		);
 
 		if (hasAiKey) {
 			const useDynamic = orgCategories.length > 0;
@@ -234,22 +239,47 @@ export async function processInboundEmail(
 
 		// Create an email_thread record so the frontend can display the email content.
 		// Inbound emails don't have an OAuth connection, so connectionId is left null.
-		const thread = await db.emailThread.create({
-			data: {
-				organizationId: input.organizationId,
+		let thread: { id: string };
+		try {
+			thread = await db.emailThread.create({
+				data: {
+					organizationId: input.organizationId,
+					entityId: entity.id,
+					externalThreadId: inboundEmail.id,
+					subject: input.subject,
+					sender: input.fromEmail,
+					senderName: input.fromEmail.split("@")[0],
+					snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
+					bodyHtml: input.htmlBody,
+					bodyText: input.textBody,
+					messageId: (input.rawPayload as Record<string, unknown>)?.message_id as string | undefined,
+					participants: JSON.stringify([input.fromEmail]),
+					receivedAt: new Date(),
+				},
+			});
+		} catch (threadError) {
+			// Log the error but don't fail the whole process — the entity was already created.
+			console.error("[inbound] Failed to create email_thread:", {
 				entityId: entity.id,
-				externalThreadId: inboundEmail.id,
-				subject: input.subject,
-				sender: input.fromEmail,
-				senderName: input.fromEmail.split("@")[0],
-				snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
-				bodyHtml: input.htmlBody,
-				bodyText: input.textBody,
-				messageId: (input.rawPayload as Record<string, unknown>)?.message_id as string | undefined,
-				participants: JSON.stringify([input.fromEmail]),
-				receivedAt: new Date(),
-			},
-		});
+				inboundEmailId: inboundEmail.id,
+				error: threadError instanceof Error ? threadError.message : String(threadError),
+			});
+			// Fallback: create a minimal thread record with a unique id suffix
+			thread = await db.emailThread.create({
+				data: {
+					organizationId: input.organizationId,
+					entityId: entity.id,
+					externalThreadId: `${inboundEmail.id}-fallback`,
+					subject: input.subject,
+					sender: input.fromEmail,
+					senderName: input.fromEmail.split("@")[0],
+					snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
+					bodyText: input.textBody || "[邮件内容请查看附件]",
+					participants: JSON.stringify([input.fromEmail]),
+					receivedAt: new Date(),
+				},
+			});
+		}
 
 		// Create attachment records if any were provided
 		if (input.attachments && input.attachments.length > 0) {
