@@ -13,51 +13,55 @@ export const getEntity = protectedProcedure
 	})
 	.input(getEntitySchema)
 	.handler(async ({ input, context }) => {
-		const entity = await db.flowEntity.findUnique({
-			where: { id: input.entityId },
-			include: {
-				assignee: { select: { id: true, name: true, email: true, image: true } },
-				category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
-				threads: {
-					orderBy: { receivedAt: "desc" },
-					select: {
-						id: true,
-						connectionId: true,
-						messageId: true,
-						subject: true,
-						sender: true,
-						senderName: true,
-						toRecipients: true,
-						ccRecipients: true,
-						snippet: true,
-						bodyHtml: true,
-						bodyText: true,
-						receivedAt: true,
-						attachments: {
-							select: {
-								id: true,
-								filename: true,
-								mimeType: true,
-								size: true,
-								externalId: true,
-								contentId: true,
-							},
+		const [entity, threads] = await Promise.all([
+			db.flowEntity.findUnique({
+				where: { id: input.entityId },
+				include: {
+					assignee: { select: { id: true, name: true, email: true, image: true } },
+					category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+					timeline: {
+						orderBy: { createdAt: "desc" },
+						include: {
+							actor: { select: { id: true, name: true, image: true } },
+						},
+					},
+					tags: {
+						include: {
+							tag: { select: { id: true, name: true, color: true, source: true } },
 						},
 					},
 				},
-			timeline: {
-				orderBy: { createdAt: "desc" },
-				include: {
-					actor: { select: { id: true, name: true, image: true } },
+			}),
+			// Query threads separately to avoid Prisma nullable FK issues with connectionId
+			db.emailThread.findMany({
+				where: { entityId: input.entityId },
+				orderBy: { receivedAt: "desc" },
+				select: {
+					id: true,
+					connectionId: true,
+					messageId: true,
+					subject: true,
+					sender: true,
+					senderName: true,
+					toRecipients: true,
+					ccRecipients: true,
+					snippet: true,
+					bodyHtml: true,
+					bodyText: true,
+					receivedAt: true,
+					attachments: {
+						select: {
+							id: true,
+							filename: true,
+							mimeType: true,
+							size: true,
+							externalId: true,
+							contentId: true,
+						},
+					},
 				},
-			},
-			tags: {
-				include: {
-					tag: { select: { id: true, name: true, color: true, source: true } },
-				},
-			},
-			},
-		});
+			}),
+		]);
 
 		if (!entity) {
 			throw new ORPCError("NOT_FOUND");
@@ -65,5 +69,5 @@ export const getEntity = protectedProcedure
 
 		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
-		return entity;
+		return { ...entity, threads };
 	});
