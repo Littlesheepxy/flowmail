@@ -14,7 +14,7 @@ export function createEntityTools(deps: {
 	return {
 		get_entity: tool({
 			description:
-				"获取业务事项的完整详情，包括 AI 摘要、抽取字段和时间线。分析事项时首先调用。",
+				"获取业务事项的完整详情，包括 AI 摘要、抽取字段和时间线。分析事项时首先调用。返回结果中包含 attachmentCount（附件数量）和 bodyLength（邮件正文长度），用于判断是否需要进一步读取附件。",
 			inputSchema: z.object({
 				entityId: z.string().describe("Entity ID"),
 			}),
@@ -24,7 +24,14 @@ export function createEntityTools(deps: {
 					include: {
 						timeline: { orderBy: { createdAt: "asc" }, take: 10 },
 						threads: {
-							select: { subject: true, sender: true, receivedAt: true },
+							select: {
+								id: true,
+								subject: true,
+								sender: true,
+								receivedAt: true,
+								bodyText: true,
+								attachments: { select: { id: true, filename: true, mimeType: true } },
+							},
 							take: 3,
 						},
 					},
@@ -32,16 +39,44 @@ export function createEntityTools(deps: {
 				if (!entity) {
 					return { error: "Entity not found" };
 				}
+
+				const allAttachments = entity.threads.flatMap((t) => t.attachments);
+				const bodyLength = entity.threads
+					.map((t) => (t.bodyText ?? "").length)
+					.reduce((a, b) => a + b, 0);
+
+				let extractedFields: Record<string, unknown> = {};
+				try {
+					extractedFields = entity.extractedFields
+						? (JSON.parse(entity.extractedFields as string) as Record<string, unknown>)
+						: {};
+				} catch {
+					// ignore
+				}
+
+				const extractedFieldCount = Object.keys(extractedFields).length;
+
 				return {
 					id: entity.id,
 					title: entity.title,
 					type: entity.type,
 					status: entity.status,
 					aiSummary: entity.aiSummary,
-					extractedFields: entity.extractedFields
-						? JSON.parse(entity.extractedFields)
-						: {},
+					extractedFields,
 					aiConfidence: entity.aiConfidence,
+					// 信息充分性信号
+					attachmentCount: allAttachments.length,
+					attachments: allAttachments.map((a) => ({
+						id: a.id,
+						filename: a.filename,
+						mimeType: a.mimeType,
+					})),
+					bodyLength,
+					extractedFieldCount,
+					// 建议：是否需要读附件
+					needsAttachmentRead:
+						allAttachments.length > 0 &&
+						(bodyLength < 200 || extractedFieldCount < 2 || (entity.aiConfidence ?? 1) < 0.6),
 					timelineCount: entity.timeline.length,
 					latestEvents: entity.timeline.slice(-5).map((e) => ({
 						type: e.type,

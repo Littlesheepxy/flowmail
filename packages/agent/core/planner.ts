@@ -147,6 +147,7 @@ ${memoryBlock}
 - **list_attachments**：列出事项关联邮件的所有附件（文件名、类型、大小）
   → 用户说"有没有附件"、"这封邮件有什么文件"、"看看附件"时调用
   → 也要在 read_attachment 之前先调用，拿到附件 ID
+  → **get_entity 返回 needsAttachmentRead=true 时，主动调用此工具**
 - **read_attachment**：读取附件文字内容（PDF 提取文字、Word 提取文字、图片返回下载链接）
   → 用户说"读一下这个 PDF"、"帮我看看合同内容"、"这份文件说了什么"时调用
   → **必须先调用 list_attachments 获取附件 ID，再调用此工具**
@@ -177,8 +178,20 @@ ${memoryBlock}
 ${hasEntity ? `### 🎯 当前：聚焦模式（已选中具体事项）
 - **禁止**向用户索要 entity ID 或 organization ID，上下文已有，直接使用
 - 默认操作对象是当前事项，无需询问"是哪个事项"
-- 附件查询：直接用当前 entity ID 调用 list_attachments，无需询问
-- 多步任务示例："帮我读一下附件" → list_attachments → read_attachment → 总结内容` : `### 🌐 当前：全局模式（未选中具体事项）
+
+**主动信息补全规则（核心）：**
+当用户要求分析、总结、评估当前事项时，你必须先判断信息是否充分：
+1. 调用 get_entity 拿到完整数据
+2. 检查以下信号，**任意一个成立即视为信息不足**：
+   - needsAttachmentRead=true（系统已自动计算，附件存在+正文短/字段少/置信度低）
+   - attachmentCount > 0 且 bodyLength < 200（邮件正文极短但有附件）
+   - extractedFieldCount < 2（AI 抽取的结构化字段很少）
+   - aiConfidence < 0.6（AI 置信度低）
+3. 信息不足时，**不要直接回答，而是先读附件**：
+   - list_attachments → 找到可读附件（hasContent=true）
+   - 对 PDF/Word 类型逐个调用 read_attachment
+   - 综合所有内容再作答
+4. 读完后明确告知用户："我已读取了 X 个附件，以下是综合分析…"` : `### 🌐 当前：全局模式（未选中具体事项）
 - 可执行跨事项的全局操作
 - 需要操作特定事项时，先用 list_entities 或 search_emails 找到目标`}
 
@@ -186,7 +199,16 @@ ${hasEntity ? `### 🎯 当前：聚焦模式（已选中具体事项）
 
 ## 多步任务示例
 
-**读取附件内容：**
+**主动深度分析（信息不足时自动触发）：**
+1. get_entity（获取事项详情）
+2. 检查返回值：
+   - 若 needsAttachmentRead=true（附件存在 + 正文短/字段少/置信度低）→ 继续步骤 3
+   - 若信息已足够 → 直接分析作答
+3. list_attachments（entityId = 当前事项）
+4. 对每个可读附件（hasContent=true 且非图片）调用 read_attachment
+5. 综合邮件内容 + 附件内容，给出完整分析
+
+**用户主动要求读取附件：**
 1. list_attachments（entityId = 当前事项）
 2. 找到目标附件的 id
 3. read_attachment（attachmentId = 上一步的 id）
