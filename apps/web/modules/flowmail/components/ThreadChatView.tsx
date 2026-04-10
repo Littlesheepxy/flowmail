@@ -20,6 +20,7 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/components/dialog";
@@ -55,6 +56,7 @@ import {
 	TagIcon,
 	ScissorsIcon,
 	SearchIcon,
+	Trash2Icon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState, useMemo, useCallback } from "react";
@@ -201,6 +203,17 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 	const [showMergeDialog, setShowMergeDialog] = useState(false);
 	const [showReclassifyDialog, setShowReclassifyDialog] = useState(false);
 	const [splitModeActive, setSplitModeActive] = useState(false);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+	const deleteMutation = useMutation({
+		...orpc.flowEntities.delete.mutationOptions(),
+		onSuccess: () => {
+			toast.success("事项已删除");
+			queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+			onBack?.();
+		},
+		onError: () => toast.error("删除失败，请重试"),
+	});
 
 	if (!entityId) {
 		return (
@@ -314,6 +327,7 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 					onMerge={() => setShowMergeDialog(true)}
 					onSplit={() => setSplitModeActive(true)}
 					onReclassify={() => setShowReclassifyDialog(true)}
+					onDelete={() => setShowDeleteConfirm(true)}
 				/>
 			</div>
 
@@ -337,14 +351,39 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 			organizationId={entity.organizationId}
 		/>
 
-		<ReclassifyDialog
-			open={showReclassifyDialog}
-			onOpenChange={setShowReclassifyDialog}
-			entityId={entity.id}
-			currentType={entity.type}
-		/>
+	<ReclassifyDialog
+		open={showReclassifyDialog}
+		onOpenChange={setShowReclassifyDialog}
+		entityId={entity.id}
+		currentType={entity.type}
+	/>
 
-		{/* Reply Composer */}
+	<Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+		<DialogContent className="sm:max-w-sm">
+			<DialogHeader>
+				<DialogTitle>删除事项</DialogTitle>
+				<DialogDescription>
+					确定要删除「{entity.title}」吗？关联的邮件记录、附件和时间线将一并删除，此操作不可撤销。
+				</DialogDescription>
+			</DialogHeader>
+			<DialogFooter className="gap-2">
+				<Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+					取消
+				</Button>
+				<Button
+					variant="destructive"
+					size="sm"
+					disabled={deleteMutation.isPending}
+					onClick={() => deleteMutation.mutate({ entityId: entity.id })}
+				>
+					{deleteMutation.isPending ? <Spinner className="size-3.5 mr-1.5" /> : <Trash2Icon className="size-3.5 mr-1.5" />}
+					确认删除
+				</Button>
+			</DialogFooter>
+		</DialogContent>
+	</Dialog>
+
+	{/* Reply Composer */}
 		{showComposer && latestThread && (
 			<ReplyComposer
 				senderName={latestThread.senderName ?? undefined}
@@ -1448,11 +1487,13 @@ function EntityHeaderMenu({
 	onMerge,
 	onSplit,
 	onReclassify,
+	onDelete,
 }: {
 	canSplit: boolean;
 	onMerge: () => void;
 	onSplit: () => void;
 	onReclassify: () => void;
+	onDelete: () => void;
 }) {
 	return (
 		<DropdownMenu>
@@ -1476,6 +1517,14 @@ function EntityHeaderMenu({
 				<DropdownMenuItem onClick={onReclassify}>
 					<TagIcon className="size-3.5 mr-2" />
 					重新分类
+				</DropdownMenuItem>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem
+					onClick={onDelete}
+					className="text-destructive focus:text-destructive focus:bg-destructive/10"
+				>
+					<Trash2Icon className="size-3.5 mr-2" />
+					删除事项
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

@@ -11,6 +11,7 @@ import { reclassifyEntity } from "./procedures/reclassify";
 import { seedDemo } from "./procedures/seed-demo";
 import { clearDemo } from "./procedures/clear-demo";
 import { getAttachmentUrl } from "./procedures/get-attachment-url";
+import { deleteEntity } from "./procedures/delete";
 
 export const flowEntitiesRouter = {
 	list: listEntities,
@@ -26,4 +27,5 @@ export const flowEntitiesRouter = {
 	seedDemo,
 	clearDemo,
 	getAttachmentUrl,
+	delete: deleteEntity,
 };

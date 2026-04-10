@@ -5,6 +5,7 @@ import { generateText, textModel as mcpTextModel, Output } from "@repo/ai";
 import { verifyApiToken } from "@repo/api";
 import { getSignedUrl } from "@repo/storage";
 import { z } from "zod";
+import pdfParse from "pdf-parse";
 
 function getOrgId(extra: { authInfo?: AuthInfo }): string {
 	const orgId = extra.authInfo?.extra?.organizationId as string | undefined;
@@ -712,14 +713,19 @@ const rawHandler = createMcpHandler(
 
 						let extractedText: string;
 
-						if (isText) {
-							extractedText = buf.toString("utf-8");
-						} else {
-							// For PDF/Word: use AI to extract content from the raw bytes
-							// In practice, a proper PDF parser (pdf-parse / mammoth) would be used.
-							// Here we return the base64 content for the agent to process via a tool call.
-							extractedText = `[Binary file: ${attachment.filename}, ${buf.length} bytes, type: ${mime}]\n\nDownload URL for processing: ${downloadUrl}`;
+					if (isText) {
+						extractedText = buf.toString("utf-8");
+					} else if (isPdf) {
+						try {
+							const parsed = await pdfParse(buf);
+							extractedText = parsed.text || "[PDF parsed but no text content found]";
+						} catch (parseErr) {
+							extractedText = `[PDF parse failed: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}]\n\nDownload URL: ${downloadUrl}`;
 						}
+					} else {
+						// Word and other binary formats: return download URL
+						extractedText = `[Binary file: ${attachment.filename}, ${buf.length} bytes, type: ${mime}]\n\nDownload URL for processing: ${downloadUrl}`;
+					}
 
 						return {
 							content: [{
