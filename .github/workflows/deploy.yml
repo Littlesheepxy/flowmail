@@ -87,25 +87,32 @@ jobs:
             # Login to GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Set image tag (repository must be lowercase for Docker)
-            export IMAGE_TAG=${{ github.sha }}
-            export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-
             # Pull latest config files directly from GitHub (replaces scp)
             curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/docker-compose.prod.yml" -o docker-compose.prod.yml
             curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/nginx/flowmail.conf" -o nginx/flowmail.conf
 
-            # Pull latest images (including migrate image)
-            docker compose -f docker-compose.prod.yml pull web docs migrate
+            # Write IMAGE_TAG and GITHUB_REPOSITORY to .deploy.env so docker compose can read them
+            # (shell export alone is not reliable for docker compose variable substitution)
+            REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            echo "IMAGE_TAG=${{ github.sha }}" > .deploy.env
+            echo "GITHUB_REPOSITORY=${REPO_LC}" >> .deploy.env
+            cat .deploy.env
+
+            # Pull latest images using explicit env file so IMAGE_TAG is resolved correctly
+            docker compose --env-file .deploy.env -f docker-compose.prod.yml pull web docs migrate
+
+            # Verify we pulled the right image digest
+            echo "=== web image pulled: ghcr.io/${REPO_LC}:${{ github.sha }} ==="
+            docker inspect "ghcr.io/${REPO_LC}:${{ github.sha }}" --format '{{.Id}}' 2>/dev/null || echo "⚠️ Image not found locally after pull — check GHCR permissions"
 
             # Run database migrations from pre-built image
-            docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate
+            docker compose --env-file .deploy.env -f docker-compose.prod.yml --profile migrate run --rm migrate
 
             # Force recreate all containers so they pick up latest .env and images
-            docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+            docker compose --env-file .deploy.env -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
 
             # Restart nginx so it re-resolves upstream IPs after container recreate
-            docker compose -f docker-compose.prod.yml restart nginx
+            docker compose --env-file .deploy.env -f docker-compose.prod.yml restart nginx
 
             # Cleanup old images
             docker image prune -f
