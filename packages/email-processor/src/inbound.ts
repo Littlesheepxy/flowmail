@@ -141,9 +141,7 @@ export async function processInboundEmail(
 		);
 
 		if (hasAiKey) {
-			const useDynamic = orgCategories.length > 0;
-
-			if (useDynamic) {
+			if (orgCategories.length > 0) {
 				const result = await classifyEmailDynamic(
 					{
 						subject: input.subject,
@@ -163,7 +161,15 @@ export async function processInboundEmail(
 				entityType =
 					SLUG_TO_ENTITY_TYPE[categorySlug] ??
 					(categorySlug === "unknown" ? "FEEDBACK" : "FEEDBACK");
+
+				// If unknown and no category match, fall back to FEEDBACK instead of skipping
+				if (categorySlug === "unknown" && !categoryId) {
+					categorySlug = "feedback";
+					entityType = "FEEDBACK";
+					confidence = 0.5;
+				}
 			} else {
+				// No custom categories — use AI to classify into built-in types
 				const result = await classifyEmailWithMemory(
 					{
 						subject: input.subject,
@@ -174,25 +180,10 @@ export async function processInboundEmail(
 					memoryManager,
 				);
 
-				if (result.type === "UNKNOWN") {
-					return {
-						success: true,
-						duplicate: false,
-						inboundEmailId: inboundEmail.id,
-					};
-				}
-
-				entityType = result.type;
-				confidence = result.confidence;
-				categorySlug = result.type.toLowerCase();
-			}
-
-			if (categorySlug === "unknown" && !categoryId) {
-				return {
-					success: true,
-					duplicate: false,
-					inboundEmailId: inboundEmail.id,
-				};
+				// Default to FEEDBACK instead of dropping the email
+				entityType = result.type === "UNKNOWN" ? "FEEDBACK" : result.type;
+				confidence = result.type === "UNKNOWN" ? 0.5 : result.confidence;
+				categorySlug = entityType.toLowerCase();
 			}
 
 			requiresReview = confidence < 0.7;
