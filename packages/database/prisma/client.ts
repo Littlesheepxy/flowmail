@@ -14,18 +14,16 @@ function createPrismaClient() {
 
 	const adapter = new PrismaPg({
 		connectionString: process.env.DATABASE_URL,
+		max: 10, // limit connection pool to prevent "too many clients" error
 	});
 
 	return new PrismaClient({ adapter });
 }
 
 function getDb() {
-	if (process.env.NODE_ENV !== "production") {
-		// biome-ignore lint/suspicious/noRedeclare: This is a singleton
-		globalThis.prisma ??= createPrismaClient();
-		return globalThis.prisma;
-	}
-	return createPrismaClient();
+	// biome-ignore lint/suspicious/noRedeclare: This is a singleton
+	globalThis.prisma ??= createPrismaClient();
+	return globalThis.prisma;
 }
 
 export const db = new Proxy({} as PrismaClientSingleton, {
