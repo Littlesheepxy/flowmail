@@ -101,8 +101,8 @@ jobs:
             # Run database migrations from pre-built image
             docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate
 
-            # Rolling restart (without migrate profile)
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            # Force recreate all containers so they pick up latest .env and images
+            docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
 
             # Restart nginx so it re-resolves upstream IPs after container recreate
             docker compose -f docker-compose.prod.yml restart nginx
@@ -110,14 +110,17 @@ jobs:
             # Cleanup old images
             docker image prune -f
 
-            # Health check with retry (web container may need startup time)
+            # Health check with retry — use container IP since port is not published to host
             for i in 1 2 3 4 5 6; do
               sleep 10
-              if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-                echo "✅ Web health check passed"
+              WEB_IP=$(docker inspect flowmail-web --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
+              if [ -n "$WEB_IP" ] && curl -sf http://$WEB_IP:3000/api/health > /dev/null 2>&1; then
+                echo "✅ Web health check passed (IP: $WEB_IP)"
                 break
               fi
               echo "⏳ Web not ready yet (attempt $i/6)..."
             done
-            curl -sf http://localhost:3000/api/health || echo "⚠️ Web health check failed after 60s"
-            curl -sf http://localhost:3001 || echo "⚠️ Docs health check failed"
+            WEB_IP=$(docker inspect flowmail-web --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
+            curl -sf http://$WEB_IP:3000/api/health || echo "⚠️ Web health check failed after 60s"
+            DOCS_IP=$(docker inspect flowmail-docs --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
+            curl -sf http://$DOCS_IP:3001 || echo "⚠️ Docs health check failed"
