@@ -1,12 +1,12 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
-import { processInboundEmail } from "@repo/email-processor";
 import {
 	resolveOrganizationByInboundAddress,
-	writeAuditLog,
 	triggerNotification,
+	writeAuditLog,
 } from "@repo/api";
+import { processInboundEmail } from "@repo/email-processor";
 import { logger } from "@repo/logs";
+import { type NextRequest, NextResponse } from "next/server";
+import { Resend } from "resend";
 
 let _resend: Resend | null = null;
 function getResend() {
@@ -63,14 +63,26 @@ export const POST = async (request: NextRequest) => {
 		let htmlBody: string | undefined;
 
 		try {
-			const emailDetail = await getResend().emails.get(data.email_id);
-			if (emailDetail.data) {
-				const detail = emailDetail.data as unknown as Record<
-					string,
-					unknown
-				>;
+			// Inbound emails use a different API endpoint: /emails/receiving/{id}
+			// The regular /emails/{id} endpoint only works for outbound emails
+			const res = await fetch(
+				`https://api.resend.com/emails/receiving/${data.email_id}`,
+				{
+					headers: {
+						Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+					},
+				},
+			);
+			if (res.ok) {
+				const detail = (await res.json()) as Record<string, unknown>;
 				textBody = detail.text as string | undefined;
 				htmlBody = detail.html as string | undefined;
+			} else {
+				logger.warn("Resend inbound email API non-200", {
+					emailId: data.email_id,
+					status: res.status,
+				});
+				textBody = `Subject: ${data.subject}\nFrom: ${data.from}`;
 			}
 		} catch (fetchError) {
 			logger.warn("Failed to fetch inbound email content from Resend", {
@@ -130,7 +142,7 @@ export const POST = async (request: NextRequest) => {
 					aiSummary: result.aiSummary,
 					entityUrl:
 						(process.env.NEXT_PUBLIC_APP_URL ||
-							"https://app.flowmail.ai") + "/app/inbox",
+							"https://app.flowmail.work") + "/app/inbox",
 				});
 			} catch (replyError) {
 				logger.warn("Failed to send inbound processed reply", {
@@ -193,7 +205,7 @@ async function sendInboundProcessedReply(params: {
 		.join("\n");
 
 	await getResend().emails.send({
-		from: process.env.MAIL_FROM || "Flowmail <noreply@flowmail.ai>",
+		from: process.env.MAIL_FROM || "Flowmail <noreply@flowmail.work>",
 		to: [params.toEmail],
 		subject: `Re: ${params.originalSubject}`,
 		text: textContent,
