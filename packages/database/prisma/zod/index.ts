@@ -452,7 +452,7 @@ export type EmailConnectionType = z.infer<typeof EmailConnectionSchema>;
 export const EmailThreadSchema = z.object({
   id: z.string(),
   organizationId: z.string(),
-  connectionId: z.string(),
+  connectionId: z.string().nullish(),
   externalThreadId: z.string(),
   subject: z.string(),
   sender: z.string(),
