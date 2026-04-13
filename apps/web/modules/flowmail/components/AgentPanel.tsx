@@ -784,24 +784,39 @@ export function AgentPanel({
 									}
 								}
 
-								const hasVisibleContent = parts.some(
-									(p) =>
-										(isTextUIPart(p) && p.text) ||
-										(isReasoningUIPart(p) && p.text) ||
-										(isToolOrDynamicToolUIPart(p) &&
-											!completedToolCallIds.has(
-												(p as DynamicToolUIPart).toolCallId,
-											) &&
-											((p as DynamicToolUIPart).state === "input-streaming" ||
-												(p as DynamicToolUIPart).state === "input-available")) ||
-										(isToolOrDynamicToolUIPart(p) &&
-											((p as DynamicToolUIPart).state === "output-available" ||
-												(p as DynamicToolUIPart).state === "output-error")),
-								);
+							const hasVisibleContent = parts.some(
+								(p) =>
+									(isTextUIPart(p) && p.text) ||
+									(isReasoningUIPart(p) && p.text) ||
+									(isToolOrDynamicToolUIPart(p) &&
+										!completedToolCallIds.has(
+											(p as DynamicToolUIPart).toolCallId,
+										) &&
+										((p as DynamicToolUIPart).state === "input-streaming" ||
+											(p as DynamicToolUIPart).state === "input-available")) ||
+									(isToolOrDynamicToolUIPart(p) &&
+										((p as DynamicToolUIPart).state === "output-available" ||
+											(p as DynamicToolUIPart).state === "output-error")),
+							);
 
-								if (!hasVisibleContent) {
-									return null;
+							// 当 assistant message 暂无可见内容但正在 loading，显示思考中 skeleton
+							const isLastMessage = msg === (messages as UIMessage[]).at(-1);
+							if (!hasVisibleContent) {
+								if (isLoading && isLastMessage) {
+									return (
+										<div
+											key={msg.id}
+											className="flex justify-start"
+										>
+											<div className="flex items-center gap-2 text-muted-foreground px-1 py-1">
+												<Spinner className="size-3.5" />
+												<span className="text-xs">Agent 正在处理...</span>
+											</div>
+										</div>
+									);
 								}
+								return null;
+							}
 
 								return (
 									<div
@@ -957,16 +972,15 @@ export function AgentPanel({
 							return null;
 						})}
 
-						{isLoading &&
-							(messages as UIMessage[]).at(-1)?.role !==
-								"assistant" && (
-								<div className="flex items-center gap-2 text-muted-foreground px-1">
-									<Spinner className="size-3.5" />
-									<span className="text-xs">
-										Agent 正在思考...
-									</span>
-								</div>
-							)}
+					{isLoading &&
+						(messages as UIMessage[]).at(-1)?.role === "user" && (
+							<div className="flex items-center gap-2 text-muted-foreground px-1">
+								<Spinner className="size-3.5" />
+								<span className="text-xs">
+									Agent 正在思考...
+								</span>
+							</div>
+						)}
 
 						{hasError && (
 							<div className="mx-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
