@@ -388,6 +388,26 @@ function MarkdownContent({ content }: { content: string }) {
 				h3: ({ children }) => (
 					<h3 className="text-sm font-semibold mb-1">{children}</h3>
 				),
+				table: ({ children }) => (
+					<div className="my-2 overflow-x-auto rounded-lg border">
+						<table className="w-full text-xs">{children}</table>
+					</div>
+				),
+				thead: ({ children }) => (
+					<thead className="bg-muted/50 border-b">{children}</thead>
+				),
+				tbody: ({ children }) => <tbody>{children}</tbody>,
+				tr: ({ children }) => (
+					<tr className="border-b last:border-b-0">{children}</tr>
+				),
+				th: ({ children }) => (
+					<th className="px-2.5 py-1.5 text-left font-semibold text-muted-foreground whitespace-nowrap">
+						{children}
+					</th>
+				),
+				td: ({ children }) => (
+					<td className="px-2.5 py-1.5 align-top">{children}</td>
+				),
 				blockquote: ({ children }) => (
 					<blockquote className="border-l-2 border-current/30 pl-3 italic opacity-80 my-2">
 						{children}
