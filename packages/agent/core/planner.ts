@@ -183,8 +183,12 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note
 分析：predict_risk · get_timeline_diff · batch_reclassify
 附件：list_attachments · read_attachment
+邮件正文：read_email_body（当 aiSummary 为空时先读正文）
+AI 重分析：re_enrich_entity（当 aiSummary 为空或分类不准时，重新运行 AI 分类+摘要）
 邮件：search_emails · list_connections · sync_emails · send_email
 收件箱：get_inbox_summary · list_entities · list_pending_approvals
+
+**严格限制：只能调用上面列出的工具。不要调用任何不存在的工具名（如 AskUserQuestion 等）。如果需要向用户提问，直接用文本输出你的问题即可。**
 
 ---
 
