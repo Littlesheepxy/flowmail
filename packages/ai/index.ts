@@ -20,10 +20,15 @@ function detectProvider(): ProviderConfig {
 	const anthropicToken = process.env.ANTHROPIC_AUTH_TOKEN ?? process.env.ANTHROPIC_API_KEY;
 	const anthropicBase = process.env.ANTHROPIC_BASE_URL;
 	if (anthropicToken) {
+		// createAnthropic 的 baseURL 需要包含 /v1，因为 SDK 会在后面追加 /messages
+		// 默认值是 https://api.anthropic.com/v1，自定义 proxy 也需要同样格式
+		const rawBase = anthropicBase ?? "https://api.anthropic.com/v1";
+		// 确保 baseURL 以 /v1 结尾（不含尾部斜杠）
+		const normalizedBase = rawBase.replace(/\/+$/, "");
+		const baseURL = normalizedBase.endsWith("/v1") ? normalizedBase : `${normalizedBase}/v1`;
 		return {
 			type: "anthropic",
-			// createAnthropic 的 baseURL 不需要 /v1 后缀，SDK 会自动拼接
-			baseURL: (anthropicBase ?? "https://api.anthropic.com").replace(/\/v1\/?$/, ""),
+			baseURL,
 			apiKey: anthropicToken,
 		};
 	}
