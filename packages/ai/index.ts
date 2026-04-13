@@ -91,6 +91,27 @@ function getProvider() {
 							}
 						}
 
+						// 修复 system role 在 messages 里 → 提取为顶层 system 字段
+						// proxy 遵循 Anthropic Messages API，不接受 messages 里的 system role
+						if (Array.isArray(body.messages)) {
+							const systemMessages = body.messages.filter((m: { role: string }) => m.role === "system");
+							const nonSystemMessages = body.messages.filter((m: { role: string }) => m.role !== "system");
+							if (systemMessages.length > 0) {
+								const systemText = systemMessages
+									.map((m: { content: unknown }) =>
+										typeof m.content === "string"
+											? m.content
+											: Array.isArray(m.content)
+												? m.content.filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("\n")
+												: "",
+									)
+									.join("\n");
+								body.system = systemText;
+								body.messages = nonSystemMessages;
+								changed = true;
+							}
+						}
+
 						if (changed) {
 							finalInit = { ...init, body: JSON.stringify(body) };
 						}
