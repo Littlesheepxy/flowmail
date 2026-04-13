@@ -61,6 +61,38 @@ function getProvider() {
 			_anthropicProvider = createAnthropic({
 				baseURL: config.baseURL,
 				apiKey: config.apiKey,
+				// 修复 proxy 的 SSE index 偏移问题：
+				// 某些 proxy 的 content_block_start/delta 从 index:1 开始而非 index:0，
+				// AI SDK 解析时找不到 slot 导致输出为空。通过 fetch wrapper 在响应流里重写。
+				fetch: async (url, init) => {
+					const response = await fetch(url, init);
+					if (!response.body || !response.headers.get("content-type")?.includes("text/event-stream")) {
+						return response;
+					}
+					const decoder = new TextDecoder();
+					const encoder = new TextEncoder();
+					// 记录每个 index 第一次出现时的偏移量，归一化为从 0 开始
+					const indexMap = new Map<number, number>();
+					let nextNormalized = 0;
+					const transformStream = new TransformStream({
+						transform(chunk, controller) {
+							const text = decoder.decode(chunk, { stream: true });
+							const fixed = text.replace(/"index"\s*:\s*(\d+)/g, (_, n) => {
+								const orig = Number(n);
+								if (!indexMap.has(orig)) {
+									indexMap.set(orig, nextNormalized++);
+								}
+								return `"index":${indexMap.get(orig)}`;
+							});
+							controller.enqueue(encoder.encode(fixed));
+						},
+					});
+					return new Response(response.body.pipeThrough(transformStream), {
+						status: response.status,
+						statusText: response.statusText,
+						headers: response.headers,
+					});
+				},
 			});
 		}
 		return { type: "anthropic" as const, provider: _anthropicProvider };
