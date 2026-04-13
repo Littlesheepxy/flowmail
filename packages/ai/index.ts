@@ -61,6 +61,23 @@ function getProvider() {
 		_openaiProvider = createOpenAI({
 			baseURL: config.baseURL,
 			apiKey: config.apiKey,
+			// 某些 OpenAI 兼容代理（如 New API）不接受字符串格式的 tool_choice，
+			// 需要通过 fetch wrapper 将 "auto"/"none"/"required" 转为对象格式
+			fetch: async (url, init) => {
+				let finalInit = init;
+				if (init?.body && typeof init.body === "string") {
+					try {
+						const body = JSON.parse(init.body);
+						if (typeof body.tool_choice === "string") {
+							body.tool_choice = { type: body.tool_choice };
+							finalInit = { ...init, body: JSON.stringify(body) };
+						}
+					} catch {
+						// JSON parse 失败时原样发送
+					}
+				}
+				return fetch(url, finalInit);
+			},
 		});
 	}
 	return { type: "openai-compat" as const, provider: _openaiProvider };
