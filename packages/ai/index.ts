@@ -112,6 +112,12 @@ function getProvider() {
 							}
 						}
 
+						// 确保 max_tokens 存在（部分 proxy 要求必填）
+						if (body.max_tokens == null) {
+							body.max_tokens = 4096;
+							changed = true;
+						}
+
 						if (changed) {
 							finalInit = { ...init, body: JSON.stringify(body) };
 						}
