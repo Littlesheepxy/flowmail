@@ -22,9 +22,9 @@ services:
     container_name: flowmail-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
+    env_file: .env
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
     healthcheck:
