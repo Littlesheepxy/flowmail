@@ -9,7 +9,14 @@ import {
 	type UIMessage,
 	type ToolSet,
 } from "@repo/ai";
-import { getConnector, processEmail } from "@repo/email-processor";
+import {
+	getConnector,
+	processEmail,
+	classifyEmailWithMemory,
+	extractApprovalFields,
+	extractReportFields,
+	summarizeThread,
+} from "@repo/email-processor";
 import {
 	ToolRegistry,
 	MemoryManager,
@@ -39,7 +46,59 @@ function createAgentToolRegistry() {
 		});
 
 	registry.registerBuiltin(
-		createEntityTools({ triggerNotification: notify }),
+		createEntityTools({
+			triggerNotification: notify,
+			reEnrich: async (entityId: string) => {
+				const { db } = await import("@repo/database");
+				const entity = await db.flowEntity.findUnique({
+					where: { id: entityId },
+					include: {
+						threads: {
+							select: { bodyText: true, subject: true, sender: true },
+							take: 1,
+							orderBy: { receivedAt: "desc" },
+						},
+					},
+				});
+				if (!entity) return { success: false, entityType: "", confidence: 0, summary: "", extractedFieldCount: 0, error: "Entity not found" };
+				const thread = entity.threads[0];
+				if (!thread?.bodyText) return { success: false, entityType: "", confidence: 0, summary: "", extractedFieldCount: 0, error: "No email body" };
+				const content = thread.bodyText;
+
+				const mm = new MemoryManager();
+				const classification = await classifyEmailWithMemory(
+					{ subject: thread.subject, sender: thread.sender, content },
+					entity.organizationId,
+					mm,
+				);
+				const entityType = classification.type === "UNKNOWN" ? "FEEDBACK" : classification.type;
+				let extractedFields: Record<string, unknown> = {};
+				if (entityType === "APPROVAL") extractedFields = await extractApprovalFields(content);
+				else if (entityType === "REPORT") extractedFields = await extractReportFields(content);
+
+				const summary = await summarizeThread(content);
+
+				await db.flowEntity.update({
+					where: { id: entityId },
+					data: {
+						type: entityType as never,
+						extractedFields: JSON.stringify(extractedFields),
+						aiSummary: summary,
+						aiConfidence: classification.confidence,
+						requiresReview: classification.confidence < 0.7,
+					},
+				});
+				await db.timelineEvent.create({
+					data: {
+						entityId,
+						type: "ai_summary",
+						content: `AI 重新分析完成：${entityType}（置信度 ${Math.round(classification.confidence * 100)}%）${summary ? `\n\n${summary}` : ""}`,
+						metadata: JSON.stringify({ entityType, confidence: classification.confidence, trigger: "agent_re_enrich" }),
+					},
+				});
+				return { success: true, entityType, confidence: classification.confidence, summary: summary || "(empty)", extractedFieldCount: Object.keys(extractedFields).length };
+			},
+		}),
 	);
 
 	registry.registerBuiltin(createAnalysisTools());
