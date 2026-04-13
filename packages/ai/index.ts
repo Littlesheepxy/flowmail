@@ -72,30 +72,36 @@ function getProvider() {
 				fetch: async (url, init) => {
 					const response = await fetch(url, init);
 					const contentType = response.headers.get("content-type") ?? "";
-					console.log("[AI-FETCH] url:", String(url).slice(0, 80), "status:", response.status, "ct:", contentType.slice(0, 40));
 					if (!response.body || !contentType.includes("text/event-stream")) {
 						return response;
 					}
-					console.log("[AI-FETCH] applying SSE index normalization");
+					// 修复 proxy SSE index 偏移：只处理 content_block 事件中的 index
+					// proxy 的 content_block_start/delta index 从 1 开始，SDK 期望从 0 开始
 					const decoder = new TextDecoder();
 					const encoder = new TextEncoder();
-					// 记录每个 index 第一次出现时的偏移量，归一化为从 0 开始
-					const indexMap = new Map<number, number>();
-					let nextNormalized = 0;
+					let buffer = "";
 					const transformStream = new TransformStream({
 						transform(chunk, controller) {
-							const text = decoder.decode(chunk, { stream: true });
-							const fixed = text.replace(/"index"\s*:\s*(\d+)/g, (_, n) => {
-								const orig = Number(n);
-								if (!indexMap.has(orig)) {
-									indexMap.set(orig, nextNormalized++);
-									if (orig !== 0) {
-										console.log("[AI-FETCH] normalized index:", orig, "->", indexMap.get(orig));
-									}
+							buffer += decoder.decode(chunk, { stream: true });
+							// 按 SSE 事件分割处理（双换行分隔）
+							const parts = buffer.split("\n\n");
+							buffer = parts.pop() ?? "";
+							for (const part of parts) {
+								let output = part;
+								// 只对 content_block 事件修正 index
+								if (part.includes("content_block_start") || part.includes("content_block_delta") || part.includes("content_block_stop")) {
+									output = part.replace(/"index"\s*:\s*(\d+)/, (_, n) => {
+										const fixed = Math.max(0, Number(n) - 1);
+										return `"index":${fixed}`;
+									});
 								}
-								return `"index":${indexMap.get(orig)}`;
-							});
-							controller.enqueue(encoder.encode(fixed));
+								controller.enqueue(encoder.encode(output + "\n\n"));
+							}
+						},
+						flush(controller) {
+							if (buffer.trim()) {
+								controller.enqueue(encoder.encode(buffer));
+							}
 						},
 					});
 					return new Response(response.body.pipeThrough(transformStream), {

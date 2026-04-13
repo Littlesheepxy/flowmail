@@ -56,15 +56,17 @@ export function createEntityTools(deps: {
 
 				const extractedFieldCount = Object.keys(extractedFields).length;
 
+				const needsReEnrich = !entity.aiSummary && bodyLength > 100;
+
 				return {
 					id: entity.id,
 					title: entity.title,
 					type: entity.type,
 					status: entity.status,
-					aiSummary: entity.aiSummary,
+					aiSummary: entity.aiSummary || (needsReEnrich ? "[AI 摘要为空，建议调用 re_enrich_entity 重新分析]" : ""),
 					extractedFields,
 					aiConfidence: entity.aiConfidence,
-					// 信息充分性信号
+					needsReEnrich,
 					attachmentCount: allAttachments.length,
 					attachments: allAttachments.map((a) => ({
 						id: a.id,
@@ -83,6 +85,128 @@ export function createEntityTools(deps: {
 						content: e.content,
 						createdAt: e.createdAt,
 					})),
+				};
+			},
+		}),
+
+		read_email_body: tool({
+			description:
+				"读取事项关联的邮件原始正文。当 aiSummary 为空、需要分析邮件内容、或用户要求查看正文时调用。返回截断到 4000 字符的纯文本。",
+			inputSchema: z.object({
+				entityId: z.string().describe("Entity ID"),
+			}),
+			execute: async (input: { entityId: string }) => {
+				const threads = await db.emailThread.findMany({
+					where: { entityId: input.entityId },
+					select: {
+						id: true,
+						subject: true,
+						sender: true,
+						receivedAt: true,
+						bodyText: true,
+					},
+					orderBy: { receivedAt: "desc" },
+					take: 3,
+				});
+				if (threads.length === 0) {
+					return { error: "No email threads found for this entity" };
+				}
+				return {
+					threadCount: threads.length,
+					emails: threads.map((t) => ({
+						subject: t.subject,
+						sender: t.sender,
+						receivedAt: t.receivedAt,
+						body: (t.bodyText ?? "").slice(0, 4000),
+						truncated: (t.bodyText ?? "").length > 4000,
+						fullLength: (t.bodyText ?? "").length,
+					})),
+				};
+			},
+		}),
+
+		re_enrich_entity: tool({
+			description:
+				"重新触发 AI 分类、字段抽取和摘要生成。当事项的 aiSummary 为空、分类为 FEEDBACK 但看起来应该是其他类型、或 aiConfidence 很低时调用。",
+			inputSchema: z.object({
+				entityId: z.string().describe("Entity ID"),
+			}),
+			execute: async (input: { entityId: string }) => {
+				const entity = await db.flowEntity.findUnique({
+					where: { id: input.entityId },
+					include: {
+						threads: {
+							select: { bodyText: true, subject: true, sender: true },
+							take: 1,
+							orderBy: { receivedAt: "desc" },
+						},
+					},
+				});
+				if (!entity) {
+					return { error: "Entity not found" };
+				}
+				const thread = entity.threads[0];
+				if (!thread) {
+					return { error: "No email thread found" };
+				}
+				const content = thread.bodyText ?? "";
+				if (!content) {
+					return { error: "Email body is empty, cannot re-enrich" };
+				}
+
+				// 动态导入避免循环依赖
+				const { classifyEmailWithMemory } = await import("@repo/email-processor");
+				const { extractApprovalFields, extractReportFields } = await import("@repo/email-processor");
+				const { summarizeThread } = await import("@repo/email-processor");
+				const { MemoryManager } = await import("@repo/agent");
+
+				const mm = new MemoryManager();
+				const classification = await classifyEmailWithMemory(
+					{ subject: thread.subject, sender: thread.sender, content },
+					entity.organizationId,
+					mm,
+				);
+
+				const entityType = classification.type === "UNKNOWN" ? "FEEDBACK" : classification.type;
+				let extractedFields: Record<string, unknown> = {};
+				if (entityType === "APPROVAL") {
+					extractedFields = await extractApprovalFields(content);
+				} else if (entityType === "REPORT") {
+					extractedFields = await extractReportFields(content);
+				}
+
+				const summary = await summarizeThread(content);
+
+				await db.flowEntity.update({
+					where: { id: input.entityId },
+					data: {
+						type: entityType as never,
+						extractedFields: JSON.stringify(extractedFields),
+						aiSummary: summary,
+						aiConfidence: classification.confidence,
+						requiresReview: classification.confidence < 0.7,
+					},
+				});
+
+				await db.timelineEvent.create({
+					data: {
+						entityId: input.entityId,
+						type: "ai_summary",
+						content: `AI 重新分析完成：${entityType}（置信度 ${Math.round(classification.confidence * 100)}%）${summary ? `\n\n${summary}` : ""}`,
+						metadata: JSON.stringify({
+							entityType,
+							confidence: classification.confidence,
+							trigger: "agent_re_enrich",
+						}),
+					},
+				});
+
+				return {
+					success: true,
+					entityType,
+					confidence: classification.confidence,
+					summary: summary || "(empty)",
+					extractedFieldCount: Object.keys(extractedFields).length,
 				};
 			},
 		}),

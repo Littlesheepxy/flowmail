@@ -278,6 +278,8 @@ function toolResultToBlock(
 
 const TOOL_LABELS: Record<string, string> = {
 	get_entity: "正在获取事项详情...",
+	read_email_body: "正在读取邮件正文...",
+	re_enrich_entity: "正在重新 AI 分析...",
 	approve_entity: "正在执行批准...",
 	reject_entity: "正在执行拒绝...",
 	predict_risk: "正在分析风险...",
