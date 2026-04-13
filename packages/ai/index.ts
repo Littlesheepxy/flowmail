@@ -61,15 +61,37 @@ function getProvider() {
 		_openaiProvider = createOpenAI({
 			baseURL: config.baseURL,
 			apiKey: config.apiKey,
-			// 某些 OpenAI 兼容代理（如 New API）不接受字符串格式的 tool_choice，
-			// 需要通过 fetch wrapper 将 "auto"/"none"/"required" 转为对象格式
+			// Proxy 兼容 fetch wrapper：修复两类格式问题
+			// 1. tool_choice: "auto" → {"type": "auto"}（New API 要求对象格式）
+			// 2. tools: [{type:"function", function:{...}}] → [{name:..., parameters:...}]（扁平格式）
 			fetch: async (url, init) => {
 				let finalInit = init;
 				if (init?.body && typeof init.body === "string") {
 					try {
 						const body = JSON.parse(init.body);
+						let changed = false;
+
+						// 修复 tool_choice 字符串 → 对象
 						if (typeof body.tool_choice === "string") {
 							body.tool_choice = { type: body.tool_choice };
+							changed = true;
+						}
+
+						// 修复 tools 嵌套格式 → 扁平格式
+						if (Array.isArray(body.tools) && body.tools.length > 0) {
+							const first = body.tools[0];
+							if (first?.type === "function" && first?.function) {
+								body.tools = body.tools.map((t: { type: string; function: { name: string; description?: string; parameters?: unknown; strict?: boolean } }) => ({
+									name: t.function.name,
+									description: t.function.description,
+									parameters: t.function.parameters,
+									...(t.function.strict != null ? { strict: t.function.strict } : {}),
+								}));
+								changed = true;
+							}
+						}
+
+						if (changed) {
 							finalInit = { ...init, body: JSON.stringify(body) };
 						}
 					} catch {
