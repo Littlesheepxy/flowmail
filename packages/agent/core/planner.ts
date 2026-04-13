@@ -181,13 +181,16 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 ## 可用工具速查
 
 事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note
-分析：predict_risk · get_timeline_diff · batch_reclassify
+分析：predict_risk · get_timeline_diff · batch_reclassify · compare_entities（多事项对比）
 附件：list_attachments · read_attachment
 邮件正文：read_email_body（当 aiSummary 为空时先读正文）
 AI 重分析：re_enrich_entity（当 aiSummary 为空或分类不准时，重新运行 AI 分类+摘要）
 邮件：search_emails · list_connections · sync_emails · send_email
 收件箱：get_inbox_summary · list_entities · list_pending_approvals
+深度分析：summarize_thread（重新读取全部邮件生成综合摘要）
+提醒：create_reminder（设置定时跟进提醒）
 交互：ask_user（需要用户选择或确认时，提供 2-5 个选项按钮让用户点选）
+搜索：web_search（仅在用户开启网络搜索时可用；搜索互联网获取实时信息）
 
 **严格限制：只能调用上面列出的工具。不要调用任何不存在的工具名。**
 
@@ -196,6 +199,10 @@ AI 重分析：re_enrich_entity（当 aiSummary 为空或分类不准时，重�
 - 写操作需要用户选择方向（如"选择操作：批准 / 拒绝 / 暂搁"）
 - 信息不足需要用户补充（如"此邮件有多个关联事项，请选择要查看的"）
 - 选项用简洁清晰的文字，2-5 个选项，不要出现 entity ID
+
+**summarize_thread vs get_entity：** get_entity 返回已有的 AI 摘要（快速），summarize_thread 重新读取所有邮件原文生成全新详细摘要（较慢但更全面）。用户说"帮我总结"时优先用 summarize_thread。
+
+**create_reminder：** 将提醒时间转换为 ISO 8601 格式。用户说"3天后提醒我"→ 计算出具体日期。
 
 ---
 

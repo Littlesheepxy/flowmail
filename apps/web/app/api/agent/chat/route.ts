@@ -26,6 +26,10 @@ import {
 	createEmailTools,
 	createInboxTools,
 	createAttachmentTools,
+	createWebSearchTool,
+	createSummarizeThreadTool,
+	createCompareEntitiesTool,
+	createReminderTool,
 	type PageContext,
 } from "@repo/agent";
 
@@ -33,7 +37,7 @@ export const maxDuration = 60;
 
 const memoryManager = new MemoryManager();
 
-function createAgentToolRegistry() {
+function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 	const registry = new ToolRegistry();
 
 	const notify = (p: { organizationId: string; type: string; entityId: string; title: string; body: string }) =>
@@ -60,9 +64,13 @@ function createAgentToolRegistry() {
 							},
 						},
 					});
-					if (!entity) return { success: false, entityType: "", confidence: 0, summary: "", extractedFieldCount: 0, error: "Entity not found" };
+					if (!entity) {
+						return { success: false, entityType: "", confidence: 0, summary: "", extractedFieldCount: 0, error: "Entity not found" };
+					}
 					const thread = entity.threads[0];
-					if (!thread?.bodyText) return { success: false, entityType: "", confidence: 0, summary: "", extractedFieldCount: 0, error: "No email body" };
+					if (!thread?.bodyText) {
+						return { success: false, entityType: "", confidence: 0, summary: "", extractedFieldCount: 0, error: "No email body" };
+					}
 					const content = thread.bodyText;
 
 					const mm = new MemoryManager();
@@ -121,10 +129,16 @@ function createAgentToolRegistry() {
 	registry.registerBuiltin(createInboxTools());
 	registry.registerBuiltin(createAttachmentTools());
 
+	registry.registerBuiltin(createSummarizeThreadTool());
+	registry.registerBuiltin(createCompareEntitiesTool());
+	registry.registerBuiltin(createReminderTool());
+
+	if (options?.webSearchEnabled) {
+		registry.registerBuiltin(createWebSearchTool());
+	}
+
 	return registry;
 }
-
-const registry = createAgentToolRegistry();
 
 export async function POST(req: Request) {
 	const ip = getClientIp(req);
@@ -153,6 +167,7 @@ export async function POST(req: Request) {
 		pageContext?: PageContext;
 		entityId?: string;
 		organizationId?: string;
+		webSearchEnabled?: boolean;
 	};
 	try {
 		body = await req.json();
@@ -163,7 +178,9 @@ export async function POST(req: Request) {
 		});
 	}
 
-	const { messages, pageContext } = body;
+	const { messages, pageContext, webSearchEnabled } = body;
+
+	const registry = createAgentToolRegistry({ webSearchEnabled });
 
 	const ctx: PageContext = pageContext ?? {
 		entityId: body.entityId,

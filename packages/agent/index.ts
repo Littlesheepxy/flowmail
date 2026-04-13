@@ -8,6 +8,12 @@ export { createAnalysisTools } from "./tools/analysis-tools";
 export { createEmailTools } from "./tools/email-tools";
 export { createInboxTools } from "./tools/inbox-tools";
 export { createAttachmentTools } from "./tools/attachment-tools";
+export {
+	createWebSearchTool,
+	createSummarizeThreadTool,
+	createCompareEntitiesTool,
+	createReminderTool,
+} from "./tools/advanced-tools";
 
 export {
 	MEMORY_CATEGORIES,

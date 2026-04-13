@@ -21,6 +21,7 @@ import {
 	BrainIcon,
 	CheckCircle2Icon,
 	ChevronDownIcon,
+	GlobeIcon,
 	RefreshCwIcon,
 	SparklesIcon,
 	XIcon,
@@ -293,6 +294,10 @@ const TOOL_LABELS: Record<string, string> = {
 	read_email_body: "正在读取邮件正文...",
 	re_enrich_entity: "正在重新 AI 分析...",
 	ask_user: "正在准备问题...",
+	web_search: "正在搜索网络...",
+	summarize_thread: "正在综合摘要...",
+	compare_entities: "正在对比分析...",
+	create_reminder: "正在设置提醒...",
 	approve_entity: "正在执行批准...",
 	reject_entity: "正在执行拒绝...",
 	predict_risk: "正在分析风险...",
@@ -495,6 +500,7 @@ export function AgentPanel({
 	const [input, setInput] = useState(initialMessage ?? "");
 	const initialConsumedRef = useRef(false);
 	const [scope, setScope] = useState<AgentScope>("entity");
+	const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 	const pathname = usePathname();
 
 	const effectiveEntityId = scope === "all" ? null : entityId;
@@ -545,11 +551,17 @@ export function AgentPanel({
 	const pageContextRef = useRef(pageContext);
 	pageContextRef.current = pageContext;
 
+	const webSearchRef = useRef(webSearchEnabled);
+	webSearchRef.current = webSearchEnabled;
+
 	const transport = useMemo(
 		() =>
 			new DefaultChatTransport({
 				api: "/api/agent/chat",
-				body: () => ({ pageContext: pageContextRef.current }),
+				body: () => ({
+					pageContext: pageContextRef.current,
+					webSearchEnabled: webSearchRef.current,
+				}),
 			}),
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[],
@@ -1057,6 +1069,25 @@ export function AgentPanel({
 						className="px-3 pb-3 pt-1 shrink-0"
 					>
 						<div className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2 agent-input-focus transition-all">
+							<button
+								type="button"
+								onClick={() =>
+									setWebSearchEnabled((v) => !v)
+								}
+								className={cn(
+									"flex items-center justify-center size-7 rounded-full transition-all shrink-0",
+									webSearchEnabled
+										? "bg-primary text-primary-foreground"
+										: "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted",
+								)}
+								title={
+									webSearchEnabled
+										? "网络搜索已开启"
+										: "开启网络搜索"
+								}
+							>
+								<GlobeIcon className="size-3.5" />
+							</button>
 							<input
 								type="text"
 								value={input}
@@ -1081,6 +1112,11 @@ export function AgentPanel({
 								)}
 							</button>
 						</div>
+						{webSearchEnabled && (
+							<p className="text-[10px] text-muted-foreground/60 mt-1 ml-1">
+								🌐 网络搜索已开启 — Agent 可搜索互联网获取实时信息
+							</p>
+						)}
 					</form>
 				</div>
 			</div>
