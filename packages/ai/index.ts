@@ -66,9 +66,12 @@ function getProvider() {
 				// AI SDK 解析时找不到 slot 导致输出为空。通过 fetch wrapper 在响应流里重写。
 				fetch: async (url, init) => {
 					const response = await fetch(url, init);
-					if (!response.body || !response.headers.get("content-type")?.includes("text/event-stream")) {
+					const contentType = response.headers.get("content-type") ?? "";
+					console.log("[AI-FETCH] url:", String(url).slice(0, 80), "status:", response.status, "ct:", contentType.slice(0, 40));
+					if (!response.body || !contentType.includes("text/event-stream")) {
 						return response;
 					}
+					console.log("[AI-FETCH] applying SSE index normalization");
 					const decoder = new TextDecoder();
 					const encoder = new TextEncoder();
 					// 记录每个 index 第一次出现时的偏移量，归一化为从 0 开始
@@ -81,6 +84,9 @@ function getProvider() {
 								const orig = Number(n);
 								if (!indexMap.has(orig)) {
 									indexMap.set(orig, nextNormalized++);
+									if (orig !== 0) {
+										console.log("[AI-FETCH] normalized index:", orig, "->", indexMap.get(orig));
+									}
 								}
 								return `"index":${indexMap.get(orig)}`;
 							});
@@ -133,17 +139,51 @@ export function getReasoningModel() {
 	return createModel("AI_REASONING_MODEL", "claude-opus-4-6", "o3-mini");
 }
 
-// 向后兼容的导出（作为 getter，确保运行时初始化）
+// 向后兼容的 model 实例导出
+// 这些不能在模块顶层初始化（env 还没就绪），所以用 getter 形式暴露
+// 调用方应改用 getTextModel() 等函数；这里保留兼容，实际会在第一次属性访问时懒加载
+let _fastModelInstance: ReturnType<typeof createModel> | null = null;
+let _textModelInstance: ReturnType<typeof createModel> | null = null;
+let _reasoningModelInstance: ReturnType<typeof createModel> | null = null;
+
+function getLazyFastModel() {
+	if (!_fastModelInstance) _fastModelInstance = getFastModel();
+	return _fastModelInstance;
+}
+function getLazyTextModel() {
+	if (!_textModelInstance) _textModelInstance = getTextModel();
+	return _textModelInstance;
+}
+function getLazyReasoningModel() {
+	if (!_reasoningModelInstance) _reasoningModelInstance = getReasoningModel();
+	return _reasoningModelInstance;
+}
+
 export const fastModel = new Proxy({} as ReturnType<typeof createModel>, {
-	get(_, prop) { return Reflect.get(getFastModel(), prop, getFastModel()); },
+	get(_, prop) {
+		const m = getLazyFastModel();
+		const val = Reflect.get(m, prop, m);
+		return typeof val === "function" ? (val as Function).bind(m) : val;
+	},
+	has(_, prop) { return prop in getLazyFastModel(); },
 });
 
 export const textModel = new Proxy({} as ReturnType<typeof createModel>, {
-	get(_, prop) { return Reflect.get(getTextModel(), prop, getTextModel()); },
+	get(_, prop) {
+		const m = getLazyTextModel();
+		const val = Reflect.get(m, prop, m);
+		return typeof val === "function" ? (val as Function).bind(m) : val;
+	},
+	has(_, prop) { return prop in getLazyTextModel(); },
 });
 
 export const reasoningModel = new Proxy({} as ReturnType<typeof createModel>, {
-	get(_, prop) { return Reflect.get(getReasoningModel(), prop, getReasoningModel()); },
+	get(_, prop) {
+		const m = getLazyReasoningModel();
+		const val = Reflect.get(m, prop, m);
+		return typeof val === "function" ? (val as Function).bind(m) : val;
+	},
+	has(_, prop) { return prop in getLazyReasoningModel(); },
 });
 
 export * from "ai";
