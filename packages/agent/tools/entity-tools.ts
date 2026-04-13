@@ -147,6 +147,38 @@ export function createEntityTools(deps: {
 			},
 		}),
 
+		ask_user: tool({
+			description:
+				"向用户提问并提供可选选项。当 Agent 需要用户确认、选择分类、决定下一步操作等场景使用。必须提供 2-5 个选项让用户点选。",
+			inputSchema: z.object({
+				question: z.string().describe("要问用户的问题"),
+				options: z
+					.array(
+						z.object({
+							label: z.string().describe("选项显示文本"),
+							value: z.string().describe("选项值，用户选择后会作为回复发送"),
+						}),
+					)
+					.min(2)
+					.max(5)
+					.describe("供用户选择的选项列表"),
+				context: z.string().optional().describe("补充说明，帮助用户理解为什么需要选择"),
+			}),
+			execute: async (input: {
+				question: string;
+				options: Array<{ label: string; value: string }>;
+				context?: string;
+			}) => {
+				return {
+					type: "ask_user" as const,
+					question: input.question,
+					options: input.options,
+					context: input.context,
+					awaiting: true,
+				};
+			},
+		}),
+
 		approve_entity: tool({
 			description: "批准待审批的请求。仅在用户明确要求批准时调用。",
 			inputSchema: z.object({

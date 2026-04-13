@@ -129,6 +129,13 @@ export interface EmailSearchCardData {
 	totalCount: number;
 }
 
+export interface AskUserCardData {
+	question: string;
+	options: Array<{ label: string; value: string }>;
+	context?: string;
+	awaiting: boolean;
+}
+
 // ── UI 卡片联合类型（工具结果 → 渲染组件） ───────────────
 
 export type AgentUICard =
@@ -142,7 +149,8 @@ export type AgentUICard =
 	| { type: "connection_list";  data: ConnectionListCardData }
 	| { type: "sync_result";      data: SyncResultCardData }
 	| { type: "send_result";      data: SendResultCardData }
-	| { type: "email_search";     data: EmailSearchCardData };
+	| { type: "email_search";     data: EmailSearchCardData }
+	| { type: "ask_user";         data: AskUserCardData };
 
 // ── 页面上下文（前端发送给后端的当前页面状态） ────────────
 

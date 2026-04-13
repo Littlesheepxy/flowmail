@@ -271,6 +271,18 @@ function toolResultToBlock(
 		};
 	}
 
+	if (toolName === "ask_user" && result.question) {
+		return {
+			type: "ask_user",
+			data: {
+				question: String(result.question),
+				options: (result.options as Array<{ label: string; value: string }>) ?? [],
+				context: result.context ? String(result.context) : undefined,
+				awaiting: Boolean(result.awaiting),
+			},
+		};
+	}
+
 	return null;
 }
 
@@ -280,6 +292,7 @@ const TOOL_LABELS: Record<string, string> = {
 	get_entity: "正在获取事项详情...",
 	read_email_body: "正在读取邮件正文...",
 	re_enrich_entity: "正在重新 AI 分析...",
+	ask_user: "正在准备问题...",
 	approve_entity: "正在执行批准...",
 	reject_entity: "正在执行拒绝...",
 	predict_risk: "正在分析风险...",
@@ -953,9 +966,8 @@ export function AgentPanel({
 																	className="animate-in fade-in slide-in-from-bottom-2 duration-300"
 																>
 																	<AgentCard
-																		card={
-																			card
-																		}
+																		card={card}
+																		onSendMessage={(text) => sendMessage({ text })}
 																	/>
 																</div>
 															);

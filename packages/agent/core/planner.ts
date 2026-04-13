@@ -187,8 +187,15 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 AI 重分析：re_enrich_entity（当 aiSummary 为空或分类不准时，重新运行 AI 分类+摘要）
 邮件：search_emails · list_connections · sync_emails · send_email
 收件箱：get_inbox_summary · list_entities · list_pending_approvals
+交互：ask_user（需要用户选择或确认时，提供 2-5 个选项按钮让用户点选）
 
-**严格限制：只能调用上面列出的工具。不要调用任何不存在的工具名（如 AskUserQuestion 等）。如果需要向用户提问，直接用文本输出你的问题即可。**
+**严格限制：只能调用上面列出的工具。不要调用任何不存在的工具名。**
+
+**ask_user 使用场景：**
+- 分类不确定需要用户判断（如"这封邮件更像是审批还是汇报？"）
+- 写操作需要用户选择方向（如"选择操作：批准 / 拒绝 / 暂搁"）
+- 信息不足需要用户补充（如"此邮件有多个关联事项，请选择要查看的"）
+- 选项用简洁清晰的文字，2-5 个选项，不要出现 entity ID
 
 ---
 

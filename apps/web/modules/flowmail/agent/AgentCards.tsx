@@ -37,6 +37,7 @@ import type {
 	SyncResultCardData,
 	SendResultCardData,
 	EmailSearchCardData,
+	AskUserCardData,
 	AgentUICard,
 } from "./types";
 
@@ -616,6 +617,41 @@ export function EmailSearchCard({ data }: { data: EmailSearchCardData }) {
 	);
 }
 
+// ── Ask User 选项卡片 ───────────────────────────────────────
+
+export function AskUserCard({
+	data,
+	onSelect,
+}: {
+	data: AskUserCardData;
+	onSelect?: (value: string) => void;
+}) {
+	return (
+		<div className="rounded-xl border bg-card p-3 space-y-2.5 shadow-sm">
+			<div className="flex items-start gap-2">
+				<SparklesIcon className="size-4 text-primary mt-0.5 shrink-0" />
+				<p className="text-sm font-medium leading-snug">{data.question}</p>
+			</div>
+			{data.context && (
+				<p className="text-xs text-muted-foreground pl-6">{data.context}</p>
+			)}
+			<div className="flex flex-wrap gap-2 pl-6">
+				{data.options.map((opt) => (
+					<Button
+						key={opt.value}
+						variant="outline"
+						size="sm"
+						className="h-8 text-xs rounded-lg hover:bg-primary/10 hover:border-primary/30 transition-colors"
+						onClick={() => onSelect?.(opt.value)}
+					>
+						{opt.label}
+					</Button>
+				))}
+			</div>
+		</div>
+	);
+}
+
 // ── 里程碑图标 ────────────────────────────────────────────
 
 export function MilestoneIcon() {
@@ -627,9 +663,11 @@ export function MilestoneIcon() {
 export function AgentCard({
 	card,
 	onApprovalAction,
+	onSendMessage,
 }: {
 	card: AgentUICard;
 	onApprovalAction?: (action: "approved" | "rejected") => void;
+	onSendMessage?: (text: string) => void;
 }) {
 	switch (card.type) {
 		case "approval_card":
@@ -652,6 +690,8 @@ export function AgentCard({
 			return <SendResultCard data={card.data} />;
 		case "email_search":
 			return <EmailSearchCard data={card.data} />;
+		case "ask_user":
+			return <AskUserCard data={card.data} onSelect={onSendMessage} />;
 		default:
 			return null;
 	}
