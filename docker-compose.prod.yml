@@ -55,8 +55,7 @@ services:
   migrate:
     image: ghcr.io/${GITHUB_REPOSITORY:-flowmail/flowmail}-migrate:${IMAGE_TAG:-latest}
     container_name: flowmail-migrate
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-flowmail}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-flowmail}
+    env_file: .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,7 +72,6 @@ services:
     environment:
       PORT: "3000"
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-flowmail}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-flowmail}
     depends_on:
       postgres:
         condition: service_healthy
