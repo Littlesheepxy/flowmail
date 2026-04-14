@@ -745,11 +745,23 @@ function RecipientLine({ to, cc }: { to: EmailRecipient[]; cc: EmailRecipient[] 
 
 // ─── Email Body ───
 
+function decodeQuotedPrintable(str: string): string {
+	if (!/=[0-9A-Fa-f]{2}/.test(str)) {
+		return str;
+	}
+	return str
+		.replace(/=\r?\n/g, "")
+		.replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
+			String.fromCharCode(Number.parseInt(hex, 16)),
+		);
+}
+
 function EmailBody({ thread }: { thread: ThreadItem }) {
 	const [showQuoted, setShowQuoted] = useState(false);
 
 	if (thread.bodyHtml) {
-		const sanitizedHtml = DOMPurify.sanitize(thread.bodyHtml);
+		const decoded = decodeQuotedPrintable(thread.bodyHtml);
+		const sanitizedHtml = DOMPurify.sanitize(decoded);
 		return (
 			<div className="email-body-wrapper">
 				<div className={cn("email-body", !showQuoted && "hide-quoted")}>
@@ -769,9 +781,10 @@ function EmailBody({ thread }: { thread: ThreadItem }) {
 	}
 
 	if (thread.bodyText) {
+		const decoded = decodeQuotedPrintable(thread.bodyText);
 		return (
 			<pre className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap font-sans">
-				{thread.bodyText}
+				{decoded}
 			</pre>
 		);
 	}
