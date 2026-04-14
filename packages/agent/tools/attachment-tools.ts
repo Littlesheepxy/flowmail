@@ -5,11 +5,11 @@ import { z } from "zod";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 
-export function createAttachmentTools() {
-	const storageEnabled = !!(
-		process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY_ID
-	);
+function isStorageEnabled() {
+	return !!(process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY_ID);
+}
 
+export function createAttachmentTools() {
 	return {
 		list_attachments: tool({
 			description:
@@ -53,7 +53,7 @@ export function createAttachmentTools() {
 				const result = await Promise.all(
 					attachments.map(async (att) => {
 						let downloadUrl: string | null = null;
-						if (att.storageKey && storageEnabled) {
+						if (att.storageKey && isStorageEnabled()) {
 							try {
 								downloadUrl = await getSignedUrl(att.storageKey, {
 									bucket: "attachments",
@@ -109,7 +109,7 @@ export function createAttachmentTools() {
 					};
 				}
 
-				if (!storageEnabled) {
+				if (!isStorageEnabled()) {
 					return { status: "storage_not_configured", message: "存储服务未配置" };
 				}
 
