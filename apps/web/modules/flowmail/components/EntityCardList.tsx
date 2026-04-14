@@ -506,12 +506,15 @@ function EntityCard({
 	);
 
 	return (
-		<button
-			type="button"
+		// biome-ignore lint/a11y/useSemanticElements: div needed to avoid button-in-button hydration error from nested AlertDialogTrigger
+		<div
+			role="button"
+			tabIndex={0}
 			data-entity-card
 			onClick={onSelect}
+			onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
 			className={cn(
-				"w-full text-left px-3 py-3.5 md:py-3 border-b transition-colors flex gap-2.5 active:bg-muted/70 group/card",
+				"w-full text-left px-3 py-3.5 md:py-3 border-b transition-colors flex gap-2.5 active:bg-muted/70 group/card cursor-pointer",
 				isSelected
 					? "bg-primary/5 border-l-2 border-l-primary"
 					: "hover:bg-muted/50 border-l-2 border-l-transparent",
@@ -654,6 +657,6 @@ function EntityCard({
 					)}
 				</div>
 			</div>
-		</button>
+		</div>
 	);
 }
