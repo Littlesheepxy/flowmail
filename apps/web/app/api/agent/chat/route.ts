@@ -16,6 +16,7 @@ import {
 	extractApprovalFields,
 	extractReportFields,
 	summarizeThread,
+	enrichEntityById,
 } from "@repo/email-processor";
 import {
 	ToolRegistry,
@@ -52,6 +53,7 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 	registry.registerBuiltin(
 		createEntityTools({
 			triggerNotification: notify,
+			enrichEntityById,
 			reEnrich: async (entityId: string) => {
 				try {
 					const entity = await db.flowEntity.findUnique({

@@ -313,6 +313,7 @@ const TOOL_LABELS: Record<string, string> = {
 	sync_emails: "正在同步邮件...",
 	send_email: "正在发送邮件...",
 	search_emails: "正在搜索邮件...",
+	batch_enrich: "正在批量 AI 分析...",
 };
 
 function toolLabel(name: string): string {
@@ -323,8 +324,8 @@ function toolLabel(name: string): string {
 
 const GLOBAL_SUGGESTIONS = [
 	"收件箱概览",
+	"批量分析所有邮件",
 	"有多少待审批？",
-	"检查分类是否准确",
 	"同步邮件",
 ];
 

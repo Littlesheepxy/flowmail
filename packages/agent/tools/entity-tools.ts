@@ -18,6 +18,13 @@ export function createEntityTools(deps: {
 		extractedFieldCount: number;
 		error?: string;
 	}>;
+	enrichEntityById?: (entityId: string) => Promise<{
+		entityId: string;
+		type: string;
+		categorySlug?: string;
+		confidence: number;
+		summary: string;
+	}>;
 }) {
 	return {
 		get_entity: tool({
@@ -404,6 +411,47 @@ export function createEntityTools(deps: {
 					},
 				});
 				return { success: true, content: input.content, type: input.type };
+			},
+		}),
+
+		batch_enrich: tool({
+			description:
+				"批量对未经 AI 分析的事项执行 AI 分类和摘要。先用 list_entities(unanalyzed=true) 获取待分析列表，再调用本工具传入 entityId 数组。每次最多处理 10 个。",
+			inputSchema: z.object({
+				organizationId: z.string().describe("组织 ID"),
+				entityIds: z.array(z.string()).min(1).max(10).describe("待分析的事项 ID 列表，最多 10 个"),
+			}),
+			execute: async (input: { organizationId: string; entityIds: string[] }) => {
+				if (!deps.enrichEntityById) {
+					return { error: "enrichEntityById not available" };
+				}
+
+				const results: { entityId: string; status: "ok" | "error"; categorySlug?: string; summary?: string; error?: string }[] = [];
+
+				for (const entityId of input.entityIds) {
+					try {
+						const result = await deps.enrichEntityById(entityId);
+						results.push({
+							entityId,
+							status: "ok",
+							categorySlug: result.categorySlug,
+							summary: result.summary?.slice(0, 100),
+						});
+					} catch (err) {
+						results.push({
+							entityId,
+							status: "error",
+							error: err instanceof Error ? err.message : "Unknown error",
+						});
+					}
+				}
+
+				return {
+					total: input.entityIds.length,
+					succeeded: results.filter((r) => r.status === "ok").length,
+					failed: results.filter((r) => r.status === "error").length,
+					results,
+				};
 			},
 		}),
 	};

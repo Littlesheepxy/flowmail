@@ -184,7 +184,7 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 分析：predict_risk · get_timeline_diff · batch_reclassify · compare_entities（多事项对比）
 附件：list_attachments · read_attachment
 邮件正文：read_email_body（当 aiSummary 为空时先读正文）
-AI 重分析：re_enrich_entity（当 aiSummary 为空或分类不准时，重新运行 AI 分类+摘要）
+AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_enrich（批量 AI 分析，最多 10 个/次）
 邮件：search_emails · list_connections · sync_emails · send_email
 收件箱：get_inbox_summary · list_entities · list_pending_approvals
 深度分析：summarize_thread（重新读取全部邮件生成综合摘要）
@@ -193,6 +193,12 @@ AI 重分析：re_enrich_entity（当 aiSummary 为空或分类不准时，重�
 搜索：web_search（仅在用户开启网络搜索时可用；搜索互联网获取实时信息）
 
 **严格限制：只能调用上面列出的工具。不要调用任何不存在的工具名。**
+
+**批量 AI 分析流程（用户要求分析/分类所有邮件时）：**
+1. list_entities(organizationId, unanalyzed=true, limit=15) — 找出未分析的事项
+2. 如果有未分析事项 → batch_enrich(organizationId, entityIds=[...]) — 每次最多 10 个
+3. 如果超过 10 个，分多次调用 batch_enrich
+4. 向用户报告分析结果（成功/失败数量，关键分类发现）
 
 **ask_user 使用场景：**
 - 分类不确定需要用户判断（如"这封邮件更像是审批还是汇报？"）

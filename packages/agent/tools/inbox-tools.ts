@@ -42,7 +42,7 @@ export function createInboxTools() {
 
 		list_entities: tool({
 			description:
-				"列出组织内的事项，支持按类型、状态筛选和关键词搜索。",
+				"列出组织内的事项，支持按类型、状态、未分析筛选和关键词搜索。设置 unanalyzed=true 可筛选出尚未经过 AI 分析的事项。",
 			inputSchema: z.object({
 				organizationId: z.string(),
 				type: z
@@ -53,6 +53,7 @@ export function createInboxTools() {
 					.string()
 					.optional()
 					.describe("按状态筛选"),
+				unanalyzed: z.boolean().optional().describe("设为 true 只返回未经 AI 分析的事项"),
 				search: z.string().optional().describe("按标题关键词搜索"),
 				limit: z.number().default(15).describe("最多返回条数"),
 			}),
@@ -60,6 +61,7 @@ export function createInboxTools() {
 				organizationId: string;
 				type?: string;
 				status?: string;
+				unanalyzed?: boolean;
 				search?: string;
 				limit: number;
 			}) => {
@@ -71,6 +73,9 @@ export function createInboxTools() {
 				}
 				if (input.status) {
 					where.status = input.status;
+				}
+				if (input.unanalyzed) {
+					where.OR = [{ aiSummary: null }, { aiSummary: "" }];
 				}
 				if (input.search) {
 					where.title = { contains: input.search, mode: "insensitive" };
