@@ -141,8 +141,17 @@ export const syncEmailConnection = protectedProcedure
 					});
 
 					if (email.attachments && email.attachments.length > 0) {
-						const existingAtts = await db.emailAttachment.count({ where: { threadId: existing.id } });
-						if (existingAtts === 0) {
+						const existingAtts = await db.emailAttachment.findMany({
+							where: { threadId: existing.id },
+							select: { id: true, storageKey: true },
+						});
+
+						const allUploaded = existingAtts.length > 0 && existingAtts.every((a) => !!a.storageKey);
+
+						if (!allUploaded) {
+							await db.emailAttachment.deleteMany({
+								where: { threadId: existing.id },
+							});
 							await db.emailAttachment.createMany({
 								data: email.attachments.map((att) => ({
 									threadId: existing.id,
