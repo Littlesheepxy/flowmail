@@ -1,11 +1,12 @@
 import type { ToolSet } from "@repo/ai";
-import type { PageContext, MemoryEntry, AgentConfig, MemoryCategory } from "./types";
-import { CATEGORY_LABELS } from "./types";
+import type { PageContext, MemoryEntry, AgentConfig, MemoryCategory, MemoryObjectEntry } from "./types";
+import { CATEGORY_LABELS, OBJECT_TYPE_TEMPLATES } from "./types";
 
 interface PlannerInput {
 	userMessage: string;
 	pageContext: PageContext;
 	memoryContext: MemoryEntry[];
+	objectContext?: MemoryObjectEntry[];
 }
 
 function buildContextBlock(ctx: PageContext): string {
@@ -100,11 +101,59 @@ function buildScopeLabel(items: MemoryEntry[]): string {
 	return "";
 }
 
+function buildObjectMemoryBlock(objects: MemoryObjectEntry[]): string {
+	if (objects.length === 0) {
+		return "";
+	}
+
+	const sections: string[] = [];
+
+	for (const obj of objects) {
+		const template = OBJECT_TYPE_TEMPLATES[obj.objectType];
+		const label = template?.label ?? obj.objectType;
+		const fieldLabels = template?.fieldLabels ?? {};
+		const attrs = obj.attributes;
+
+		const heading = obj.objectType === "self"
+			? `### ${label}`
+			: `### ${label}：${obj.name}${obj.objectId !== obj.name ? ` (${obj.objectId})` : ""}`;
+
+		const lines: string[] = [];
+		for (const [key, value] of Object.entries(attrs)) {
+			if (value == null || value === "") {
+				continue;
+			}
+			const fieldLabel = fieldLabels[key] ?? key;
+			const valueStr = typeof value === "string" ? value
+				: Array.isArray(value) ? value.join("、")
+				: JSON.stringify(value);
+			lines.push(`- ${fieldLabel}: ${valueStr}`);
+		}
+
+		if (obj.relations && obj.relations.length > 0) {
+			const relStr = obj.relations.map((r) => r.label ?? `${r.targetType}:${r.targetId}`).join("、");
+			lines.push(`- 关联: ${relStr}`);
+		}
+
+		if (lines.length > 0) {
+			sections.push(`${heading}\n${lines.join("\n")}`);
+		}
+	}
+
+	if (sections.length === 0) {
+		return "";
+	}
+
+	return `\n## 结构化记忆\n\n${sections.join("\n\n")}`;
+}
+
 export function buildSystemPrompt(
 	ctx: PageContext,
 	memoryContext: MemoryEntry[] = [],
+	objectContext: MemoryObjectEntry[] = [],
 ): string {
 	const contextBlock = buildContextBlock(ctx);
+	const objectBlock = buildObjectMemoryBlock(objectContext);
 	const memoryBlock = buildMemoryBlock(memoryContext);
 	const hasEntity = !!(ctx.entity || ctx.entityId);
 	const now = new Date().toLocaleString("zh-CN", {
@@ -123,7 +172,7 @@ export function buildSystemPrompt(
 
 ## 当前上下文
 ${contextBlock}
-${memoryBlock}
+${objectBlock}${memoryBlock}
 
 ---
 
@@ -189,6 +238,9 @@ AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_enrich�
 收件箱：get_inbox_summary · list_entities · list_pending_approvals
 深度分析：summarize_thread（重新读取全部邮件生成综合摘要）
 提醒：create_reminder（设置定时跟进提醒）
+回复起草：draft_reply（起草邮件回复，自动参考写作风格和联系人记忆）
+风格学习：learn_reply_style（分析用户已发送邮件，学习写作风格并记忆）
+代码执行：run_code（JavaScript 沙箱）· run_python（Python 脚本，可用于数据分析）
 交互：ask_user（需要用户选择或确认时，提供 2-5 个选项按钮让用户点选）
 搜索：web_search（仅在用户开启网络搜索时可用；搜索互联网获取实时信息）
 
@@ -209,6 +261,33 @@ AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_enrich�
 **summarize_thread vs get_entity：** get_entity 返回已有的 AI 摘要（快速），summarize_thread 重新读取所有邮件原文生成全新详细摘要（较慢但更全面）。用户说"帮我总结"时优先用 summarize_thread。
 
 **create_reminder：** 将提醒时间转换为 ISO 8601 格式。用户说"3天后提醒我"→ 计算出具体日期。
+
+**draft_reply：** 用户说"帮我回复"、"怎么回复比较好"、"草拟回复"时调用。会自动查阅记忆中的用户写作风格和收件人画像。
+
+**learn_reply_style：** 用户说"学习我的写作风格"、"记住我的回复习惯"时调用。需要 organizationId 和用户邮箱地址。
+
+---
+
+## 记忆系统（结构化对象）
+
+你维护一套**结构化记忆对象**，包含 6 种类型：
+
+| 类型 | 说明 | 何时写入 |
+|------|------|----------|
+| self | 用户自己的画像（单例） | 用户表达偏好、风格、角色、习惯时 |
+| person | 联系人画像 | 从邮件中识别到联系人信息时 |
+| project | 项目/事件线 | 发现项目进展、截止日期、负责人时 |
+| event | 关键事件 | 发生了有影响的具体事件时 |
+| preference | 业务规则 | 用户定义处理约定、审批规则时 |
+| decision | 决策记录 | 用户做出重要决策时 |
+
+**写入原则：**
+- 识别到新信息时，更新对应对象的**具体属性**，而非写一段文本
+- self 是单例，所有关于用户自己的信息（角色、写作风格、工作习惯、语气、签名）都更新到 self 对象
+- person 按邮箱去重，同一个联系人的所有特征聚合在一个对象里
+- 一次性的操作请求、已有的信息、临时性信息**不写入**
+
+**learn_reply_style**：用户说"学习我的写作风格"时调用，分析结果会自动写入 self 对象的 writing_style 属性。
 
 ---
 
@@ -234,6 +313,7 @@ export function buildAgentConfig(
 		systemPrompt: buildSystemPrompt(
 			input.pageContext,
 			input.memoryContext,
+			input.objectContext,
 		),
 		tools: allTools,
 		maxSteps,

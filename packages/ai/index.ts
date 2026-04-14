@@ -150,12 +150,29 @@ export function getReasoningModel() {
 	return createModel("AI_REASONING_MODEL", "claude-opus-4-6", "o3-mini");
 }
 
+/**
+ * 专用回复起草模型：GPT-5.4（通过独立 API key 调用）。
+ * 回复邮件 GPT 更擅长自然语言生成，Agent 主体保持 Claude。
+ */
+export function getReplyDraftModel() {
+	const apiKey = process.env.AI_REPLY_API_KEY;
+	const baseURL = process.env.AI_REPLY_BASE_URL ?? "https://api.openai.com/v1";
+	const modelName = process.env.AI_REPLY_MODEL ?? "gpt-5.4";
+
+	if (apiKey) {
+		const provider = createOpenAI({ baseURL, apiKey });
+		return provider.chat(modelName);
+	}
+	return createModel("AI_REPLY_MODEL", "claude-sonnet-4-6", "gpt-4o");
+}
+
 // 向后兼容的 model 实例导出
 // 这些不能在模块顶层初始化（env 还没就绪），所以用 getter 形式暴露
 // 调用方应改用 getTextModel() 等函数；这里保留兼容，实际会在第一次属性访问时懒加载
 let _fastModelInstance: ReturnType<typeof createModel> | null = null;
 let _textModelInstance: ReturnType<typeof createModel> | null = null;
 let _reasoningModelInstance: ReturnType<typeof createModel> | null = null;
+let _replyDraftModelInstance: ReturnType<typeof getReplyDraftModel> | null = null;
 
 function getLazyFastModel() {
 	if (!_fastModelInstance) _fastModelInstance = getFastModel();

@@ -157,6 +157,7 @@ model Organization {
   apiTokens           ApiToken[]
   notifications       Notification[]
   agentMemories       AgentMemory[]
+  memoryObjects       MemoryObject[]
 
   @@unique([slug])
   @@map("organization")
@@ -552,7 +553,7 @@ model AgentMemory {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  category       String       // user_preference | contact_profile | project_context | behavior_pattern | decision_record | classification_learning | org_insight
+  category       String       // user_preference | contact_profile | project_context | behavior_pattern | decision_record | classification_learning | org_insight | object_update
   scope          String       @default("org") // org | user | contact | project
   scopeId        String?      // user ID / contact email / project entity ID
 
@@ -564,6 +565,9 @@ model AgentMemory {
   lastAccessedAt DateTime?
   expiresAt      DateTime?
 
+  memoryObjectId String?
+  memoryObject   MemoryObject? @relation(fields: [memoryObjectId], references: [id], onDelete: SetNull)
+
   embedding      Unsupported("vector(1536)")?
 
   createdAt      DateTime     @default(now())
@@ -573,5 +577,31 @@ model AgentMemory {
   @@index([organizationId, scope, scopeId])
   @@index([organizationId, importance])
   @@index([organizationId, createdAt])
+  @@index([memoryObjectId])
   @@map("agent_memory")
+}
+
+// ─── Flowmail: Memory Object (structured knowledge) ───
+
+model MemoryObject {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  objectType     String        // open string: self | person | project | event | preference | decision | ...
+  objectId       String        // normalized identifier: userId / email / slug / key
+  name           String        // display name: "我的画像" / "张伟" / "Q3品牌升级"
+
+  attributes     Json          @default("{}")
+  relations      Json?         // [{ type, targetType, targetId, label }]
+
+  changeLogs     AgentMemory[]
+
+  lastUpdatedAt  DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, objectType, objectId])
+  @@index([organizationId, objectType])
+  @@map("memory_object")
 }

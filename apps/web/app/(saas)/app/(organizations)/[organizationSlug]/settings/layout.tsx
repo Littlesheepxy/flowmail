@@ -76,22 +76,22 @@ export default async function SettingsLayout({
 				href: `${organizationSettingsBasePath}/usage`,
 				icon: <BarChart3Icon className="size-4 opacity-50" />,
 			},
-			...(userIsOrganizationAdmin
-					? [
-							{
-								title: t(
-									"settings.menu.organization.dangerZone",
-								),
-								href: `${organizationSettingsBasePath}/danger-zone`,
-								icon: (
-									<TriangleAlertIcon className="size-4 opacity-50" />
-								),
-							},
-						]
-					: []),
-			],
-		},
-	];
+		...(userIsOrganizationAdmin
+				? [
+						{
+							title: t(
+								"settings.menu.organization.dangerZone",
+							),
+							href: `${organizationSettingsBasePath}/danger-zone`,
+							icon: (
+								<TriangleAlertIcon className="size-4 opacity-50" />
+							),
+						},
+					]
+				: []),
+		],
+	},
+];
 
 	return (
 		<>

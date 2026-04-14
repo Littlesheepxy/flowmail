@@ -31,6 +31,9 @@ import {
 	createSummarizeThreadTool,
 	createCompareEntitiesTool,
 	createReminderTool,
+	createSandboxTools,
+	createReplyTools,
+	createMemoryTools,
 	type PageContext,
 } from "@repo/agent";
 
@@ -134,6 +137,9 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 	registry.registerBuiltin(createSummarizeThreadTool());
 	registry.registerBuiltin(createCompareEntitiesTool());
 	registry.registerBuiltin(createReminderTool());
+	registry.registerBuiltin(createSandboxTools());
+	registry.registerBuiltin(createReplyTools());
+	registry.registerBuiltin(createMemoryTools());
 
 	if (options?.webSearchEnabled) {
 		registry.registerBuiltin(createWebSearchTool());
@@ -221,11 +227,30 @@ export async function POST(req: Request) {
 			})
 		: [];
 
+	const orgId = ctx.organizationId;
+	const objectContext = orgId
+		? await (async () => {
+				const objects = [];
+				const selfObj = await memoryManager.getSelf(orgId, session.user.id);
+				if (selfObj) {
+					objects.push(selfObj);
+				}
+				if (senderEmail) {
+					const contactObj = await memoryManager.getObject(orgId, "person", senderEmail);
+					if (contactObj) {
+						objects.push(contactObj);
+					}
+				}
+				return objects;
+			})()
+		: [];
+
 	const agentConfig = buildAgentConfig(
 		{
 			userMessage,
 			pageContext: ctx,
 			memoryContext,
+			objectContext,
 		},
 		registry.getTools({
 			organizationId: ctx.organizationId ?? "",

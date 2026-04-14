@@ -1,5 +1,6 @@
 import { db } from "@repo/database";
 import { createHash } from "node:crypto";
+import { unwrapForwardedEmail } from "./unwrap-forward";
 
 export interface InboundAttachment {
 	filename: string;
@@ -46,10 +47,23 @@ export async function processInboundEmail(
 	input: InboundEmailInput,
 ): Promise<InboundProcessResult> {
 	try {
-		const content = input.textBody || stripHtml(input.htmlBody || "") || "";
+		const rawContent = input.textBody || stripHtml(input.htmlBody || "") || "";
+
+		const unwrapped = unwrapForwardedEmail({
+			subject: input.subject,
+			sender: input.fromEmail,
+			senderEmail: input.fromEmail,
+			content: rawContent,
+			bodyText: input.textBody,
+		});
+
+		const effectiveFrom = unwrapped.originalSender ?? input.fromEmail;
+		const effectiveSubject = unwrapped.originalSubject ?? input.subject;
+		const content = unwrapped.cleanBody ?? rawContent;
+
 		const contentHash = computeContentHash(
-			input.subject,
-			input.fromEmail,
+			effectiveSubject,
+			effectiveFrom,
 			new Date(),
 		);
 
@@ -72,8 +86,8 @@ export async function processInboundEmail(
 				organizationId: input.organizationId,
 				OR: [
 					{
-						subject: { contains: normalizeSubject(input.subject) },
-						sender: input.fromEmail,
+						subject: { contains: normalizeSubject(effectiveSubject) },
+						sender: effectiveFrom,
 					},
 				],
 				entityId: { not: null },
@@ -83,7 +97,7 @@ export async function processInboundEmail(
 		});
 
 		const entityTitle =
-			input.subject.replace(/^(Fwd?:|Fw:|转发：)\s*/gi, "").trim() ||
+			effectiveSubject.replace(/^(Fwd?:|Fw:|转发：)\s*/gi, "").trim() ||
 			"Untitled";
 
 		// 归并模式：追加新邮件到已有事项
@@ -108,14 +122,14 @@ export async function processInboundEmail(
 					organizationId: input.organizationId,
 					entityId: existingByThread.entityId,
 					externalThreadId: inboundEmail.id,
-					subject: input.subject,
-					sender: input.fromEmail,
-					senderName: input.fromEmail.split("@")[0],
-					snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
+					subject: effectiveSubject,
+					sender: effectiveFrom,
+					senderName: unwrapped.originalSenderName ?? effectiveFrom.split("@")[0],
+					snippet: content.slice(0, 200),
 					bodyHtml: input.htmlBody,
-					bodyText: input.textBody,
+					bodyText: content,
 					messageId: (input.rawPayload as Record<string, unknown>)?.message_id as string | undefined,
-					participants: JSON.stringify([input.fromEmail]),
+					participants: JSON.stringify([effectiveFrom, ...(unwrapped.forwarderEmail ? [unwrapped.forwarderEmail] : [])]),
 					receivedAt: new Date(),
 				},
 			});
@@ -138,11 +152,13 @@ export async function processInboundEmail(
 				data: {
 					entityId: existingByThread.entityId,
 					type: "email_received",
-					content: `追加邮件 from ${input.fromEmail}: ${input.subject}`,
+					content: `追加邮件 from ${effectiveFrom}: ${effectiveSubject}`,
 					metadata: JSON.stringify({
 						source: "inbound_merged",
-						fromEmail: input.fromEmail,
-						subject: input.subject,
+						fromEmail: effectiveFrom,
+						subject: effectiveSubject,
+						isForwarded: unwrapped.isForwarded || undefined,
+						forwarder: unwrapped.forwarderEmail || undefined,
 					}),
 				},
 			});
@@ -195,7 +211,6 @@ export async function processInboundEmail(
 			data: { entityId: entity.id, processedAt: new Date() },
 		});
 
-		// Create email_thread so frontend can display the email immediately
 		let thread: { id: string };
 		try {
 			thread = await db.emailThread.create({
@@ -203,14 +218,14 @@ export async function processInboundEmail(
 					organizationId: input.organizationId,
 					entityId: entity.id,
 					externalThreadId: inboundEmail.id,
-					subject: input.subject,
-					sender: input.fromEmail,
-					senderName: input.fromEmail.split("@")[0],
-					snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
+					subject: effectiveSubject,
+					sender: effectiveFrom,
+					senderName: unwrapped.originalSenderName ?? effectiveFrom.split("@")[0],
+					snippet: content.slice(0, 200),
 					bodyHtml: input.htmlBody,
-					bodyText: input.textBody,
+					bodyText: content,
 					messageId: (input.rawPayload as Record<string, unknown>)?.message_id as string | undefined,
-					participants: JSON.stringify([input.fromEmail]),
+					participants: JSON.stringify([effectiveFrom, ...(unwrapped.forwarderEmail ? [unwrapped.forwarderEmail] : [])]),
 					receivedAt: new Date(),
 				},
 			});
@@ -220,18 +235,17 @@ export async function processInboundEmail(
 				inboundEmailId: inboundEmail.id,
 				error: threadError instanceof Error ? threadError.message : String(threadError),
 			});
-			// Fallback with unique externalThreadId
 			thread = await db.emailThread.create({
 				data: {
 					organizationId: input.organizationId,
 					entityId: entity.id,
 					externalThreadId: `${inboundEmail.id}-fallback`,
-					subject: input.subject,
-					sender: input.fromEmail,
-					senderName: input.fromEmail.split("@")[0],
-					snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
-					bodyText: input.textBody || "[邮件内容请查看附件]",
-					participants: JSON.stringify([input.fromEmail]),
+					subject: effectiveSubject,
+					sender: effectiveFrom,
+					senderName: unwrapped.originalSenderName ?? effectiveFrom.split("@")[0],
+					snippet: content.slice(0, 200),
+					bodyText: content || "[邮件内容请查看附件]",
+					participants: JSON.stringify([effectiveFrom]),
 					receivedAt: new Date(),
 				},
 			});
@@ -256,11 +270,13 @@ export async function processInboundEmail(
 			data: {
 				entityId: entity.id,
 				type: "email_received",
-				content: `Inbound email from ${input.fromEmail}: ${input.subject}`,
+				content: `Inbound email from ${effectiveFrom}: ${effectiveSubject}`,
 				metadata: JSON.stringify({
 					source: "inbound",
-					fromEmail: input.fromEmail,
-					subject: input.subject,
+					fromEmail: effectiveFrom,
+					subject: effectiveSubject,
+					isForwarded: unwrapped.isForwarded || undefined,
+					forwarder: unwrapped.forwarderEmail || undefined,
 				}),
 			},
 		});

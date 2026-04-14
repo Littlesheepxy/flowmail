@@ -11,7 +11,7 @@ export function SettingsMenu({
 }: {
 	menuItems: {
 		title: string;
-		avatar: ReactNode;
+		avatar?: ReactNode;
 		items: {
 			title: string;
 			href: string;

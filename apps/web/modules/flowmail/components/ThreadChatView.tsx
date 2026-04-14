@@ -61,6 +61,7 @@ import {
 import dynamic from "next/dynamic";
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
+import { ContactMemoryCard } from "./ContactMemoryCard";
 import { EntityTimeline } from "./EntityTimeline";
 import type { ReplyMode } from "./ReplyComposer";
 import { ReplyComposer } from "./ReplyComposer";
@@ -333,6 +334,14 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 
 			<EntityActionBar entity={entity} />
 			<EntityTagSection entityId={entity.id} tags={entity.tags ?? []} />
+
+			{latestThread?.sender && (
+				<ContactMemoryCard
+					organizationId={entity.organizationId}
+					contactEmail={latestThread.sender}
+					contactName={latestThread.senderName ?? undefined}
+				/>
+			)}
 
 		<EntityTabs
 			entity={entity}

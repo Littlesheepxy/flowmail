@@ -6,6 +6,7 @@ import { categoriesRouter } from "../modules/categories/router";
 import { contactRouter } from "../modules/contact/router";
 import { emailConnectionsRouter } from "../modules/email-connections/router";
 import { flowEntitiesRouter } from "../modules/flow-entities/router";
+import { memoryRouter } from "../modules/memory/router";
 import { newsletterRouter } from "../modules/newsletter/router";
 import { notificationsRouter } from "../modules/notifications/router";
 import { organizationsRouter } from "../modules/organizations/router";
@@ -23,6 +24,7 @@ export const router = publicProcedure.router({
 	users: usersRouter,
 	payments: paymentsRouter,
 	flowEntities: flowEntitiesRouter,
+	memory: memoryRouter,
 	approvals: approvalsRouter,
 	emailConnections: emailConnectionsRouter,
 	categories: categoriesRouter,

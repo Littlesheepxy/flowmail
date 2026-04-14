@@ -8,6 +8,7 @@ import type {
 	RawEmailAttachment,
 	SyncResult,
 } from "./types";
+import { unwrapForwardedEmail } from "../unwrap-forward";
 
 const PROVIDER_DEFAULTS: Record<string, { host: string; port: number }> = {
 	feishu: { host: "imap.feishu.cn", port: 993 },
@@ -135,9 +136,18 @@ export const imapConnector: EmailConnector = {
 							content: att.content,
 						}));
 
-					emails.push({
+					const subject = parsed.subject ?? (env.subject as string) ?? "(no subject)";
+					const unwrapped = unwrapForwardedEmail({
+						subject,
+						sender: fromName,
+						senderEmail: fromEmail,
+						content,
+						bodyText: bodyText || undefined,
+					});
+
+					const emailData: RawEmail = {
 						externalId: rfcMessageId ?? `uid-${uid}`,
-						subject: parsed.subject ?? (env.subject as string) ?? "(no subject)",
+						subject,
 						sender: fromName,
 						senderEmail: fromEmail,
 						recipients: toAddrs.map((a) => a.address ?? ""),
@@ -150,7 +160,22 @@ export const imapConnector: EmailConnector = {
 						attachments: attachments.length > 0 ? attachments : undefined,
 						receivedAt: parsed.date ?? (env.date ? new Date(env.date as string) : new Date()),
 						messageId: rfcMessageId || undefined,
-					});
+					};
+
+					if (unwrapped.isForwarded) {
+						emailData.isForwarded = true;
+						emailData.originalSender = unwrapped.originalSender;
+						emailData.originalSenderName = unwrapped.originalSenderName;
+						emailData.originalSubject = unwrapped.originalSubject;
+						emailData.forwarder = unwrapped.forwarder;
+						emailData.forwarderEmail = unwrapped.forwarderEmail;
+						if (unwrapped.cleanBody) {
+							emailData.content = unwrapped.cleanBody;
+							emailData.snippet = unwrapped.cleanBody.slice(0, 200);
+						}
+					}
+
+					emails.push(emailData);
 					} catch {
 						// skip individual message errors
 					}

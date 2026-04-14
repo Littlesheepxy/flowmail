@@ -5,8 +5,10 @@ import type {
 	MemoryScope,
 	MemoryOrigin,
 	RecallOptions,
+	MemoryObjectEntry,
+	MemoryObjectRelation,
 } from "../core/types";
-import { MEMORY_CATEGORIES, MEMORY_SCOPES } from "../core/types";
+import { MEMORY_CATEGORIES, MEMORY_SCOPES, MEMORY_OBJECT_TYPES, OBJECT_TYPE_TEMPLATES } from "../core/types";
 
 // ─── Write Params ───
 
@@ -110,6 +112,23 @@ export interface LegacyRecallParams {
 	query: string;
 	type?: string;
 	limit?: number;
+}
+
+// ─── Memory Object Params ───
+
+export interface UpsertObjectParams {
+	organizationId: string;
+	objectType: string;
+	objectId: string;
+	name: string;
+	updates: Record<string, unknown>;
+	relations?: MemoryObjectRelation[];
+}
+
+export interface UpsertObjectResult {
+	id: string;
+	isNew: boolean;
+	changedFields: string[];
 }
 
 const DECAY_THRESHOLD_DAYS = 30;
@@ -482,7 +501,248 @@ export class MemoryManager {
 		return decayed;
 	}
 
+	// ─── Memory Object Methods (structured knowledge) ───
+
+	async upsertObject(params: UpsertObjectParams): Promise<UpsertObjectResult> {
+		const existing = await db.memoryObject.findUnique({
+			where: {
+				organizationId_objectType_objectId: {
+					organizationId: params.organizationId,
+					objectType: params.objectType,
+					objectId: params.objectId,
+				},
+			},
+		});
+
+		const changedFields: string[] = [];
+
+		if (existing) {
+			const oldAttrs = (existing.attributes ?? {}) as Record<string, unknown>;
+			for (const [key, value] of Object.entries(params.updates)) {
+				if (JSON.stringify(oldAttrs[key]) !== JSON.stringify(value)) {
+					changedFields.push(key);
+				}
+			}
+
+			if (changedFields.length === 0 && !params.relations) {
+				return { id: existing.id, isNew: false, changedFields: [] };
+			}
+
+			const mergedAttrs = { ...oldAttrs, ...params.updates };
+
+			await db.memoryObject.update({
+				where: { id: existing.id },
+				data: {
+					name: params.name,
+					attributes: mergedAttrs as Record<string, never>,
+					lastUpdatedAt: new Date(),
+					...(params.relations ? { relations: params.relations as unknown as Record<string, never>[] } : {}),
+				},
+			});
+
+			if (changedFields.length > 0) {
+				const diff: Record<string, { old: unknown; new: unknown }> = {};
+				const contentLines: string[] = [`更新了 ${params.name}：`];
+				for (const field of changedFields) {
+					const oldVal = oldAttrs[field];
+					const newVal = params.updates[field];
+					diff[field] = { old: oldVal ?? null, new: newVal };
+					const oldStr = oldVal != null ? truncateStr(String(oldVal), 60) : "（空）";
+					const newStr = newVal != null ? truncateStr(String(newVal), 60) : "（空）";
+					const label = translateFieldName(params.objectType, field);
+					contentLines.push(`· ${label}: ${oldStr} → ${newStr}`);
+				}
+				await db.agentMemory.create({
+					data: {
+						organizationId: params.organizationId,
+						category: "object_update",
+						scope: params.objectType,
+						scopeId: params.objectId,
+						memoryObjectId: existing.id,
+						content: contentLines.join("\n"),
+						metadata: JSON.stringify({ diff, source: "agent_upsert" }),
+						importance: 5,
+					},
+				});
+			}
+
+			return { id: existing.id, isNew: false, changedFields };
+		}
+
+		const created = await db.memoryObject.create({
+			data: {
+				organizationId: params.organizationId,
+				objectType: params.objectType,
+				objectId: params.objectId,
+				name: params.name,
+				attributes: params.updates as Record<string, never>,
+				relations: params.relations ? (params.relations as unknown as Record<string, never>[]) : undefined,
+			},
+		});
+
+		changedFields.push(...Object.keys(params.updates));
+
+		const initSnapshot: Record<string, unknown> = {};
+		const initLines: string[] = [`创建了${params.objectType === MEMORY_OBJECT_TYPES.self ? "个人画像" : ` ${params.name}`}：`];
+		for (const field of changedFields) {
+			const val = params.updates[field];
+			initSnapshot[field] = val;
+			const label = translateFieldName(params.objectType, field);
+			initLines.push(`· ${label}: ${truncateStr(String(val), 80)}`);
+		}
+
+		await db.agentMemory.create({
+			data: {
+				organizationId: params.organizationId,
+				category: "object_update",
+				scope: params.objectType,
+				scopeId: params.objectId,
+				memoryObjectId: created.id,
+				content: initLines.join("\n"),
+				metadata: JSON.stringify({ snapshot: initSnapshot, source: "agent_create" }),
+				importance: 6,
+			},
+		});
+
+		return { id: created.id, isNew: true, changedFields };
+	}
+
+	async upsertSelf(params: {
+		organizationId: string;
+		userId: string;
+		updates: Record<string, unknown>;
+	}): Promise<UpsertObjectResult> {
+		return this.upsertObject({
+			organizationId: params.organizationId,
+			objectType: MEMORY_OBJECT_TYPES.self,
+			objectId: params.userId,
+			name: "我的画像",
+			updates: params.updates,
+		});
+	}
+
+	async getSelf(organizationId: string, userId: string): Promise<MemoryObjectEntry | null> {
+		return this.getObject(organizationId, MEMORY_OBJECT_TYPES.self, userId);
+	}
+
+	async getObject(organizationId: string, objectType: string, objectId: string): Promise<MemoryObjectEntry | null> {
+		const record = await db.memoryObject.findUnique({
+			where: {
+				organizationId_objectType_objectId: {
+					organizationId,
+					objectType,
+					objectId,
+				},
+			},
+		});
+
+		if (!record) {
+			return null;
+		}
+
+		return this.toObjectEntry(record);
+	}
+
+	async getObjectById(id: string): Promise<MemoryObjectEntry | null> {
+		const record = await db.memoryObject.findUnique({
+			where: { id },
+		});
+
+		if (!record) {
+			return null;
+		}
+
+		return this.toObjectEntry(record);
+	}
+
+	async listObjects(organizationId: string, objectType?: string): Promise<MemoryObjectEntry[]> {
+		const where: Record<string, unknown> = { organizationId };
+		if (objectType) {
+			where.objectType = objectType;
+		}
+
+		const records = await db.memoryObject.findMany({
+			where,
+			orderBy: [{ lastUpdatedAt: "desc" }],
+		});
+
+		return records.map((r) => this.toObjectEntry(r));
+	}
+
+	async getObjectHistory(memoryObjectId: string, limit = 20): Promise<MemoryEntry[]> {
+		const records = await db.agentMemory.findMany({
+			where: { memoryObjectId },
+			orderBy: { createdAt: "desc" },
+			take: limit,
+		});
+
+		return records.map((r) => this.toEntry(r));
+	}
+
+	async deleteObject(id: string): Promise<void> {
+		await db.agentMemory.updateMany({
+			where: { memoryObjectId: id },
+			data: { memoryObjectId: null },
+		});
+		await db.memoryObject.delete({ where: { id } });
+	}
+
+	async updateObjectAttribute(id: string, key: string, value: unknown): Promise<void> {
+		const record = await db.memoryObject.findUnique({ where: { id } });
+		if (!record) {
+			return;
+		}
+		const attrs = (record.attributes ?? {}) as Record<string, unknown>;
+		const oldValue = attrs[key];
+		attrs[key] = value;
+		await db.memoryObject.update({
+			where: { id },
+			data: { attributes: attrs as Record<string, never>, lastUpdatedAt: new Date() },
+		});
+
+		const oldStr = oldValue != null ? truncateStr(String(oldValue), 60) : "（空）";
+		const newStr = value != null ? truncateStr(String(value), 60) : "（空）";
+		const label = translateFieldName(record.objectType, key);
+		await db.agentMemory.create({
+			data: {
+				organizationId: record.organizationId,
+				category: "object_update",
+				scope: record.objectType,
+				scopeId: record.objectId,
+				memoryObjectId: record.id,
+				content: `手动更新了 ${record.name}：\n· ${label}: ${oldStr} → ${newStr}`,
+				metadata: JSON.stringify({
+					diff: { [key]: { old: oldValue ?? null, new: value } },
+					source: "user_manual",
+				}),
+				importance: 5,
+			},
+		});
+	}
+
 	// ─── Helpers ───
+
+	private toObjectEntry(r: {
+		id: string;
+		objectType: string;
+		objectId: string;
+		name: string;
+		attributes: unknown;
+		relations: unknown;
+		lastUpdatedAt: Date;
+		createdAt: Date;
+	}): MemoryObjectEntry {
+		return {
+			id: r.id,
+			objectType: r.objectType,
+			objectId: r.objectId,
+			name: r.name,
+			attributes: (r.attributes ?? {}) as Record<string, unknown>,
+			relations: (r.relations ?? undefined) as MemoryObjectRelation[] | undefined,
+			lastUpdatedAt: r.lastUpdatedAt,
+			createdAt: r.createdAt,
+		};
+	}
 
 	private toEntry(r: {
 		id: string;
@@ -508,4 +768,17 @@ export class MemoryManager {
 			origin,
 		};
 	}
+}
+
+function truncateStr(s: string, maxLen: number): string {
+	const clean = s.replace(/\n/g, " ").trim();
+	if (clean.length <= maxLen) {
+		return clean;
+	}
+	return `${clean.slice(0, maxLen)}…`;
+}
+
+function translateFieldName(objectType: string, key: string): string {
+	const template = OBJECT_TYPE_TEMPLATES[objectType];
+	return template?.fieldLabels[key] ?? key;
 }

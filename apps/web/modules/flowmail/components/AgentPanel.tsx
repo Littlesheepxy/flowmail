@@ -30,6 +30,7 @@ import { usePathname } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
 import { AgentCard, ToolSkeleton } from "../agent/AgentCards";
 import { buildPageContext } from "../agent/build-page-context";
 import type { AgentUICard } from "../agent/types";
@@ -314,6 +315,11 @@ const TOOL_LABELS: Record<string, string> = {
 	send_email: "正在发送邮件...",
 	search_emails: "正在搜索邮件...",
 	batch_enrich: "正在批量 AI 分析...",
+	draft_reply: "正在起草回复...",
+	learn_reply_style: "正在学习写作风格...",
+	upsert_memory_object: "正在更新记忆...",
+	run_code: "正在执行代码...",
+	run_python: "正在执行 Python...",
 };
 
 function toolLabel(name: string): string {
@@ -486,6 +492,26 @@ function ReasoningToggle({ text }: { text: string }) {
 
 // ── Block 渲染器 ─────────────────────────────────────────
 
+// ── 记忆写入提示 ─────────────────────────────────────────
+
+function showMemoryToast(title: string, detail: string, organizationId?: string) {
+	toast(title, {
+		description: detail ? (detail.length > 80 ? `${detail.slice(0, 80)}…` : detail) : undefined,
+		duration: 6000,
+		action: organizationId
+			? {
+					label: "查看记忆",
+					onClick: () => {
+						const event = new CustomEvent("flowmail:open-settings", {
+							detail: { tab: "ai-memory" },
+						});
+						window.dispatchEvent(event);
+					},
+				}
+			: undefined,
+	});
+}
+
 // ── 主组件 ───────────────────────────────────────────────
 
 type AgentScope = "entity" | "all";
@@ -596,6 +622,47 @@ export function AgentPanel({
 			behavior: "smooth",
 		});
 	}, [messages]);
+
+	const shownMemoryToasts = useRef(new Set<string>());
+	useEffect(() => {
+		for (const msg of messages as UIMessage[]) {
+			if (msg.role !== "assistant") {
+				continue;
+			}
+			for (const part of msg.parts ?? []) {
+				if (!isToolOrDynamicToolUIPart(part)) {
+					continue;
+				}
+				const dynP = part as DynamicToolUIPart;
+				if (dynP.state !== "output-available") {
+					continue;
+				}
+				const toastKey = dynP.toolCallId;
+				if (shownMemoryToasts.current.has(toastKey)) {
+					continue;
+				}
+				const output = dynP.output as Record<string, unknown>;
+				const toolName = getToolOrDynamicToolName(part);
+				if (toolName === "learn_reply_style" && output.success) {
+					shownMemoryToasts.current.add(toastKey);
+					showMemoryToast(
+						`已学习邮件写作风格（分析了 ${output.samplesAnalyzed ?? 0} 封邮件）`,
+						String(output.styleAnalysis ?? ""),
+						organizationId,
+					);
+				}
+				if (output._memoryWritten) {
+					shownMemoryToasts.current.add(toastKey);
+					const isNew = output.isNew;
+					const fields = Array.isArray(output.changedFields)
+						? (output.changedFields as string[]).join("、")
+						: "";
+					const desc = isNew ? "创建了新记忆对象" : fields ? `更新了 ${fields}` : "更新了记忆";
+					showMemoryToast(desc, "", organizationId);
+				}
+			}
+		}
+	}, [messages, organizationId]);
 
 	useEffect(() => {
 		if (!pendingExecution || isLoading) {

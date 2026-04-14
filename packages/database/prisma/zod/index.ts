@@ -150,9 +150,15 @@ export type ApiTokenScalarFieldEnum = z.infer<typeof ApiTokenScalarFieldEnumSche
 
 // File: AgentMemoryScalarFieldEnum.schema.ts
 
-export const AgentMemoryScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'category', 'scope', 'scopeId', 'content', 'metadata', 'importance', 'accessCount', 'lastAccessedAt', 'expiresAt', 'createdAt', 'updatedAt'])
+export const AgentMemoryScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'category', 'scope', 'scopeId', 'content', 'metadata', 'importance', 'accessCount', 'lastAccessedAt', 'expiresAt', 'memoryObjectId', 'createdAt', 'updatedAt'])
 
 export type AgentMemoryScalarFieldEnum = z.infer<typeof AgentMemoryScalarFieldEnumSchema>;
+
+// File: MemoryObjectScalarFieldEnum.schema.ts
+
+export const MemoryObjectScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'objectType', 'objectId', 'name', 'attributes', 'relations', 'lastUpdatedAt', 'createdAt', 'updatedAt'])
+
+export type MemoryObjectScalarFieldEnum = z.infer<typeof MemoryObjectScalarFieldEnumSchema>;
 
 // File: SortOrder.schema.ts
 
@@ -165,6 +171,12 @@ export type SortOrder = z.infer<typeof SortOrderSchema>;
 export const NullableJsonNullValueInputSchema = z.enum(['DbNull', 'JsonNull'])
 
 export type NullableJsonNullValueInput = z.infer<typeof NullableJsonNullValueInputSchema>;
+
+// File: JsonNullValueInput.schema.ts
+
+export const JsonNullValueInputSchema = z.enum(['JsonNull'])
+
+export type JsonNullValueInput = z.infer<typeof JsonNullValueInputSchema>;
 
 // File: QueryMode.schema.ts
 
@@ -638,9 +650,28 @@ export const AgentMemorySchema = z.object({
   accessCount: z.number().int(),
   lastAccessedAt: z.date().nullish(),
   expiresAt: z.date().nullish(),
+  memoryObjectId: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
 
 export type AgentMemoryType = z.infer<typeof AgentMemorySchema>;
+
+
+// File: MemoryObject.schema.ts
+
+export const MemoryObjectSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  objectType: z.string(),
+  objectId: z.string(),
+  name: z.string(),
+  attributes: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").default("{}"),
+  relations: z.unknown().refine((val) => { const getDepth = (obj: unknown, depth: number = 0): number => { if (depth > 10) return depth; if (obj === null || typeof obj !== 'object') return depth; const values = Object.values(obj as Record<string, unknown>); if (values.length === 0) return depth; return Math.max(...values.map(v => getDepth(v, depth + 1))); }; return getDepth(val) <= 10; }, "JSON nesting depth exceeds maximum of 10").nullish(),
+  lastUpdatedAt: z.date(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type MemoryObjectType = z.infer<typeof MemoryObjectSchema>;
 

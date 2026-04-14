@@ -12,6 +12,7 @@
 		"@repo/storage": "workspace:*",
 		"mammoth": "^1.8.0",
 		"pdf-parse": "^1.1.1",
+		"xlsx": "^0.18.5",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {

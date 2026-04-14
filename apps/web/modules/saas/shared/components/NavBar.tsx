@@ -14,6 +14,7 @@ import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import {
 	AlertTriangleIcon,
+	BrainIcon,
 	FileTextIcon,
 	InboxIcon,
 	MailIcon,
@@ -27,8 +28,8 @@ import {
 	type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
 import { config as webConfig } from "@/config";
 import { OrganzationSelect } from "../../organizations/components/OrganizationSelect";
 import { OrgSettingsModal, type OrgTab } from "./OrgSettingsModal";
@@ -56,9 +57,30 @@ export function NavBar() {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const { activeOrganization } = useActiveOrganization();
+	const router = useRouter();
 	const { isCollapsed, toggleCollapsed } = useSidebar();
 	const [orgModalOpen, setOrgModalOpen] = useState(false);
 	const [orgModalTab, setOrgModalTab] = useState<OrgTab>("general");
+
+	useEffect(() => {
+		function handleOpenSettings(e: Event) {
+			const detail = (e as CustomEvent).detail as { tab?: string } | undefined;
+			if (detail?.tab === "ai-memory" && activeOrganization?.slug) {
+				router.push(`/app/${activeOrganization.slug}/ai-memory`);
+				return;
+			}
+			if (detail?.tab === "agent" && activeOrganization?.slug) {
+				router.push(`/app/${activeOrganization.slug}/agent`);
+				return;
+			}
+			if (detail?.tab) {
+				setOrgModalTab(detail.tab as OrgTab);
+			}
+			setOrgModalOpen(true);
+		}
+		window.addEventListener("flowmail:open-settings", handleOpenSettings);
+		return () => window.removeEventListener("flowmail:open-settings", handleOpenSettings);
+	}, [activeOrganization?.slug, router]);
 
 	const bottomRef = React.useRef<HTMLDivElement>(null);
 	const [spotlight, setSpotlight] = React.useState({
@@ -175,13 +197,16 @@ export function NavBar() {
 						groupLabel: "Agent",
 						items: [
 							{
+								label: "AI 记忆",
+								icon: BrainIcon,
+								href: `${basePath}/ai-memory`,
+								isActive: pathname.startsWith(`${basePath}/ai-memory`),
+							},
+							{
 								label: "Agent 接入",
 								icon: PlugIcon,
-								isActive: false,
-								onClick: () => {
-									setOrgModalTab("agent-integration");
-									setOrgModalOpen(true);
-								},
+								href: `${basePath}/agent`,
+								isActive: pathname.startsWith(`${basePath}/agent`),
 							},
 						],
 					},

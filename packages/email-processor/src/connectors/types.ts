@@ -28,6 +28,12 @@ export interface RawEmail {
 	receivedAt: Date;
 	threadId?: string;
 	messageId?: string;
+	isForwarded?: boolean;
+	originalSender?: string;
+	originalSenderName?: string;
+	originalSubject?: string;
+	forwarder?: string;
+	forwarderEmail?: string;
 }
 
 export interface ConnectionCredentials {

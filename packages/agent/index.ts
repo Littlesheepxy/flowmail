@@ -14,11 +14,16 @@ export {
 	createCompareEntitiesTool,
 	createReminderTool,
 } from "./tools/advanced-tools";
+export { createSandboxTools } from "./tools/sandbox-tools";
+export { createReplyTools } from "./tools/reply-tools";
+export { createMemoryTools } from "./tools/memory-tools";
 
 export {
 	MEMORY_CATEGORIES,
 	MEMORY_SCOPES,
 	CATEGORY_LABELS,
+	MEMORY_OBJECT_TYPES,
+	OBJECT_TYPE_TEMPLATES,
 } from "./core/types";
 
 export type {
@@ -30,6 +35,10 @@ export type {
 	MemoryScope,
 	MemoryOrigin,
 	RecallOptions,
+	MemoryObjectType,
+	MemoryObjectEntry,
+	MemoryObjectRelation,
+	ObjectTypeTemplate,
 } from "./core/types";
 
 export type { MCPClientConfig, MCPServerInfo, PluginManifest, PluginLoader } from "./mcp/types";
@@ -44,4 +53,6 @@ export type {
 	RecordFeedbackParams,
 	RecordProjectContextParams,
 	RecordReferenceParams,
+	UpsertObjectParams,
+	UpsertObjectResult,
 } from "./memory/manager";

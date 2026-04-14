@@ -20,16 +20,14 @@ import { cn } from "@repo/ui";
 import {
 	BuildingIcon,
 	CreditCardIcon,
-	PlugIcon,
 	TriangleAlertIcon,
 	UsersIcon,
 	XIcon,
 } from "lucide-react";
-import { OpenClawSettings } from "@/modules/flowmail/components/OpenClawSettings";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-export type OrgTab = "general" | "members" | "billing" | "agent-integration" | "danger-zone";
+export type OrgTab = "general" | "members" | "billing" | "danger-zone";
 
 interface OrgSettingsModalProps {
 	open: boolean;
@@ -72,11 +70,6 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 					},
 				]
 			: []),
-	{
-		id: "agent-integration" as const,
-		title: "Agent 接入",
-		icon: PlugIcon,
-	},
 	...(isOrganizationAdmin
 		? [
 				{
@@ -206,13 +199,6 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 										activePlanId={activePlan?.id}
 									/>
 								</SettingsList>
-							)}
-
-							{activeTab === "agent-integration" && (
-								<OpenClawSettings
-									organizationId={activeOrganization.id}
-									mcpEndpointUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/mcp`}
-								/>
 							)}
 
 							{activeTab === "danger-zone" && (

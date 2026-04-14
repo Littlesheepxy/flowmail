@@ -185,11 +185,21 @@ export const syncEmailConnection = protectedProcedure
 				continue;
 			}
 
+			const effectiveSender = email.isForwarded && email.originalSenderName
+				? email.originalSenderName
+				: email.sender;
+			const effectiveSenderEmail = email.isForwarded && email.originalSender
+				? email.originalSender
+				: email.senderEmail;
+			const effectiveSubject = email.isForwarded && email.originalSubject
+				? email.originalSubject
+				: email.subject;
+
 			const result = await processEmailRaw({
 				threadId: email.threadId ?? email.externalId,
-				subject: email.subject,
-				sender: email.sender,
-				senderEmail: email.senderEmail,
+				subject: effectiveSubject,
+				sender: effectiveSender,
+				senderEmail: effectiveSenderEmail,
 				content: email.content,
 				bodyHtml: email.bodyHtml,
 				bodyText: email.bodyText,

@@ -4,6 +4,7 @@ import { getSignedUrl } from "@repo/storage";
 import { z } from "zod";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
+import * as XLSX from "xlsx";
 
 function isStorageEnabled() {
 	return !!(process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY_ID);
@@ -81,7 +82,7 @@ export function createAttachmentTools() {
 
 		read_attachment: tool({
 			description:
-				"读取附件的文字内容。支持 PDF（提取文字层）、Word 文档（.docx/.doc）、纯文本。图片类型返回下载链接。用户问【帮我看看这个 PDF 说了什么】【读一下附件内容】【分析这份合同】【这个文件里有什么】时调用。需要先用 list_attachments 拿到 attachment ID。",
+				"读取附件的文字内容。支持 PDF、Word（.docx/.doc）、Excel（.xlsx/.xls/.csv）、纯文本。图片类型返回下载链接。用户问【帮我看看这个 PDF 说了什么】【读一下附件内容】【分析这份合同】【这个表格里有什么数据】时调用。需要先用 list_attachments 拿到 attachment ID。",
 			inputSchema: z.object({
 				attachmentId: z.string().describe("从 list_attachments 结果中获取的附件 ID"),
 			}),
@@ -137,6 +138,13 @@ export function createAttachmentTools() {
 					mime.includes("word") ||
 					filename.toLowerCase().endsWith(".docx") ||
 					filename.toLowerCase().endsWith(".doc");
+				const isExcel =
+					mime.includes("spreadsheetml") ||
+					mime.includes("ms-excel") ||
+					mime === "text/csv" ||
+					filename.toLowerCase().endsWith(".xlsx") ||
+					filename.toLowerCase().endsWith(".xls") ||
+					filename.toLowerCase().endsWith(".csv");
 
 				if (isImage) {
 					return {
@@ -166,6 +174,18 @@ export function createAttachmentTools() {
 					} else if (isWord) {
 						const result = await mammoth.extractRawText({ buffer: buf });
 						content = result.value || "[Word 文档解析成功但无文字内容]";
+					} else if (isExcel) {
+						const workbook = XLSX.read(buf, { type: "buffer" });
+						const parts: string[] = [];
+						for (const sheetName of workbook.SheetNames) {
+							const sheet = workbook.Sheets[sheetName];
+							if (!sheet) { continue; }
+							const csv = XLSX.utils.sheet_to_csv(sheet);
+							const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+							parts.push(`## Sheet: ${sheetName} (${jsonData.length} 行)`);
+							parts.push(csv);
+						}
+						content = parts.join("\n\n") || "[Excel 解析成功但无数据]";
 					} else {
 						return {
 							filename: attachment.filename,
