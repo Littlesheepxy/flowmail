@@ -37,6 +37,8 @@ export const syncEmailConnection = protectedProcedure
 
 		const connector = getConnector(connectionWithToken.provider);
 
+		const syncCursor = input.force ? undefined : connectionWithToken.syncCursor;
+
 		const { emails, newCursor } = await connector.fetchNewEmails(
 			{
 				provider: connectionWithToken.provider,
@@ -49,13 +51,15 @@ export const syncEmailConnection = protectedProcedure
 				authType: connectionWithToken.authType,
 				maxSyncCount: connectionWithToken.maxSyncCount,
 			},
-			connectionWithToken.syncCursor,
+			syncCursor ?? null,
 		);
 
 		let processed = 0;
 		let skipped = 0;
+		let updated = 0;
 		let errors = 0;
 		const newEntityIds: string[] = [];
+		const forceRefresh = input.force === true;
 
 		for (const email of emails) {
 			const existing = await db.emailThread.findUnique({
@@ -66,6 +70,24 @@ export const syncEmailConnection = protectedProcedure
 					},
 				},
 			});
+
+			if (existing && forceRefresh) {
+				try {
+					await db.emailThread.update({
+						where: { id: existing.id },
+						data: {
+							bodyHtml: email.bodyHtml ?? existing.bodyHtml,
+							bodyText: email.bodyText ?? existing.bodyText,
+							snippet: (email.bodyText || email.content || "").slice(0, 200) || existing.snippet,
+							subject: email.subject || existing.subject,
+						},
+					});
+					updated++;
+				} catch {
+					errors++;
+				}
+				continue;
+			}
 
 			if (existing) {
 				skipped++;
@@ -135,6 +157,7 @@ export const syncEmailConnection = protectedProcedure
 			fetched: emails.length,
 			processed,
 			skipped,
+			updated,
 			errors,
 		};
 	});

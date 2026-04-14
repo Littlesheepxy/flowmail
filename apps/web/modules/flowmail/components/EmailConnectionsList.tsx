@@ -48,6 +48,7 @@ import {
 	ShieldCheckIcon,
 	SparklesIcon,
 	TrashIcon,
+	WrenchIcon,
 	ZapIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -235,9 +236,13 @@ export function EmailConnectionsList() {
 				queryClient.invalidateQueries({
 					queryKey: orpc.flowEntities.list.key(),
 				});
+				const parts = [`导入 ${result.processed} 封邮件`];
+				if (result.updated) { parts.push(`更新 ${result.updated} 封`); }
+				if (result.skipped) { parts.push(`跳过 ${result.skipped} 封已有`); }
+				if (result.errors) { parts.push(`${result.errors} 封失败`); }
 				toast.success(
-					`同步完成：导入 ${result.processed} 封邮件${result.skipped ? `，跳过 ${result.skipped} 封已有` : ""}${result.errors ? `，${result.errors} 封失败` : ""}`,
-					{ description: "邮件已导入，可在列表中点击「AI 分析」运行智能分类。" },
+					`同步完成：${parts.join("，")}`,
+					{ description: result.updated ? "已修复编码并更新邮件内容。" : "邮件已导入，可在列表中点击「AI 分析」运行智能分类。" },
 				);
 			},
 			onError: (err) => {
@@ -587,6 +592,28 @@ export function EmailConnectionsList() {
 												) : (
 													<RefreshCwIcon className="size-4" />
 												)}
+											</Button>
+											<Button
+												size="icon"
+												variant="ghost"
+												title="重新同步（修复乱码）"
+												disabled={syncMutation.isPending}
+												onClick={() => {
+													toast.loading(`正在重新同步 ${conn.email} ...`, {
+														id: `resync-${conn.id}`,
+														description: "重新下载邮件内容并修复编码，请稍候",
+													});
+													syncMutation.mutate(
+														{ connectionId: conn.id, force: true },
+														{
+															onSettled: () => {
+																toast.dismiss(`resync-${conn.id}`);
+															},
+														},
+													);
+												}}
+											>
+												<WrenchIcon className="size-4 text-amber-500" />
 											</Button>
 											<Button
 												size="icon"

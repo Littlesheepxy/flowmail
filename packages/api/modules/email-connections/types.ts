@@ -28,6 +28,7 @@ export const disconnectSchema = z.object({
 
 export const syncConnectionSchema = z.object({
 	connectionId: z.string(),
+	force: z.boolean().optional(),
 });
 
 export const testConnectionSchema = z.object({

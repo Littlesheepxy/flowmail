@@ -745,22 +745,62 @@ function RecipientLine({ to, cc }: { to: EmailRecipient[]; cc: EmailRecipient[] 
 
 // ─── Email Body ───
 
-function decodeQuotedPrintable(str: string): string {
-	if (!/=[0-9A-Fa-f]{2}/.test(str)) {
-		return str;
+function decodeEmailContent(str: string): string {
+	let result = str;
+
+	// 1) Base64 encoded content (e.g. GB2312/GBK emails stored as raw base64)
+	if (/^[A-Za-z0-9+/\s]+=*\s*$/.test(result.trim()) && result.trim().length > 100) {
+		try {
+			const binary = atob(result.replace(/\s+/g, ""));
+			const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+
+			// Try GB2312/GBK first (common for Chinese emails)
+			const gbkDecoded = new TextDecoder("gbk", { fatal: true }).decode(bytes);
+			if (gbkDecoded.length > 0) {
+				return gbkDecoded;
+			}
+		} catch {
+			try {
+				const binary = atob(result.replace(/\s+/g, ""));
+				const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+				return new TextDecoder("utf-8").decode(bytes);
+			} catch {
+				// fall through
+			}
+		}
 	}
-	return str
-		.replace(/=\r?\n/g, "")
-		.replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
-			String.fromCharCode(Number.parseInt(hex, 16)),
-		);
+
+	// 2) Mojibake repair: UTF-8 bytes misinterpreted as Latin-1
+	//    Detects patterns like Ã¥ Ã¨ Ã© (common UTF-8-as-Latin-1 garbling for CJK)
+	if (/[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}/.test(result) && /[Ã¤Ã¥Ã¦Ã§Ã¨Ã©Ã¯Ã¬Ã­Ã°Ã±]/.test(result)) {
+		try {
+			const bytes = Uint8Array.from(result, (c) => c.charCodeAt(0));
+			const repaired = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+			if (/[\u4e00-\u9fff]/.test(repaired)) {
+				return repaired;
+			}
+		} catch {
+			// fall through
+		}
+	}
+
+	// 3) Quoted-printable
+	if (/=[0-9A-Fa-f]{2}/.test(result)) {
+		result = result
+			.replace(/=\r?\n/g, "")
+			.replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
+				String.fromCharCode(Number.parseInt(hex, 16)),
+			);
+	}
+
+	return result;
 }
 
 function EmailBody({ thread }: { thread: ThreadItem }) {
 	const [showQuoted, setShowQuoted] = useState(false);
 
 	if (thread.bodyHtml) {
-		const decoded = decodeQuotedPrintable(thread.bodyHtml);
+		const decoded = decodeEmailContent(thread.bodyHtml);
 		const sanitizedHtml = DOMPurify.sanitize(decoded);
 		return (
 			<div className="email-body-wrapper">
@@ -781,7 +821,7 @@ function EmailBody({ thread }: { thread: ThreadItem }) {
 	}
 
 	if (thread.bodyText) {
-		const decoded = decodeQuotedPrintable(thread.bodyText);
+		const decoded = decodeEmailContent(thread.bodyText);
 		return (
 			<pre className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap font-sans">
 				{decoded}
