@@ -4,6 +4,7 @@ export interface RawEmailAttachment {
 	size?: number;
 	externalId: string;
 	contentId?: string;
+	content?: Buffer;
 }
 
 export interface EmailRecipient {

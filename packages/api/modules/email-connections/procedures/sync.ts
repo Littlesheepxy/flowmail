@@ -1,10 +1,67 @@
 import { ORPCError } from "@orpc/client";
 import { db, decryptSensitiveFields } from "@repo/database";
 import { getConnector, processEmailRaw, enrichEntityById } from "@repo/email-processor";
+import type { RawEmailAttachment } from "@repo/email-processor";
+import { uploadObject } from "@repo/storage";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 import { syncConnectionSchema } from "../types";
+
+const STORAGE_ENABLED = !!(
+	process.env.S3_ENDPOINT &&
+	process.env.S3_ACCESS_KEY_ID &&
+	process.env.S3_SECRET_ACCESS_KEY
+);
+
+async function uploadAttachmentsForThread(
+	threadId: string,
+	organizationId: string,
+	attachments: RawEmailAttachment[],
+) {
+	if (!STORAGE_ENABLED) {
+		return;
+	}
+
+	const dbAttachments = await db.emailAttachment.findMany({
+		where: { threadId },
+		select: { id: true, filename: true, storageKey: true, externalId: true },
+	});
+
+	for (const att of attachments) {
+		if (!att.content || att.content.length === 0) {
+			continue;
+		}
+
+		const dbAtt = dbAttachments.find(
+			(d) => d.externalId === att.externalId || d.filename === att.filename,
+		);
+		if (!dbAtt || dbAtt.storageKey) {
+			continue;
+		}
+
+		const ext = att.filename.split(".").pop() ?? "bin";
+		const storageKey = `${organizationId}/${threadId}/${dbAtt.id}.${ext}`;
+
+		try {
+			await uploadObject(storageKey, att.content, {
+				bucket: "attachments",
+				contentType: att.mimeType ?? "application/octet-stream",
+			});
+
+			await db.emailAttachment.update({
+				where: { id: dbAtt.id },
+				data: { storageKey },
+			});
+		} catch (err) {
+			console.error("[Sync] Attachment upload failed", {
+				threadId,
+				filename: att.filename,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		}
+	}
+}
 
 export const syncEmailConnection = protectedProcedure
 	.route({
@@ -97,6 +154,12 @@ export const syncEmailConnection = protectedProcedure
 								})),
 							});
 						}
+
+						await uploadAttachmentsForThread(
+							existing.id,
+							connectionWithToken.organizationId,
+							email.attachments,
+						);
 					}
 
 					updated++;
@@ -133,6 +196,25 @@ export const syncEmailConnection = protectedProcedure
 				processed++;
 				if (result.entityId) {
 					newEntityIds.push(result.entityId);
+				}
+
+				if (email.attachments && email.attachments.length > 0 && email.attachments.some((a) => a.content)) {
+					const thread = await db.emailThread.findUnique({
+						where: {
+							connectionId_externalThreadId: {
+								connectionId: connectionWithToken.id,
+								externalThreadId: email.externalId,
+							},
+						},
+						select: { id: true },
+					});
+					if (thread) {
+						await uploadAttachmentsForThread(
+							thread.id,
+							connectionWithToken.organizationId,
+							email.attachments,
+						);
+					}
 				}
 			} else {
 				errors++;

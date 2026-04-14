@@ -1,7 +1,64 @@
 import { db, decryptSensitiveFields } from "@repo/database";
 import { getConnector, processEmailRaw, enrichEntityById } from "@repo/email-processor";
+import type { RawEmailAttachment } from "@repo/email-processor";
 import { logger } from "@repo/logs";
+import { uploadObject } from "@repo/storage";
 import { type NextRequest, NextResponse } from "next/server";
+
+const STORAGE_ENABLED = !!(
+	process.env.S3_ENDPOINT &&
+	process.env.S3_ACCESS_KEY_ID &&
+	process.env.S3_SECRET_ACCESS_KEY
+);
+
+async function uploadAttachmentsForThread(
+	threadId: string,
+	organizationId: string,
+	attachments: RawEmailAttachment[],
+) {
+	if (!STORAGE_ENABLED) {
+		return;
+	}
+
+	const dbAttachments = await db.emailAttachment.findMany({
+		where: { threadId },
+		select: { id: true, filename: true, storageKey: true, externalId: true },
+	});
+
+	for (const att of attachments) {
+		if (!att.content || att.content.length === 0) {
+			continue;
+		}
+
+		const dbAtt = dbAttachments.find(
+			(d) => d.externalId === att.externalId || d.filename === att.filename,
+		);
+		if (!dbAtt || dbAtt.storageKey) {
+			continue;
+		}
+
+		const ext = att.filename.split(".").pop() ?? "bin";
+		const storageKey = `${organizationId}/${threadId}/${dbAtt.id}.${ext}`;
+
+		try {
+			await uploadObject(storageKey, att.content, {
+				bucket: "attachments",
+				contentType: att.mimeType ?? "application/octet-stream",
+			});
+
+			await db.emailAttachment.update({
+				where: { id: dbAtt.id },
+				data: { storageKey },
+			});
+		} catch (err) {
+			logger.warn("Cron attachment upload failed", {
+				threadId,
+				filename: att.filename,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		}
+	}
+}
 
 export const maxDuration = 120;
 
@@ -81,6 +138,21 @@ export async function GET(request: NextRequest) {
 					processed++;
 					if (result.entityId) {
 						newEntityIds.push(result.entityId);
+					}
+
+					if (email.attachments && email.attachments.length > 0 && email.attachments.some((a) => a.content)) {
+						const thread = await db.emailThread.findUnique({
+							where: {
+								connectionId_externalThreadId: {
+									connectionId: conn.id,
+									externalThreadId: email.externalId,
+								},
+							},
+							select: { id: true },
+						});
+						if (thread) {
+							await uploadAttachmentsForThread(thread.id, conn.organizationId, email.attachments);
+						}
 					}
 				} else {
 					errors++;

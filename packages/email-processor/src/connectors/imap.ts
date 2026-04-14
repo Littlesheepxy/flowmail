@@ -132,6 +132,7 @@ export const imapConnector: EmailConnector = {
 							size: att.size,
 							externalId: att.contentId ?? att.checksum ?? `${rfcMessageId ?? uid}-${att.filename}`,
 							contentId: att.contentId ?? undefined,
+							content: att.content,
 						}));
 
 					emails.push({
