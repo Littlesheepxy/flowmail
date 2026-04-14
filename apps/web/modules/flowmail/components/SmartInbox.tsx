@@ -25,6 +25,7 @@ import {
 import {
 	Tooltip,
 	TooltipContent,
+	TooltipProvider,
 	TooltipTrigger,
 } from "@repo/ui/components/tooltip";
 import {
@@ -276,38 +277,40 @@ export function SmartInbox() {
 						</Popover>
 					)}
 
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={() => {
-									if (!activeOrganization?.id) {
-										return;
-									}
-									autoAiMutation.mutate({
-										organizationId: activeOrganization.id,
-										autoAiAnalysis: !autoAiEnabled,
-									});
-								}}
-								className={cn(
-									"flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors",
-									autoAiEnabled
-										? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-										: "text-muted-foreground/60 hover:bg-background/60",
-								)}
-							>
-								<ZapIcon className={cn("size-3.5", autoAiEnabled && "fill-current")} />
-								<span className="hidden sm:inline">自动</span>
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom">
-							<p className="text-xs">
-								{autoAiEnabled
-									? "自动 AI 分析已开启：新邮件会自动进行 AI 分类"
-									: "自动 AI 分析已关闭：新邮件需要手动触发分析"}
-							</p>
-						</TooltipContent>
-					</Tooltip>
+					<TooltipProvider>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={() => {
+										if (!activeOrganization?.id) {
+											return;
+										}
+										autoAiMutation.mutate({
+											organizationId: activeOrganization.id,
+											autoAiAnalysis: !autoAiEnabled,
+										});
+									}}
+									className={cn(
+										"flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors",
+										autoAiEnabled
+											? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+											: "text-muted-foreground/60 hover:bg-background/60",
+									)}
+								>
+									<ZapIcon className={cn("size-3.5", autoAiEnabled && "fill-current")} />
+									<span className="hidden sm:inline">自动</span>
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom">
+								<p className="text-xs">
+									{autoAiEnabled
+										? "自动 AI 分析已开启：新邮件会自动进行 AI 分类"
+										: "自动 AI 分析已关闭：新邮件需要手动触发分析"}
+								</p>
+							</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
 
 					<button
 						type="button"
