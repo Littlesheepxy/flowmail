@@ -83,6 +83,7 @@ export async function processInboundEmail(
 			};
 		}
 
+		// ── Thread 匹配：同主题同发件人 → 归并到已有事项，而不是丢弃 ────────────────
 		const existingByThread = await db.emailThread.findFirst({
 			where: {
 				organizationId: input.organizationId,
@@ -95,23 +96,90 @@ export async function processInboundEmail(
 				entityId: { not: null },
 			},
 			orderBy: { receivedAt: "desc" },
-			select: { entityId: true },
+			select: { entityId: true, id: true },
 		});
 
-		if (existingByThread?.entityId) {
-			return {
-				success: true,
-				duplicate: true,
-				entityId: existingByThread.entityId,
-				inboundEmailId: undefined,
-			};
-		}
-
-		// ── Step 1: 立即写库，前台秒显示 ──────────────────────────────────────────
-		// 不等 AI，先用 subject 作为 title、FEEDBACK 作为默认类型创建 entity + thread
 		const entityTitle =
 			input.subject.replace(/^(Fwd?:|Fw:|转发：)\s*/gi, "").trim() ||
 			"Untitled";
+
+		// 归并模式：追加新邮件到已有事项
+		if (existingByThread?.entityId) {
+			const inboundEmail = await db.inboundEmail.create({
+				data: {
+					organizationId: input.organizationId,
+					fromEmail: input.fromEmail,
+					subject: input.subject,
+					textBody: input.textBody,
+					htmlBody: input.htmlBody,
+					rawHeaders: input.rawHeaders,
+					rawPayload: input.rawPayload as never,
+					contentHash,
+					entityId: existingByThread.entityId,
+					processedAt: new Date(),
+				},
+			});
+
+			const thread = await db.emailThread.create({
+				data: {
+					organizationId: input.organizationId,
+					entityId: existingByThread.entityId,
+					externalThreadId: inboundEmail.id,
+					subject: input.subject,
+					sender: input.fromEmail,
+					senderName: input.fromEmail.split("@")[0],
+					snippet: (input.textBody || stripHtml(input.htmlBody || "")).slice(0, 200),
+					bodyHtml: input.htmlBody,
+					bodyText: input.textBody,
+					messageId: (input.rawPayload as Record<string, unknown>)?.message_id as string | undefined,
+					participants: JSON.stringify([input.fromEmail]),
+					receivedAt: new Date(),
+				},
+			});
+
+			if (input.attachments && input.attachments.length > 0) {
+				await db.emailAttachment.createMany({
+					data: input.attachments.map((att) => ({
+						threadId: thread.id,
+						filename: att.filename,
+						mimeType: att.mimeType,
+						size: att.size,
+						externalId: att.externalId,
+						contentId: att.contentId,
+						storageKey: att.storageKey,
+					})),
+				});
+			}
+
+			await db.timelineEvent.create({
+				data: {
+					entityId: existingByThread.entityId,
+					type: "email_received",
+					content: `追加邮件 from ${input.fromEmail}: ${input.subject}`,
+					metadata: JSON.stringify({
+						source: "inbound_merged",
+						fromEmail: input.fromEmail,
+						subject: input.subject,
+					}),
+				},
+			});
+
+			await db.flowEntity.update({
+				where: { id: existingByThread.entityId },
+				data: { updatedAt: new Date() },
+			});
+
+			return {
+				success: true,
+				duplicate: false,
+				inboundEmailId: inboundEmail.id,
+				entityId: existingByThread.entityId,
+				entityTitle,
+				categorySlug: "merged",
+			};
+		}
+
+		// ── Step 1: 全新事项 — 立即写库，前台秒显示 ──────────────────────────────────
 
 		const inboundEmail = await db.inboundEmail.create({
 			data: {
