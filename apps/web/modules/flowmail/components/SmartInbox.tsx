@@ -179,14 +179,17 @@ export function SmartInbox() {
 		<div
 			data-module="inbox"
 			className="flex flex-col h-dvh overflow-hidden fixed inset-0 z-10 bg-muted/40 transition-[left] duration-300 ease-in-out"
-			style={{ left: isMobile ? 0 : isCollapsed ? 64 : 260 }}
+			style={{
+				left: isMobile ? 0 : isCollapsed ? 64 : 260,
+				paddingTop: isMobile ? "env(safe-area-inset-top)" : undefined,
+			}}
 		>
 			{/* Top bar */}
-			<div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 shrink-0">
+			<div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-2 shrink-0">
 				{showMobileDetail && (
 					<button
 						type="button"
-						className="shrink-0 flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-background/60 transition-colors"
+						className="shrink-0 flex items-center justify-center size-9 md:size-8 rounded-lg text-muted-foreground hover:bg-background/60 transition-colors"
 						onClick={() => setSelectedEntityId(null)}
 					>
 						<ArrowLeftIcon className="size-4" />
@@ -201,7 +204,7 @@ export function SmartInbox() {
 							placeholder="搜索邮件、审批、汇报..."
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
-							className="w-full rounded-full bg-background/80 py-1.5 pl-9 pr-4 text-sm outline-none border border-border/50 focus:bg-background focus:border-border focus:ring-1 focus:ring-primary/20 transition-colors"
+							className="w-full rounded-full bg-background/80 py-2 md:py-1.5 pl-9 pr-4 text-sm outline-none border border-border/50 focus:bg-background focus:border-border focus:ring-1 focus:ring-primary/20 transition-colors"
 						/>
 					</div>
 				)}
@@ -210,7 +213,7 @@ export function SmartInbox() {
 					<span className="flex-1 text-sm font-medium truncate">详情</span>
 				)}
 
-				<div className="flex items-center gap-1 ml-auto">
+				<div className="flex items-center gap-1 ml-auto shrink-0">
 					{!showMobileDetail && (
 						<Popover open={filterOpen} onOpenChange={setFilterOpen}>
 							<div className="flex items-center">
@@ -218,7 +221,7 @@ export function SmartInbox() {
 									<button
 										type="button"
 										className={cn(
-											"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+											"flex items-center gap-1.5 rounded-lg px-2.5 py-2 md:py-1.5 text-xs transition-colors",
 											categorySlug
 												? "bg-primary/10 text-primary rounded-r-none"
 												: "text-muted-foreground hover:bg-background/60",
@@ -235,7 +238,7 @@ export function SmartInbox() {
 								{categorySlug && (
 									<button
 										type="button"
-										className="rounded-lg rounded-l-none bg-primary/10 text-primary px-1.5 py-1.5 hover:bg-primary/20 transition-colors"
+										className="rounded-lg rounded-l-none bg-primary/10 text-primary px-1.5 py-2 md:py-1.5 hover:bg-primary/20 transition-colors"
 										onClick={clearFilter}
 									>
 										<XIcon className="size-3" />
@@ -292,7 +295,7 @@ export function SmartInbox() {
 										});
 									}}
 									className={cn(
-										"flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors",
+										"flex items-center gap-1 rounded-lg px-2 py-2 md:py-1.5 text-xs transition-colors",
 										autoAiEnabled
 											? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
 											: "text-muted-foreground/60 hover:bg-background/60",
@@ -322,7 +325,7 @@ export function SmartInbox() {
 							}
 						}}
 						className={cn(
-							"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+							"flex items-center gap-1.5 rounded-lg px-2.5 py-2 md:py-1.5 text-xs transition-colors",
 							(isMobile ? mobileAgentOpen : agentOpen)
 								? "bg-background text-primary shadow-sm"
 								: "text-muted-foreground hover:bg-background/60",

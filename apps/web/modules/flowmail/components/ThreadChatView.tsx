@@ -276,7 +276,7 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 
 	return (
 		<div className="flex flex-col h-full">
-			<div className="px-3 md:px-5 py-3 border-b shrink-0 flex items-start justify-between gap-2">
+			<div className="px-3 md:px-5 py-2 md:py-3 border-b shrink-0 flex items-start justify-between gap-2">
 				{onBack && (
 					<button
 						type="button"
@@ -288,7 +288,7 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 				)}
 				<div className="min-w-0 flex-1">
 					<div className="flex items-center gap-2 mb-0.5">
-						<h2 className="text-sm md:text-base font-semibold truncate">{entity.title}</h2>
+						<h2 className="text-sm md:text-base font-semibold truncate leading-tight">{entity.title}</h2>
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -400,10 +400,10 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 
 		{/* Bottom action buttons */}
 		{!showComposer && threads.length > 0 && (
-			<div className="border-t px-3 md:px-5 py-3 shrink-0 flex items-center gap-2">
+			<div className="border-t px-3 md:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0 flex items-center gap-2">
 				<Button
 					variant="secondary"
-					className="gap-2"
+					className="flex-1 gap-1.5"
 					onClick={() => openComposer("reply")}
 				>
 					<ReplyIcon className="size-4" />
@@ -411,7 +411,15 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 				</Button>
 				<Button
 					variant="secondary"
-					className="gap-2"
+					className="flex-1 gap-1.5"
+					onClick={() => openComposer("replyAll")}
+				>
+					<ReplyAllIcon className="size-4" />
+					全部回复
+				</Button>
+				<Button
+					variant="secondary"
+					className="flex-1 gap-1.5"
 					onClick={() => openComposer("forward")}
 				>
 					<ForwardIcon className="size-4" />
@@ -910,7 +918,7 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 	}
 
 	return (
-		<div className="flex items-center gap-2 rounded-lg border px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors group max-w-[240px]">
+		<div className="flex items-center gap-2 rounded-lg border px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors group max-w-full md:max-w-[240px]">
 			<Icon className="size-4 text-muted-foreground shrink-0" />
 			<div className="flex-1 min-w-0">
 				<p className="text-xs font-medium truncate">{attachment.filename}</p>
@@ -926,7 +934,7 @@ function AttachmentChip({ attachment }: { attachment: AttachmentItem }) {
 					type="button"
 					onClick={handleDownload}
 					disabled={downloading}
-					className="size-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-background transition-all disabled:opacity-50"
+					className="size-6 flex items-center justify-center rounded md:opacity-0 md:group-hover:opacity-100 hover:bg-background transition-all disabled:opacity-50"
 					title="下载"
 				>
 					{downloading ? (
@@ -1844,13 +1852,13 @@ function EntityActionBar({
 	}
 
 	return (
-		<div className="shrink-0 border-b bg-muted/20 px-3 md:px-5 py-3 space-y-2.5">
+		<div className="shrink-0 border-b bg-muted/20 px-3 md:px-5 py-2 md:py-3 space-y-2">
 			{keyFields.length > 0 && (
-				<div className="flex flex-wrap gap-x-4 gap-y-1">
+				<div className="grid grid-cols-2 md:flex md:flex-wrap gap-x-4 gap-y-1">
 					{keyFields.map((f) => (
 						<div key={f.label} className="flex items-center gap-1.5 text-xs">
 							<span className="text-muted-foreground">{f.label}</span>
-							<span className="font-medium">{f.value}</span>
+							<span className="font-medium truncate">{f.value}</span>
 						</div>
 					))}
 				</div>

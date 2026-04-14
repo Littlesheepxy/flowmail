@@ -94,7 +94,7 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-[700px]! max-w-[90vw]! h-[580px] max-h-[88vh] p-0 gap-0 rounded-2xl overflow-hidden [&>button]:hidden">
+			<DialogContent className="w-full h-full max-w-none max-h-none rounded-none md:w-[700px]! md:max-w-[90vw]! md:h-[580px] md:max-h-[88vh] md:rounded-2xl p-0 gap-0 overflow-hidden [&>button]:hidden">
 				<DialogTitle className="sr-only">
 					{t("organizations.settings.title")}
 				</DialogTitle>
@@ -102,15 +102,15 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 				<button
 					type="button"
 					onClick={() => onOpenChange(false)}
-					className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
+					className="absolute right-4 top-3 md:top-4 z-10 rounded-full p-1.5 text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
 				>
 					<XIcon className="size-4" />
 				</button>
 
-				<div className="flex h-full w-full overflow-hidden">
-					{/* Left sidebar */}
-					<div className="w-[160px] shrink-0 bg-muted/30 p-3 overflow-y-auto border-r border-border/50">
-						<div className="mb-3 px-2 pt-1">
+				<div className="flex flex-col md:flex-row h-full w-full overflow-hidden">
+					{/* Navigation — horizontal tabs on mobile, vertical sidebar on desktop */}
+					<div className="shrink-0 bg-muted/30 md:w-[160px] md:p-3 md:overflow-y-auto md:border-r border-b md:border-b-0 border-border/50">
+						<div className="hidden md:block mb-3 px-2 pt-1">
 							<p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
 								{t("settings.menu.organization.title")}
 							</p>
@@ -118,7 +118,35 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 								{activeOrganization.name}
 							</p>
 						</div>
-						<nav className="space-y-0.5">
+
+						{/* Mobile: horizontal scroll tabs */}
+						<div className="flex md:hidden items-center gap-1 px-3 pt-3 pb-2 overflow-x-auto scrollbar-none">
+							<p className="shrink-0 text-xs font-medium text-foreground/70 mr-1">
+								{activeOrganization.name}
+							</p>
+							{menuItems.map((item) => {
+								const Icon = item.icon;
+								return (
+									<button
+										key={item.id}
+										type="button"
+										onClick={() => setActiveTab(item.id)}
+										className={cn(
+											"shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all",
+											activeTab === item.id
+												? "bg-background text-foreground font-medium shadow-sm"
+												: "text-muted-foreground hover:bg-background/60",
+										)}
+									>
+										<Icon className="size-3.5 shrink-0" />
+										<span>{item.title}</span>
+									</button>
+								);
+							})}
+						</div>
+
+						{/* Desktop: vertical nav */}
+						<nav className="hidden md:block space-y-0.5">
 							{menuItems.map((item) => {
 								const Icon = item.icon;
 								return (
@@ -141,15 +169,15 @@ export function OrgSettingsModal({ open, onOpenChange, defaultTab }: OrgSettings
 						</nav>
 					</div>
 
-					{/* Right content */}
+					{/* Content */}
 					<div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-						<div className="px-6 pt-5 pb-3 shrink-0 border-b border-border/50">
+						<div className="hidden md:block px-6 pt-5 pb-3 shrink-0 border-b border-border/50">
 							<h2 className="text-base font-semibold">
 								{menuItems.find((item) => item.id === activeTab)?.title}
 							</h2>
 						</div>
 
-						<div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4">
+						<div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4">
 							{activeTab === "general" && (
 								<SettingsList>
 									<OrganizationLogoForm />

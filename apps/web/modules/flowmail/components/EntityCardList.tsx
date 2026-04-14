@@ -248,14 +248,14 @@ export function EntityCardList({
 		<div className="flex-1 overflow-y-auto relative">
 			{/* Select mode toggle */}
 			{filteredEntities.length > 0 && (
-				<div className="flex items-center justify-between px-3 py-1.5 border-b bg-background/95 backdrop-blur-sm">
+				<div className="flex items-center justify-between px-3 py-2 md:py-1.5 border-b bg-background/95 backdrop-blur-sm">
 					{selectMode ? (
 						<>
 							<div className="flex items-center gap-2">
 								<button
 									type="button"
 									onClick={selectedIds.size === filteredEntities.length ? () => setSelectedIds(new Set()) : selectAll}
-									className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+									className="text-xs py-1 text-muted-foreground hover:text-foreground transition-colors"
 								>
 									{selectedIds.size === filteredEntities.length ? "取消全选" : "全选"}
 								</button>
@@ -326,7 +326,7 @@ export function EntityCardList({
 				</div>
 			)}
 			{unanalyzedCount > 0 && (
-				<div className="flex items-center justify-between px-3 py-2 border-b bg-amber-50/50 dark:bg-amber-950/20">
+				<div className="flex items-center justify-between px-3 py-2.5 md:py-2 border-b bg-amber-50/50 dark:bg-amber-950/20">
 					<span className="text-xs text-amber-700 dark:text-amber-400">
 						{unanalyzedCount} 封邮件待 AI 分析
 					</span>
@@ -511,7 +511,7 @@ function EntityCard({
 			data-entity-card
 			onClick={onSelect}
 			className={cn(
-				"w-full text-left px-3 py-3 md:py-3 border-b transition-colors flex gap-2.5 active:bg-muted/70 group/card",
+				"w-full text-left px-3 py-3.5 md:py-3 border-b transition-colors flex gap-2.5 active:bg-muted/70 group/card",
 				isSelected
 					? "bg-primary/5 border-l-2 border-l-primary"
 					: "hover:bg-muted/50 border-l-2 border-l-transparent",
@@ -627,10 +627,10 @@ function EntityCard({
 								<button
 									type="button"
 									onClick={(e) => e.stopPropagation()}
-									className="ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10 hover:text-destructive"
+									className="ml-auto md:opacity-0 md:group-hover/card:opacity-100 transition-opacity p-1 md:p-0.5 rounded hover:bg-destructive/10 hover:text-destructive"
 									title="删除"
 								>
-									<Trash2Icon className="size-3" />
+									<Trash2Icon className="size-3.5 md:size-3" />
 								</button>
 							</AlertDialogTrigger>
 							<AlertDialogContent onClick={(e) => e.stopPropagation()}>
