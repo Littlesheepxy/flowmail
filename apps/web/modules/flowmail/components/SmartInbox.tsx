@@ -68,6 +68,23 @@ export function SmartInbox() {
 	const isWide = useMediaQuery("(min-width: 1440px)");
 	const searchParams = useSearchParams();
 
+	useEffect(() => {
+		if (!isMobile) {
+			return;
+		}
+		const nav = document.querySelector('[data-module="navigation"]');
+		if (nav instanceof HTMLElement) {
+			nav.style.display = "none";
+		}
+		document.body.style.overflow = "hidden";
+		return () => {
+			if (nav instanceof HTMLElement) {
+				nav.style.display = "";
+			}
+			document.body.style.overflow = "";
+		};
+	}, [isMobile]);
+
 	const { data: aiSettings } = useQuery({
 		...orpc.organizations.getAiSettings.queryOptions({
 			input: { organizationId: activeOrganization?.id ?? "" },
