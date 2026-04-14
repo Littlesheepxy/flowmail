@@ -7,6 +7,17 @@ import { Spinner } from "@repo/ui";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
+import {
 	ArrowLeftIcon,
 	CheckCircle2Icon,
 	ClockIcon,
@@ -23,6 +34,7 @@ import {
 	Reply as ReplyIcon,
 	ForwardIcon,
 	SparklesIcon,
+	Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -248,6 +260,19 @@ export function EntityDetail() {
 		}),
 	);
 
+	const deleteMutation = useMutation(
+		orpc.flowEntities.delete.mutationOptions({
+			onSuccess: () => {
+				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+				toast.success("已删除");
+				window.history.back();
+			},
+			onError: (err) => {
+				toast.error(`删除失败：${err.message}`);
+			},
+		}),
+	);
+
 	const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
 	const [replyMode, setReplyMode] = useState<ReplyMode>("reply");
 
@@ -408,6 +433,35 @@ export function EntityDetail() {
 						)}
 						{entity.aiSummary ? "重新分析" : "AI 分析"}
 					</Button>
+
+					<AlertDialog>
+						<AlertDialogTrigger asChild>
+							<Button variant="outline" size="icon" disabled={deleteMutation.isPending}>
+								{deleteMutation.isPending ? (
+									<Spinner className="size-4" />
+								) : (
+									<Trash2Icon className="size-4 text-destructive" />
+								)}
+							</Button>
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>确认删除</AlertDialogTitle>
+								<AlertDialogDescription>
+									将永久删除「{entity.title}」及其所有邮件和附件，此操作不可撤销。
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>取消</AlertDialogCancel>
+								<AlertDialogAction
+									onClick={() => deleteMutation.mutate({ entityId })}
+									className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								>
+									确认删除
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 					{isApproval && isPending && (
 						<>
 							<Button

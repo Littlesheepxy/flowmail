@@ -7,6 +7,17 @@ import { useActiveOrganization } from "@saas/organizations/hooks/use-active-orga
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
+import {
 	CheckCircle2Icon,
 	ClockIcon,
 	AlertCircleIcon,
@@ -16,8 +27,11 @@ import {
 	MessageSquareIcon,
 	SparklesIcon,
 	XIcon,
+	Trash2Icon,
+	CheckSquareIcon,
+	SquareIcon,
 } from "lucide-react";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { DemoBanner } from "./DemoBanner";
 import { InboxEmptyState } from "./InboxEmptyState";
 import { toast } from "sonner";
@@ -137,7 +151,57 @@ export function EntityCardList({
 		[filteredEntities],
 	);
 
+	const [selectMode, setSelectMode] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+	const toggleSelect = useCallback((id: string) => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) {
+				next.delete(id);
+			} else {
+				next.add(id);
+			}
+			return next;
+		});
+	}, []);
+
+	const selectAll = useCallback(() => {
+		setSelectedIds(new Set(filteredEntities.map((e) => e.id)));
+	}, [filteredEntities]);
+
+	const exitSelectMode = useCallback(() => {
+		setSelectMode(false);
+		setSelectedIds(new Set());
+	}, []);
+
 	const queryClient = useQueryClient();
+
+	const deleteMutation = useMutation(
+		orpc.flowEntities.delete.mutationOptions({
+			onSuccess: () => {
+				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+				toast.success("已删除");
+			},
+			onError: (err) => {
+				toast.error(`删除失败：${err.message}`);
+			},
+		}),
+	);
+
+	const batchDeleteMutation = useMutation(
+		orpc.flowEntities.deleteBatch.mutationOptions({
+			onSuccess: (result) => {
+				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+				toast.success(`已删除 ${result.deleted} 个事项`);
+				exitSelectMode();
+			},
+			onError: (err) => {
+				toast.error(`批量删除失败：${err.message}`);
+			},
+		}),
+	);
+
 	const batchEnrichMutation = useMutation(
 		orpc.flowEntities.enrichBatch.mutationOptions({
 			onSuccess: (result) => {
@@ -181,7 +245,86 @@ export function EntityCardList({
 	}
 
 	return (
-		<div className="flex-1 overflow-y-auto">
+		<div className="flex-1 overflow-y-auto relative">
+			{/* Select mode toggle */}
+			{filteredEntities.length > 0 && (
+				<div className="flex items-center justify-between px-3 py-1.5 border-b bg-background/95 backdrop-blur-sm">
+					{selectMode ? (
+						<>
+							<div className="flex items-center gap-2">
+								<button
+									type="button"
+									onClick={selectedIds.size === filteredEntities.length ? () => setSelectedIds(new Set()) : selectAll}
+									className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+								>
+									{selectedIds.size === filteredEntities.length ? "取消全选" : "全选"}
+								</button>
+								<span className="text-xs text-muted-foreground">
+									已选 {selectedIds.size} 项
+								</span>
+							</div>
+							<div className="flex items-center gap-1.5">
+								<AlertDialog>
+									<AlertDialogTrigger asChild>
+										<Button
+											variant="destructive"
+											size="sm"
+											className="h-7 gap-1 text-xs"
+											disabled={selectedIds.size === 0 || batchDeleteMutation.isPending}
+										>
+											{batchDeleteMutation.isPending ? (
+												<Spinner className="size-3" />
+											) : (
+												<Trash2Icon className="size-3" />
+											)}
+											删除 ({selectedIds.size})
+										</Button>
+									</AlertDialogTrigger>
+									<AlertDialogContent>
+										<AlertDialogHeader>
+											<AlertDialogTitle>确认删除</AlertDialogTitle>
+											<AlertDialogDescription>
+												将永久删除选中的 {selectedIds.size} 个事项及其所有邮件和附件，此操作不可撤销。
+											</AlertDialogDescription>
+										</AlertDialogHeader>
+										<AlertDialogFooter>
+											<AlertDialogCancel>取消</AlertDialogCancel>
+											<AlertDialogAction
+												onClick={() => {
+													if (!activeOrganization?.id) { return; }
+													batchDeleteMutation.mutate({
+														organizationId: activeOrganization.id,
+														entityIds: [...selectedIds],
+													});
+												}}
+												className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+											>
+												确认删除
+											</AlertDialogAction>
+										</AlertDialogFooter>
+									</AlertDialogContent>
+								</AlertDialog>
+								<Button variant="ghost" size="sm" className="h-7 text-xs" onClick={exitSelectMode}>
+									取消
+								</Button>
+							</div>
+						</>
+					) : (
+						<>
+							<span className="text-xs text-muted-foreground">{filteredEntities.length} 个事项</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-7 gap-1 text-xs"
+								onClick={() => setSelectMode(true)}
+							>
+								<CheckSquareIcon className="size-3" />
+								选择
+							</Button>
+						</>
+					)}
+				</div>
+			)}
 			{unanalyzedCount > 0 && (
 				<div className="flex items-center justify-between px-3 py-2 border-b bg-amber-50/50 dark:bg-amber-950/20">
 					<span className="text-xs text-amber-700 dark:text-amber-400">
@@ -282,7 +425,10 @@ export function EntityCardList({
 								key={entity.id}
 								entity={entity}
 								isSelected={entity.id === selectedEntityId}
-								onSelect={() => onSelectEntity(entity.id)}
+								onSelect={() => selectMode ? toggleSelect(entity.id) : onSelectEntity(entity.id)}
+								selectMode={selectMode}
+								isChecked={selectedIds.has(entity.id)}
+								onDelete={(id) => deleteMutation.mutate({ entityId: id })}
 							/>
 						))}
 					</div>
@@ -293,7 +439,10 @@ export function EntityCardList({
 						key={entity.id}
 						entity={entity}
 						isSelected={entity.id === selectedEntityId}
-						onSelect={() => onSelectEntity(entity.id)}
+						onSelect={() => selectMode ? toggleSelect(entity.id) : onSelectEntity(entity.id)}
+						selectMode={selectMode}
+						isChecked={selectedIds.has(entity.id)}
+						onDelete={(id) => deleteMutation.mutate({ entityId: id })}
 					/>
 				))
 			)}
@@ -311,6 +460,9 @@ function EntityCard({
 	entity,
 	isSelected,
 	onSelect,
+	selectMode = false,
+	isChecked = false,
+	onDelete,
 }: {
 	entity: {
 		id: string;
@@ -325,6 +477,9 @@ function EntityCard({
 	};
 	isSelected: boolean;
 	onSelect: () => void;
+	selectMode?: boolean;
+	isChecked?: boolean;
+	onDelete?: (id: string) => void;
 }) {
 	const queryClient = useQueryClient();
 	const statusCfg = STATUS_CONFIG[entity.status] ?? STATUS_CONFIG.pending;
@@ -356,19 +511,30 @@ function EntityCard({
 			data-entity-card
 			onClick={onSelect}
 			className={cn(
-				"w-full text-left px-3 py-3 md:py-3 border-b transition-colors flex gap-2.5 active:bg-muted/70",
+				"w-full text-left px-3 py-3 md:py-3 border-b transition-colors flex gap-2.5 active:bg-muted/70 group/card",
 				isSelected
 					? "bg-primary/5 border-l-2 border-l-primary"
 					: "hover:bg-muted/50 border-l-2 border-l-transparent",
+				isChecked && "bg-primary/10",
 			)}
 		>
-			<div
-				className="w-1 shrink-0 rounded-full mt-1"
-				style={{
-					backgroundColor: needsAI ? "#94a3b8" : catColor,
-					height: "calc(100% - 4px)",
-				}}
-			/>
+			{selectMode ? (
+				<div className="shrink-0 mt-1">
+					{isChecked ? (
+						<CheckSquareIcon className="size-4 text-primary" />
+					) : (
+						<SquareIcon className="size-4 text-muted-foreground" />
+					)}
+				</div>
+			) : (
+				<div
+					className="w-1 shrink-0 rounded-full mt-1"
+					style={{
+						backgroundColor: needsAI ? "#94a3b8" : catColor,
+						height: "calc(100% - 4px)",
+					}}
+				/>
+			)}
 
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-1.5 mb-0.5">
@@ -454,6 +620,37 @@ function EntityCard({
 							<MessageSquareIcon className="size-2.5" />
 							{timelineCount}
 						</span>
+					)}
+					{!selectMode && onDelete && (
+						<AlertDialog>
+							<AlertDialogTrigger asChild>
+								<button
+									type="button"
+									onClick={(e) => e.stopPropagation()}
+									className="ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10 hover:text-destructive"
+									title="删除"
+								>
+									<Trash2Icon className="size-3" />
+								</button>
+							</AlertDialogTrigger>
+							<AlertDialogContent onClick={(e) => e.stopPropagation()}>
+								<AlertDialogHeader>
+									<AlertDialogTitle>确认删除</AlertDialogTitle>
+									<AlertDialogDescription>
+										将永久删除「{entity.title}」及其所有邮件和附件，此操作不可撤销。
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>取消</AlertDialogCancel>
+									<AlertDialogAction
+										onClick={() => onDelete(entity.id)}
+										className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+									>
+										确认删除
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
 					)}
 				</div>
 			</div>
