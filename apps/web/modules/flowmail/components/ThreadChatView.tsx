@@ -403,26 +403,26 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 			<div className="border-t px-3 md:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0 flex items-center gap-2">
 				<Button
 					variant="secondary"
-					className="flex-1 gap-1.5"
+					className="flex-1 gap-1.5 whitespace-nowrap text-xs md:text-sm"
 					onClick={() => openComposer("reply")}
 				>
-					<ReplyIcon className="size-4" />
+					<ReplyIcon className="size-4 shrink-0" />
 					回复
 				</Button>
 				<Button
 					variant="secondary"
-					className="flex-1 gap-1.5"
+					className="flex-1 gap-1.5 whitespace-nowrap text-xs md:text-sm"
 					onClick={() => openComposer("replyAll")}
 				>
-					<ReplyAllIcon className="size-4" />
+					<ReplyAllIcon className="size-4 shrink-0" />
 					全部回复
 				</Button>
 				<Button
 					variant="secondary"
-					className="flex-1 gap-1.5"
+					className="flex-1 gap-1.5 whitespace-nowrap text-xs md:text-sm"
 					onClick={() => openComposer("forward")}
 				>
-					<ForwardIcon className="size-4" />
+					<ForwardIcon className="size-4 shrink-0" />
 					转发
 				</Button>
 			</div>

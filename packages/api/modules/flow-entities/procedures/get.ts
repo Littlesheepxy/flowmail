@@ -57,6 +57,7 @@ export const getEntity = protectedProcedure
 							size: true,
 							externalId: true,
 							contentId: true,
+							storageKey: true,
 						},
 					},
 				},
