@@ -8,18 +8,20 @@ import { protectedProcedure } from "../../../orpc/procedures";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 import { syncConnectionSchema } from "../types";
 
-const STORAGE_ENABLED = !!(
-	process.env.S3_ENDPOINT &&
-	process.env.S3_ACCESS_KEY_ID &&
-	process.env.S3_SECRET_ACCESS_KEY
-);
+function isStorageEnabled() {
+	return !!(
+		process.env.S3_ENDPOINT &&
+		process.env.S3_ACCESS_KEY_ID &&
+		process.env.S3_SECRET_ACCESS_KEY
+	);
+}
 
 async function uploadAttachmentsForThread(
 	threadId: string,
 	organizationId: string,
 	attachments: RawEmailAttachment[],
 ) {
-	if (!STORAGE_ENABLED) {
+	if (!isStorageEnabled()) {
 		return;
 	}
 

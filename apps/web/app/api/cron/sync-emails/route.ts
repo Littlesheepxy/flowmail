@@ -5,18 +5,20 @@ import { logger } from "@repo/logs";
 import { uploadObject } from "@repo/storage";
 import { type NextRequest, NextResponse } from "next/server";
 
-const STORAGE_ENABLED = !!(
-	process.env.S3_ENDPOINT &&
-	process.env.S3_ACCESS_KEY_ID &&
-	process.env.S3_SECRET_ACCESS_KEY
-);
+function isStorageEnabled() {
+	return !!(
+		process.env.S3_ENDPOINT &&
+		process.env.S3_ACCESS_KEY_ID &&
+		process.env.S3_SECRET_ACCESS_KEY
+	);
+}
 
 async function uploadAttachmentsForThread(
 	threadId: string,
 	organizationId: string,
 	attachments: RawEmailAttachment[],
 ) {
-	if (!STORAGE_ENABLED) {
+	if (!isStorageEnabled()) {
 		return;
 	}
 
