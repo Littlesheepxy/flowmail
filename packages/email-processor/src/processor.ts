@@ -538,6 +538,194 @@ function determineInitialStatus(
 	}
 }
 
+/**
+ * 仅入库邮件数据（创建 Entity + Thread），不调用任何 AI 接口。
+ * 同步场景使用此函数，用户后续在 UI 上按需触发 AI 分析。
+ */
+export async function processEmailRaw(input: EmailInput): Promise<ProcessResult> {
+	try {
+		const orgCategories = await db.category.findMany({
+			where: { organizationId: input.organizationId },
+			select: { id: true, name: true, slug: true },
+			orderBy: { sortOrder: "asc" },
+		});
+		const uncategorized = orgCategories.find((c) => c.slug === "uncategorized") ?? orgCategories[0];
+
+		// ─── 聚合查找：优先复用已有 Entity ───
+		const existingByThread = await db.emailThread.findFirst({
+			where: {
+				connectionId: input.connectionId,
+				externalThreadId: input.externalThreadId,
+				entityId: { not: null },
+			},
+			select: { entityId: true },
+		});
+
+		let existingEntityId: string | null = existingByThread?.entityId ?? null;
+
+		if (!existingEntityId) {
+			const normalizedSubject = input.subject
+				.replace(/^(Re:|Fwd:|Fw:|回复：|转发：)\s*/gi, "")
+				.trim();
+			const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+			const existingByContact = await db.emailThread.findFirst({
+				where: {
+					organizationId: input.organizationId,
+					sender: input.senderEmail,
+					subject: { contains: normalizedSubject },
+					receivedAt: { gte: cutoff },
+					entityId: { not: null },
+				},
+				orderBy: { receivedAt: "desc" },
+				select: { entityId: true },
+			});
+			existingEntityId = existingByContact?.entityId ?? null;
+		}
+
+		const allParticipants = [
+			input.senderEmail,
+			...(input.toRecipients?.map((r) => r.address) ?? []),
+			...(input.ccRecipients?.map((r) => r.address) ?? []),
+		].filter(Boolean);
+
+		if (existingEntityId) {
+			const thread = await db.emailThread.create({
+				data: {
+					organizationId: input.organizationId,
+					connectionId: input.connectionId,
+					externalThreadId: input.externalThreadId,
+					subject: input.subject,
+					sender: input.senderEmail,
+					senderName: input.sender || null,
+					participants: JSON.stringify([...new Set(allParticipants)]),
+					toRecipients: input.toRecipients ? JSON.stringify(input.toRecipients) : null,
+					ccRecipients: input.ccRecipients ? JSON.stringify(input.ccRecipients) : null,
+					snippet: input.content.slice(0, 200),
+					bodyHtml: input.bodyHtml ?? null,
+					bodyText: input.bodyText ?? null,
+					messageId: input.messageId ?? null,
+					entityId: existingEntityId,
+					receivedAt: input.receivedAt,
+					processedAt: new Date(),
+				},
+			});
+
+			if (input.attachments && input.attachments.length > 0) {
+				await db.emailAttachment.createMany({
+					data: input.attachments.map((att) => ({
+						threadId: thread.id,
+						filename: att.filename,
+						mimeType: att.mimeType ?? null,
+						size: att.size ?? null,
+						externalId: att.externalId,
+						contentId: att.contentId ?? null,
+					})),
+				});
+			}
+
+			await db.timelineEvent.create({
+				data: {
+					entityId: existingEntityId,
+					type: "email_received",
+					content: `Follow-up email from ${input.sender}: ${input.subject}`,
+					metadata: JSON.stringify({
+						sender: input.senderEmail,
+						subject: input.subject,
+					}),
+				},
+			});
+
+			await db.flowEntity.update({
+				where: { id: existingEntityId },
+				data: { updatedAt: new Date() },
+			});
+
+			return {
+				success: true,
+				entityId: existingEntityId,
+				classification: "unanalyzed",
+				categorySlug: "unanalyzed",
+				requiresManualReview: false,
+			};
+		}
+
+		// ─── 创建新 Entity（未分析状态） ───
+		const entity = await db.flowEntity.create({
+			data: {
+				organizationId: input.organizationId,
+				type: "FEEDBACK",
+				categoryId: uncategorized?.id ?? undefined,
+				title: input.subject,
+				status: "pending",
+				extractedFields: JSON.stringify({}),
+				aiSummary: null,
+				aiConfidence: 0,
+				requiresReview: true,
+			},
+		});
+
+		const thread = await db.emailThread.create({
+			data: {
+				organizationId: input.organizationId,
+				connectionId: input.connectionId,
+				externalThreadId: input.externalThreadId,
+				subject: input.subject,
+				sender: input.senderEmail,
+				senderName: input.sender || null,
+				participants: JSON.stringify([...new Set(allParticipants)]),
+				toRecipients: input.toRecipients ? JSON.stringify(input.toRecipients) : null,
+				ccRecipients: input.ccRecipients ? JSON.stringify(input.ccRecipients) : null,
+				snippet: input.content.slice(0, 200),
+				bodyHtml: input.bodyHtml ?? null,
+				bodyText: input.bodyText ?? null,
+				messageId: input.messageId ?? null,
+				entityId: entity.id,
+				receivedAt: input.receivedAt,
+				processedAt: new Date(),
+			},
+		});
+
+		if (input.attachments && input.attachments.length > 0) {
+			await db.emailAttachment.createMany({
+				data: input.attachments.map((att) => ({
+					threadId: thread.id,
+					filename: att.filename,
+					mimeType: att.mimeType ?? null,
+					size: att.size ?? null,
+					externalId: att.externalId,
+					contentId: att.contentId ?? null,
+				})),
+			});
+		}
+
+		await db.timelineEvent.create({
+			data: {
+				entityId: entity.id,
+				type: "email_received",
+				content: `Email received from ${input.sender}: ${input.subject}`,
+				metadata: JSON.stringify({
+					sender: input.senderEmail,
+					subject: input.subject,
+				}),
+			},
+		});
+
+		return {
+			success: true,
+			entityId: entity.id,
+			classification: "unanalyzed",
+			categorySlug: "unanalyzed",
+			requiresManualReview: true,
+		};
+	} catch (error) {
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "Unknown error",
+			requiresManualReview: true,
+		};
+	}
+}
+
 function parseJsonFields(raw: unknown): Record<string, unknown> {
 	if (!raw) {
 		return {};

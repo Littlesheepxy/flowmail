@@ -1,15 +1,5 @@
 import { db } from "@repo/database";
 import { createHash } from "node:crypto";
-import {
-	classifyEmailDynamic,
-	classifyEmailWithMemory,
-	type CategoryDefinition,
-} from "./classifier";
-import { extractApprovalFields, extractReportFields } from "./extractor";
-import { summarizeThread } from "./summarizer";
-import { MemoryManager } from "@repo/agent";
-
-const memoryManager = new MemoryManager();
 
 export interface InboundAttachment {
 	filename: string;
@@ -41,13 +31,6 @@ interface InboundProcessResult {
 	duplicate: boolean;
 	error?: string;
 }
-
-const SLUG_TO_ENTITY_TYPE: Record<string, string> = {
-	approval: "APPROVAL",
-	report: "REPORT",
-	issue: "ISSUE",
-	feedback: "FEEDBACK",
-};
 
 export function computeContentHash(
 	subject: string,
@@ -282,17 +265,6 @@ export async function processInboundEmail(
 			},
 		});
 
-		// ── Step 2: 后台异步 AI 处理，不阻塞响应 ─────────────────────────────────
-		// 用 void + 独立 async 函数，失败不影响已显示的 entity
-		void enrichEntityWithAI({
-			entityId: entity.id,
-			inboundEmailId: inboundEmail.id,
-			organizationId: input.organizationId,
-			subject: input.subject,
-			fromEmail: input.fromEmail,
-			content,
-		});
-
 		return {
 			success: true,
 			duplicate: false,
@@ -307,108 +279,6 @@ export async function processInboundEmail(
 			duplicate: false,
 			error: error instanceof Error ? error.message : "Unknown error",
 		};
-	}
-}
-
-// ── 异步 AI 增强：分类、提取字段、生成摘要，然后更新 entity ─────────────────────
-async function enrichEntityWithAI(params: {
-	entityId: string;
-	inboundEmailId: string;
-	organizationId: string;
-	subject: string;
-	fromEmail: string;
-	content: string;
-}) {
-	const hasAiKey = !!(
-		process.env.OPENAI_API_KEY ||
-		process.env.ANTHROPIC_API_KEY ||
-		process.env.ANTHROPIC_AUTH_TOKEN ||
-		process.env.AI_GATEWAY_API_KEY
-	);
-
-	if (!hasAiKey) { return; }
-
-	try {
-		const orgCategories = await db.category.findMany({
-			where: { organizationId: params.organizationId },
-			select: { id: true, name: true, slug: true, aiPrompt: true },
-			orderBy: { sortOrder: "asc" },
-		});
-
-		let categoryId: string | undefined;
-		let categorySlug = "feedback";
-		let entityType = "FEEDBACK";
-		let confidence = 0.5;
-		let extractedFields: Record<string, unknown> = {};
-
-		if (orgCategories.length > 0) {
-			const result = await classifyEmailDynamic(
-				{
-					subject: params.subject,
-					sender: params.fromEmail,
-					content: params.content,
-				},
-				orgCategories as CategoryDefinition[],
-			);
-			categorySlug = result.categorySlug === "unknown" ? "feedback" : result.categorySlug;
-			confidence = result.confidence;
-			const matched = orgCategories.find((c) => c.slug === categorySlug);
-			categoryId = matched?.id;
-			entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
-		} else {
-			const result = await classifyEmailWithMemory(
-				{
-					subject: params.subject,
-					sender: params.fromEmail,
-					content: params.content,
-				},
-				params.organizationId,
-				memoryManager,
-			);
-			entityType = result.type === "UNKNOWN" ? "FEEDBACK" : result.type;
-			confidence = result.type === "UNKNOWN" ? 0.5 : result.confidence;
-			categorySlug = entityType.toLowerCase();
-		}
-
-		if (entityType === "APPROVAL" || categorySlug === "approval") {
-			extractedFields = await extractApprovalFields(params.content);
-		} else if (entityType === "REPORT" || categorySlug === "report") {
-			extractedFields = await extractReportFields(params.content);
-		}
-
-		const summary = await summarizeThread(params.content);
-
-		// Update entity with AI results
-		await db.flowEntity.update({
-			where: { id: params.entityId },
-			data: {
-				type: entityType as never,
-				categoryId,
-				extractedFields: JSON.stringify(extractedFields),
-				aiSummary: summary,
-				aiConfidence: confidence,
-				requiresReview: confidence < 0.7,
-			},
-		});
-
-		// Add AI classification timeline event
-		await db.timelineEvent.create({
-			data: {
-				entityId: params.entityId,
-				type: "ai_summary",
-				content: `AI 已完成分类：${entityType}（置信度 ${Math.round(confidence * 100)}%）${summary ? `\n\n${summary}` : ""}`,
-				metadata: JSON.stringify({
-					entityType,
-					categorySlug,
-					confidence,
-				}),
-			},
-		});
-	} catch (err) {
-		console.error("[inbound] AI enrichment failed:", {
-			entityId: params.entityId,
-			error: err instanceof Error ? err.message : String(err),
-		});
 	}
 }
 

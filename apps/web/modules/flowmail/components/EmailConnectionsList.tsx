@@ -53,6 +53,7 @@ import {
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 import { usePageGuide } from "../hooks/use-page-guide";
 
 type ConnectionMethod =
@@ -234,12 +235,13 @@ export function EmailConnectionsList() {
 				queryClient.invalidateQueries({
 					queryKey: orpc.flowEntities.list.key(),
 				});
-				alert(
-					`同步完成：获取 ${result.fetched} 封邮件，处理 ${result.processed} 封${result.errors ? `，${result.errors} 封失败` : ""}`,
+				toast.success(
+					`同步完成：导入 ${result.processed} 封邮件${result.skipped ? `，跳过 ${result.skipped} 封已有` : ""}${result.errors ? `，${result.errors} 封失败` : ""}`,
+					{ description: "邮件已导入，可在列表中点击「AI 分析」运行智能分类。" },
 				);
 			},
 			onError: (err) => {
-				alert(`同步失败：${err.message}`);
+				toast.error(`同步失败：${err.message}`);
 			},
 		}),
 	);
@@ -403,12 +405,26 @@ export function EmailConnectionsList() {
 								onFallbackForward={() =>
 									setDialogStep("forward")
 								}
-								onSuccess={() => {
+								onSuccess={(connectionId) => {
 									handleClose();
 									queryClient.invalidateQueries({
 										queryKey:
 											orpc.emailConnections.list.key(),
 									});
+									if (connectionId) {
+										toast.loading(`正在同步 ${emailInput} ...`, {
+											id: `sync-${connectionId}`,
+											description: "首次同步：从邮箱服务器拉取邮件中",
+										});
+										syncMutation.mutate(
+											{ connectionId },
+											{
+												onSettled: () => {
+													toast.dismiss(`sync-${connectionId}`);
+												},
+											},
+										);
+									}
 								}}
 							/>
 						)}
@@ -551,11 +567,20 @@ export function EmailConnectionsList() {
 												disabled={
 													syncMutation.isPending
 												}
-												onClick={() =>
-													syncMutation.mutate({
-														connectionId: conn.id,
-													})
-												}
+												onClick={() => {
+													toast.loading(`正在同步 ${conn.email} ...`, {
+														id: `sync-${conn.id}`,
+														description: "从邮箱服务器拉取邮件中，请稍候",
+													});
+													syncMutation.mutate(
+														{ connectionId: conn.id },
+														{
+															onSettled: () => {
+																toast.dismiss(`sync-${conn.id}`);
+															},
+														},
+													);
+												}}
 											>
 												{syncMutation.isPending ? (
 													<Loader2Icon className="size-4 animate-spin" />
@@ -1655,7 +1680,7 @@ function ImapConnectStep({
 	detectedImapPort?: number;
 	onBack: () => void;
 	onFallbackForward: () => void;
-	onSuccess: () => void;
+	onSuccess: (connectionId?: string) => void;
 }) {
 	const [email, setEmail] = useState(initialEmail);
 	const [password, setPassword] = useState("");
@@ -1666,7 +1691,11 @@ function ImapConnectStep({
 	const [maxSyncCount, setMaxSyncCount] = useState("500");
 
 	const connectMutation = useMutation(
-		orpc.emailConnections.connectImap.mutationOptions({ onSuccess }),
+		orpc.emailConnections.connectImap.mutationOptions({
+			onSuccess: (data) => {
+				onSuccess(data?.id);
+			},
+		}),
 	);
 
 	return (

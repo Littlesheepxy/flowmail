@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useSidebar } from "@saas/shared/lib/sidebar-context";
+import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
+import { orpc } from "@shared/lib/orpc-query-utils";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
 	ArrowLeftIcon,
 	CheckIcon,
@@ -10,6 +14,7 @@ import {
 	SparklesIcon,
 	SlidersHorizontalIcon,
 	XIcon,
+	ZapIcon,
 } from "lucide-react";
 import { cn } from "@repo/ui";
 import {
@@ -17,6 +22,11 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@repo/ui/components/popover";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@repo/ui/components/tooltip";
 import {
 	Sheet,
 	SheetContent,
@@ -51,9 +61,29 @@ const AGENT_DEFAULT_W = 380;
 
 export function SmartInbox() {
 	const { isCollapsed } = useSidebar();
+	const { activeOrganization } = useActiveOrganization();
+	const queryClient = useQueryClient();
 	const isMobile = useMediaQuery("(max-width: 767px)");
 	const isWide = useMediaQuery("(min-width: 1440px)");
 	const searchParams = useSearchParams();
+
+	const { data: aiSettings } = useQuery({
+		...orpc.organizations.getAiSettings.queryOptions({
+			input: { organizationId: activeOrganization?.id ?? "" },
+		}),
+		enabled: !!activeOrganization?.id,
+	});
+
+	const autoAiMutation = useMutation(
+		orpc.organizations.updateAiSettings.mutationOptions({
+			onSuccess: (result) => {
+				queryClient.invalidateQueries({ queryKey: orpc.organizations.getAiSettings.key() });
+				toast.success(result.autoAiAnalysis ? "已开启自动 AI 分析" : "已关闭自动 AI 分析");
+			},
+		}),
+	);
+
+	const autoAiEnabled = aiSettings?.autoAiAnalysis ?? false;
 
 	usePageGuide("processFirstEmail", [
 		{
@@ -245,6 +275,39 @@ export function SmartInbox() {
 							</PopoverContent>
 						</Popover>
 					)}
+
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={() => {
+									if (!activeOrganization?.id) {
+										return;
+									}
+									autoAiMutation.mutate({
+										organizationId: activeOrganization.id,
+										autoAiAnalysis: !autoAiEnabled,
+									});
+								}}
+								className={cn(
+									"flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors",
+									autoAiEnabled
+										? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+										: "text-muted-foreground/60 hover:bg-background/60",
+								)}
+							>
+								<ZapIcon className={cn("size-3.5", autoAiEnabled && "fill-current")} />
+								<span className="hidden sm:inline">自动</span>
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							<p className="text-xs">
+								{autoAiEnabled
+									? "自动 AI 分析已开启：新邮件会自动进行 AI 分类"
+									: "自动 AI 分析已关闭：新邮件需要手动触发分析"}
+							</p>
+						</TooltipContent>
+					</Tooltip>
 
 					<button
 						type="button"

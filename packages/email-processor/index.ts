@@ -1,14 +1,16 @@
-export { processEmail } from "./src/processor";
+export { processEmail, processEmailRaw } from "./src/processor";
 export {
 	processInboundEmail,
 	computeContentHash,
 } from "./src/inbound";
-export { classifyEmail, classifyEmailWithMemory } from "./src/classifier";
+export { classifyEmail, classifyEmailWithMemory, classifyEmailDynamic } from "./src/classifier";
+export type { CategoryDefinition } from "./src/classifier";
 export { extractApprovalFields, extractReportFields } from "./src/extractor";
 export { summarizeThread } from "./src/summarizer";
 export { generateSuggestions } from "./src/suggester";
 export type { AISuggestion } from "./src/suggester";
 export { generateTags } from "./src/tagger";
+export { enrichEntityById } from "./src/enricher";
 export { getConnector } from "./src/connectors";
 export type { ClassificationResult } from "./src/schemas/classification";
 export type { ApprovalExtraction } from "./src/schemas/approval";

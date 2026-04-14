@@ -1,4 +1,5 @@
 import { ImapFlow } from "imapflow";
+import { simpleParser } from "mailparser";
 import type {
 	ConnectionCredentials,
 	EmailConnector,
@@ -11,6 +12,8 @@ const PROVIDER_DEFAULTS: Record<string, { host: string; port: number }> = {
 	feishu: { host: "imap.feishu.cn", port: 993 },
 	dingtalk: { host: "imap.dingtalk.com", port: 993 },
 	wecom: { host: "imap.exmail.qq.com", port: 993 },
+	netease: { host: "imap.163.com", port: 993 },
+	imap: { host: "", port: 993 },
 };
 
 function buildImapConfig(credentials: ConnectionCredentials) {
@@ -31,19 +34,6 @@ function buildImapConfig(credentials: ConnectionCredentials) {
 			pass: credentials.imapPassword,
 		},
 		logger: false as const,
-	};
-}
-
-function parseAddress(addr: { name?: string; address?: string } | undefined): {
-	name: string;
-	email: string;
-} {
-	if (!addr) {
-		return { name: "", email: "" };
-	}
-	return {
-		name: addr.name ?? addr.address ?? "",
-		email: addr.address ?? "",
 	};
 }
 
@@ -85,7 +75,7 @@ export const imapConnector: EmailConnector = {
 					try {
 					const rawMsg = await client.fetchOne(
 						String(uid),
-						{ envelope: true, bodyStructure: true, source: true },
+						{ envelope: true, source: true },
 						{ uid: true },
 					);
 					const msg = rawMsg && typeof rawMsg === "object" ? rawMsg : null;
@@ -96,21 +86,31 @@ export const imapConnector: EmailConnector = {
 
 					const env = msg.envelope as unknown as Record<string, unknown>;
 					const msgAny = msg as unknown as Record<string, unknown>;
-					const from = parseAddress(
-						(env.from as Array<{ name?: string; address?: string }> | undefined)?.[0],
-					);
-					const toAddrs = (
-						env.to as Array<{ name?: string; address?: string }> | undefined
-					) ?? [];
-					const ccAddrs = (
-						env.cc as Array<{ name?: string; address?: string }> | undefined
-					) ?? [];
+					const sourceObj = msgAny.source as Buffer | { toString(enc: string): string } | undefined;
+					const rawSource = Buffer.isBuffer(sourceObj)
+						? sourceObj
+						: Buffer.from(sourceObj?.toString("utf-8") ?? "");
 
-					const sourceObj = msgAny.source as { toString(enc: string): string } | undefined;
-					const rawSource = sourceObj?.toString("utf-8") ?? "";
-					const { text: bodyText, html: bodyHtml } =
-						extractPartsFromSource(rawSource);
-					const content = bodyText || stripHtml(bodyHtml) || rawSource.slice(0, 5000);
+					const parsed = await simpleParser(rawSource);
+
+					const from = parsed.from?.value?.[0];
+					const fromName = from?.name ?? from?.address ?? "";
+					const fromEmail = from?.address ?? "";
+
+					const toAddrs = parsed.to
+						? (Array.isArray(parsed.to) ? parsed.to : [parsed.to]).flatMap(
+								(a) => a.value,
+							)
+						: [];
+					const ccAddrs = parsed.cc
+						? (Array.isArray(parsed.cc) ? parsed.cc : [parsed.cc]).flatMap(
+								(a) => a.value,
+							)
+						: [];
+
+					const bodyText = parsed.text ?? "";
+					const bodyHtml = (typeof parsed.html === "string" ? parsed.html : "") || (typeof parsed.textAsHtml === "string" ? parsed.textAsHtml : "");
+					const content = bodyText || stripHtml(bodyHtml);
 
 					const toRecipients: EmailRecipient[] = toAddrs
 						.filter((a) => a.address)
@@ -119,12 +119,14 @@ export const imapConnector: EmailConnector = {
 						.filter((a) => a.address)
 						.map((a) => ({ name: a.name, address: a.address as string }));
 
-					const rfcMessageId = env.messageId as string | undefined;
+					const rfcMessageId =
+						parsed.messageId ??
+						(env.messageId as string | undefined);
 					emails.push({
 						externalId: rfcMessageId ?? `uid-${uid}`,
-						subject: (env.subject as string) ?? "(no subject)",
-						sender: from.name,
-						senderEmail: from.email,
+						subject: parsed.subject ?? (env.subject as string) ?? "(no subject)",
+						sender: fromName,
+						senderEmail: fromEmail,
 						recipients: toAddrs.map((a) => a.address ?? ""),
 						toRecipients,
 						ccRecipients: ccRecipients.length > 0 ? ccRecipients : undefined,
@@ -132,7 +134,7 @@ export const imapConnector: EmailConnector = {
 						snippet: content.slice(0, 200),
 						bodyHtml: bodyHtml || undefined,
 						bodyText: bodyText || undefined,
-						receivedAt: env.date ? new Date(env.date as string) : new Date(),
+						receivedAt: parsed.date ?? (env.date ? new Date(env.date as string) : new Date()),
 						messageId: rfcMessageId || undefined,
 					});
 					} catch {
@@ -167,30 +169,6 @@ export const imapConnector: EmailConnector = {
 		}
 	},
 };
-
-function extractPartsFromSource(source: string): {
-	text: string;
-	html: string;
-} {
-	const textMatch = source.match(
-		/Content-Type:\s*text\/plain[^\r\n]*\r?\n(?:Content-Transfer-Encoding:\s*[^\r\n]*\r?\n)?(?:[^\r\n]*\r?\n)*?\r?\n([\s\S]*?)(?:\r?\n--)/i,
-	);
-	const htmlMatch = source.match(
-		/Content-Type:\s*text\/html[^\r\n]*\r?\n(?:Content-Transfer-Encoding:\s*[^\r\n]*\r?\n)?(?:[^\r\n]*\r?\n)*?\r?\n([\s\S]*?)(?:\r?\n--)/i,
-	);
-
-	let text = textMatch?.[1]?.trim() ?? "";
-	const html = htmlMatch?.[1]?.trim() ?? "";
-
-	if (!text && !html) {
-		const bodyStart = source.indexOf("\r\n\r\n");
-		if (bodyStart !== -1) {
-			text = source.slice(bodyStart + 4, bodyStart + 5000).trim();
-		}
-	}
-
-	return { text, html };
-}
 
 function stripHtml(html: string): string {
 	return html

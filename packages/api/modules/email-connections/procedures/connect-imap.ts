@@ -102,5 +102,6 @@ export const connectImap = protectedProcedure
 			id: connection.id,
 			email: connection.email,
 			provider: connection.provider,
+			autoSyncTriggered: true,
 		};
 	});

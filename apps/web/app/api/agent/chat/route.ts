@@ -11,7 +11,7 @@ import {
 } from "@repo/ai";
 import {
 	getConnector,
-	processEmail,
+	processEmailRaw,
 	classifyEmailWithMemory,
 	extractApprovalFields,
 	extractReportFields,
@@ -121,7 +121,7 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 	registry.registerBuiltin(
 		createEmailTools({
 			getConnector: getConnector as unknown as Parameters<typeof createEmailTools>[0]["getConnector"],
-			processEmail: processEmail as unknown as Parameters<typeof createEmailTools>[0]["processEmail"],
+			processEmail: processEmailRaw as unknown as Parameters<typeof createEmailTools>[0]["processEmail"],
 			triggerNotification: notify,
 		}),
 	);

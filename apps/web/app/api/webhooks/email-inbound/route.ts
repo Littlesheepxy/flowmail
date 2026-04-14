@@ -3,7 +3,8 @@ import {
 	triggerNotification,
 	writeAuditLog,
 } from "@repo/api";
-import { processInboundEmail, type InboundAttachment } from "@repo/email-processor";
+import { db } from "@repo/database";
+import { processInboundEmail, enrichEntityById, type InboundAttachment } from "@repo/email-processor";
 import { logger } from "@repo/logs";
 import { uploadObject } from "@repo/storage";
 import { type NextRequest, NextResponse } from "next/server";
@@ -174,6 +175,29 @@ export const POST = async (request: NextRequest) => {
 				title: "收到新邮件",
 				body: `${fromEmail} 转发了一封邮件: ${data.subject || "(无主题)"}`,
 			});
+		}
+
+		if (result.success && result.entityId && !result.duplicate) {
+			try {
+				const org = await db.organization.findUnique({
+					where: { id: organizationId },
+					select: { metadata: true },
+				});
+				const meta = org?.metadata ? JSON.parse(org.metadata) : {};
+				if (meta.autoAiAnalysis) {
+					const eid = result.entityId;
+					enrichEntityById(eid).catch((err) => {
+						logger.warn("Auto AI enrich failed", {
+							entityId: eid,
+							error: err instanceof Error ? err.message : String(err),
+						});
+					});
+				}
+			} catch (autoAiErr) {
+				logger.warn("Auto AI settings check failed", {
+					error: autoAiErr instanceof Error ? autoAiErr.message : String(autoAiErr),
+				});
+			}
 		}
 
 		if (result.success && result.entityId && fromEmail) {

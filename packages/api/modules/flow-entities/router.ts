@@ -8,6 +8,8 @@ import { submitFeedback } from "./procedures/submit-feedback";
 import { mergeEntities } from "./procedures/merge";
 import { splitEntity } from "./procedures/split";
 import { reclassifyEntity } from "./procedures/reclassify";
+import { enrichEntity } from "./procedures/enrich";
+import { enrichBatch } from "./procedures/enrich-batch";
 import { seedDemo } from "./procedures/seed-demo";
 import { clearDemo } from "./procedures/clear-demo";
 import { getAttachmentUrl } from "./procedures/get-attachment-url";
@@ -24,6 +26,8 @@ export const flowEntitiesRouter = {
 	merge: mergeEntities,
 	split: splitEntity,
 	reclassify: reclassifyEntity,
+	enrich: enrichEntity,
+	enrichBatch,
 	seedDemo,
 	clearDemo,
 	getAttachmentUrl,

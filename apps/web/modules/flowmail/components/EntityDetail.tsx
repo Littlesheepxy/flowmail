@@ -22,6 +22,7 @@ import {
 	ChevronUpIcon,
 	Reply as ReplyIcon,
 	ForwardIcon,
+	SparklesIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -233,6 +234,20 @@ export function EntityDetail() {
 		orpc.emailConnections.sendEmail.mutationOptions(),
 	);
 
+	const enrichMutation = useMutation(
+		orpc.flowEntities.enrich.mutationOptions({
+			onSuccess: () => {
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+				});
+				toast.success("AI 分析完成");
+			},
+			onError: (err) => {
+				toast.error(`AI 分析失败: ${err.message}`);
+			},
+		}),
+	);
+
 	const [replyThreadId, setReplyThreadId] = useState<string | null>(null);
 	const [replyMode, setReplyMode] = useState<ReplyMode>("reply");
 
@@ -380,30 +395,44 @@ export function EntityDetail() {
 					</div>
 				</div>
 
-				{isApproval && isPending && (
-					<div className="flex gap-2">
-						<Button
-							disabled={actionPending}
-							onClick={() => approveMutation.mutate({ entityId })}
-						>
-							<CheckIcon className="mr-1 size-4" />
-							批准
-						</Button>
-						<Button
-							variant="destructive"
-							disabled={actionPending}
-							onClick={() =>
-								rejectMutation.mutate({
-									entityId,
-									reason: "Rejected via detail page",
-								})
-							}
-						>
-							<XIcon className="mr-1 size-4" />
-							拒绝
-						</Button>
-					</div>
-				)}
+				<div className="flex gap-2">
+					<Button
+						variant={entity.aiSummary ? "outline" : "default"}
+						disabled={enrichMutation.isPending}
+						onClick={() => enrichMutation.mutate({ entityId })}
+					>
+						{enrichMutation.isPending ? (
+							<Spinner className="mr-1 size-4" />
+						) : (
+							<SparklesIcon className="mr-1 size-4" />
+						)}
+						{entity.aiSummary ? "重新分析" : "AI 分析"}
+					</Button>
+					{isApproval && isPending && (
+						<>
+							<Button
+								disabled={actionPending}
+								onClick={() => approveMutation.mutate({ entityId })}
+							>
+								<CheckIcon className="mr-1 size-4" />
+								批准
+							</Button>
+							<Button
+								variant="destructive"
+								disabled={actionPending}
+								onClick={() =>
+									rejectMutation.mutate({
+										entityId,
+										reason: "Rejected via detail page",
+									})
+								}
+							>
+								<XIcon className="mr-1 size-4" />
+								拒绝
+							</Button>
+						</>
+					)}
+				</div>
 			</div>
 
 			<div className="grid gap-6 lg:grid-cols-3">

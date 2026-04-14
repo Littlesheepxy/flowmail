@@ -2,9 +2,10 @@
 
 import { Badge } from "@repo/ui/components/badge";
 import { Spinner, cn } from "@repo/ui";
+import { Button } from "@repo/ui/components/button";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	CheckCircle2Icon,
 	ClockIcon,
@@ -13,6 +14,7 @@ import {
 	InboxIcon,
 	MailIcon,
 	MessageSquareIcon,
+	SparklesIcon,
 	XIcon,
 } from "lucide-react";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -76,7 +78,7 @@ export function EntityCardList({
 		if (entities.length > prevCountRef.current) {
 			const newCount = entities.length - prevCountRef.current;
 			toast.success(`收到 ${newCount} 封新邮件`, {
-				description: "已显示在列表中，AI 正在后台分析...",
+				description: "已显示在列表中，点击卡片上的 ✨ 按钮运行 AI 分析",
 				duration: 4000,
 			});
 		}
@@ -130,6 +132,26 @@ export function EntityCardList({
 		return result;
 	}, [entities, search, activeTagId]);
 
+	const unanalyzedCount = useMemo(
+		() => filteredEntities.filter((e) => !e.aiSummary).length,
+		[filteredEntities],
+	);
+
+	const queryClient = useQueryClient();
+	const batchEnrichMutation = useMutation(
+		orpc.flowEntities.enrichBatch.mutationOptions({
+			onSuccess: (result) => {
+				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+				toast.success(`批量分析完成：${result.succeeded} 成功，${result.failed} 失败`, {
+					duration: 5000,
+				});
+			},
+			onError: (err) => {
+				toast.error(`批量分析失败：${err.message}`);
+			},
+		}),
+	);
+
 	type CategoryInfo = { name: string; color: string };
 	const grouped = !categorySlug;
 	const categoryGroups: {
@@ -160,6 +182,38 @@ export function EntityCardList({
 
 	return (
 		<div className="flex-1 overflow-y-auto">
+			{unanalyzedCount > 0 && (
+				<div className="flex items-center justify-between px-3 py-2 border-b bg-amber-50/50 dark:bg-amber-950/20">
+					<span className="text-xs text-amber-700 dark:text-amber-400">
+						{unanalyzedCount} 封邮件待 AI 分析
+					</span>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-7 gap-1.5 text-xs"
+						disabled={batchEnrichMutation.isPending}
+						onClick={() => {
+							if (!activeOrganization?.id) {
+								return;
+							}
+							toast.loading("正在批量 AI 分析...", { id: "batch-enrich" });
+							batchEnrichMutation.mutate({
+								organizationId: activeOrganization.id,
+								limit: 20,
+							}, {
+								onSettled: () => toast.dismiss("batch-enrich"),
+							});
+						}}
+					>
+						{batchEnrichMutation.isPending ? (
+							<Spinner className="size-3" />
+						) : (
+							<SparklesIcon className="size-3" />
+						)}
+						全部分析
+					</Button>
+				</div>
+			)}
 			{allTags.length > 0 && (
 				<div className="flex items-center gap-1 px-3 py-1.5 border-b overflow-x-auto scrollbar-none">
 					{allTags.slice(0, 8).map((tag) => (
@@ -272,12 +326,29 @@ function EntityCard({
 	isSelected: boolean;
 	onSelect: () => void;
 }) {
+	const queryClient = useQueryClient();
 	const statusCfg = STATUS_CONFIG[entity.status] ?? STATUS_CONFIG.pending;
 	const catColor = entity.category?.color ?? "#94a3b8";
 	const catName = entity.category?.name ?? entity.type;
 	const threadCount = entity._count?.threads ?? 0;
 	const timelineCount = entity._count?.timeline ?? 0;
 	const tags = entity.tags ?? [];
+	const needsAI = !entity.aiSummary;
+
+	const enrichMutation = useMutation(
+		orpc.flowEntities.enrich.mutationOptions({
+			onSuccess: (result) => {
+				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.get.key() });
+				toast.success(`AI 分析完成：${result.categorySlug}`, {
+					description: result.summary?.slice(0, 80),
+				});
+			},
+			onError: (err) => {
+				toast.error(`AI 分析失败：${err.message}`);
+			},
+		}),
+	);
 
 	return (
 		<button
@@ -294,31 +365,60 @@ function EntityCard({
 			<div
 				className="w-1 shrink-0 rounded-full mt-1"
 				style={{
-					backgroundColor: catColor,
+					backgroundColor: needsAI ? "#94a3b8" : catColor,
 					height: "calc(100% - 4px)",
 				}}
 			/>
 
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-1.5 mb-0.5">
-					<span
-						className="text-[10px] font-medium uppercase"
-						style={{ color: catColor }}
-					>
-						{catName}
-					</span>
+					{needsAI ? (
+						<span className="text-[10px] font-medium text-muted-foreground">
+							待分析
+						</span>
+					) : (
+						<span
+							className="text-[10px] font-medium uppercase"
+							style={{ color: catColor }}
+						>
+							{catName}
+						</span>
+					)}
 					<Badge
-						status={statusCfg.variant}
+						status={needsAI ? "info" : statusCfg.variant}
 						className="text-[10px] px-1 py-0"
 					>
-						{entity.status}
+						{needsAI ? "未分析" : entity.status}
 					</Badge>
 				</div>
 				<p className="text-sm font-medium truncate">{entity.title}</p>
-				{entity.aiSummary && (
+				{entity.aiSummary ? (
 					<p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">
 						{entity.aiSummary}
 					</p>
+				) : (
+					<div className="flex items-center gap-1.5 mt-1">
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-6 px-2 gap-1 text-[11px]"
+							disabled={enrichMutation.isPending}
+							onClick={(e) => {
+								e.stopPropagation();
+								enrichMutation.mutate({ entityId: entity.id });
+							}}
+						>
+							{enrichMutation.isPending ? (
+								<Spinner className="size-3" />
+							) : (
+								<SparklesIcon className="size-3" />
+							)}
+							{enrichMutation.isPending ? "分析中..." : "AI 分析"}
+						</Button>
+						<span className="text-[10px] text-muted-foreground/50">
+							点击运行 AI 分类和摘要
+						</span>
+					</div>
 				)}
 				{tags.length > 0 && (
 					<div className="flex items-center gap-1 mt-1 flex-wrap">

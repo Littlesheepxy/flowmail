@@ -1,9 +1,8 @@
 import { ORPCError } from "@orpc/client";
 import { db, decryptSensitiveFields } from "@repo/database";
-import { getConnector, processEmail } from "@repo/email-processor";
+import { getConnector, processEmailRaw, enrichEntityById } from "@repo/email-processor";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
-import { triggerNotification } from "../../notifications/lib/trigger";
 import { ensureFeishuOAuthAccessToken } from "../lib/feishu-oauth-token";
 import { syncConnectionSchema } from "../types";
 
@@ -12,7 +11,7 @@ export const syncEmailConnection = protectedProcedure
 		method: "POST",
 		path: "/email-connections/{connectionId}/sync",
 		tags: ["EmailConnections"],
-		summary: "Sync new emails from a connection and process them",
+		summary: "Sync new emails from a connection (raw import, no AI)",
 	})
 	.input(syncConnectionSchema)
 	.handler(async ({ input, context }) => {
@@ -54,7 +53,9 @@ export const syncEmailConnection = protectedProcedure
 		);
 
 		let processed = 0;
+		let skipped = 0;
 		let errors = 0;
+		const newEntityIds: string[] = [];
 
 		for (const email of emails) {
 			const existing = await db.emailThread.findUnique({
@@ -67,10 +68,11 @@ export const syncEmailConnection = protectedProcedure
 			});
 
 			if (existing) {
+				skipped++;
 				continue;
 			}
 
-			const result = await processEmail({
+			const result = await processEmailRaw({
 				threadId: email.threadId ?? email.externalId,
 				subject: email.subject,
 				sender: email.sender,
@@ -90,19 +92,12 @@ export const syncEmailConnection = protectedProcedure
 
 			if (result.success) {
 				processed++;
-
 				if (result.entityId) {
-					triggerNotification({
-						organizationId: connectionWithToken.organizationId,
-						type: "NEW_ENTITY",
-						entityId: result.entityId,
-						title: `新事项：${email.subject}`,
-						body: `来自 ${email.senderEmail} 的邮件已创建新事项（${result.classification ?? "未分类"}）`,
-					}).catch(() => {});
+					newEntityIds.push(result.entityId);
 				}
 			} else {
 				errors++;
-				console.error("[Sync] Processing failed", { connectionId: connectionWithToken.id, error: result.error });
+				console.error("[Sync] Raw import failed", { connectionId: connectionWithToken.id, error: result.error });
 			}
 		}
 
@@ -114,9 +109,32 @@ export const syncEmailConnection = protectedProcedure
 			},
 		});
 
+		if (newEntityIds.length > 0) {
+			try {
+				const org = await db.organization.findUnique({
+					where: { id: connectionWithToken.organizationId },
+					select: { metadata: true },
+				});
+				const meta = org?.metadata ? JSON.parse(org.metadata) : {};
+				if (meta.autoAiAnalysis) {
+					for (const eid of newEntityIds) {
+						enrichEntityById(eid).catch((err) => {
+							console.error("[Sync] Auto AI enrich failed", {
+								entityId: eid,
+								error: err instanceof Error ? err.message : String(err),
+							});
+						});
+					}
+				}
+			} catch {
+				// non-critical
+			}
+		}
+
 		return {
 			fetched: emails.length,
 			processed,
+			skipped,
 			errors,
 		};
 	});
