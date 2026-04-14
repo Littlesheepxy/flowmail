@@ -82,6 +82,23 @@ export const syncEmailConnection = protectedProcedure
 							subject: email.subject || existing.subject,
 						},
 					});
+
+					if (email.attachments && email.attachments.length > 0) {
+						const existingAtts = await db.emailAttachment.count({ where: { threadId: existing.id } });
+						if (existingAtts === 0) {
+							await db.emailAttachment.createMany({
+								data: email.attachments.map((att) => ({
+									threadId: existing.id,
+									filename: att.filename,
+									mimeType: att.mimeType ?? null,
+									size: att.size ?? null,
+									externalId: att.externalId,
+									contentId: att.contentId ?? null,
+								})),
+							});
+						}
+					}
+
 					updated++;
 				} catch {
 					errors++;

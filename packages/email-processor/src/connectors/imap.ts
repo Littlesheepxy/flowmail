@@ -5,6 +5,7 @@ import type {
 	EmailConnector,
 	EmailRecipient,
 	RawEmail,
+	RawEmailAttachment,
 	SyncResult,
 } from "./types";
 
@@ -122,6 +123,17 @@ export const imapConnector: EmailConnector = {
 					const rfcMessageId =
 						parsed.messageId ??
 						(env.messageId as string | undefined);
+
+					const attachments: RawEmailAttachment[] = (parsed.attachments ?? [])
+						.filter((att) => att.filename)
+						.map((att) => ({
+							filename: att.filename ?? "untitled",
+							mimeType: att.contentType,
+							size: att.size,
+							externalId: att.contentId ?? att.checksum ?? `${rfcMessageId ?? uid}-${att.filename}`,
+							contentId: att.contentId ?? undefined,
+						}));
+
 					emails.push({
 						externalId: rfcMessageId ?? `uid-${uid}`,
 						subject: parsed.subject ?? (env.subject as string) ?? "(no subject)",
@@ -134,6 +146,7 @@ export const imapConnector: EmailConnector = {
 						snippet: content.slice(0, 200),
 						bodyHtml: bodyHtml || undefined,
 						bodyText: bodyText || undefined,
+						attachments: attachments.length > 0 ? attachments : undefined,
 						receivedAt: parsed.date ?? (env.date ? new Date(env.date as string) : new Date()),
 						messageId: rfcMessageId || undefined,
 					});
