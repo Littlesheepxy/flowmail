@@ -136,6 +136,23 @@ export interface AskUserCardData {
 	awaiting: boolean;
 }
 
+export interface BatchClassifyCardData {
+	total: number;
+	succeeded: number;
+	failed: number;
+	results: Array<{
+		entityId: string;
+		title: string;
+		categorySlug: string;
+		entityType: string;
+		confidence: number;
+		reasoning: string;
+		sender: string;
+		status: "ok" | "error";
+		error?: string;
+	}>;
+}
+
 // ── UI 卡片联合类型（工具结果 → 渲染组件） ───────────────
 
 export type AgentUICard =
@@ -150,7 +167,8 @@ export type AgentUICard =
 	| { type: "sync_result";      data: SyncResultCardData }
 	| { type: "send_result";      data: SendResultCardData }
 	| { type: "email_search";     data: EmailSearchCardData }
-	| { type: "ask_user";         data: AskUserCardData };
+	| { type: "ask_user";         data: AskUserCardData }
+	| { type: "batch_classify";   data: BatchClassifyCardData };
 
 // ── 页面上下文（前端发送给后端的当前页面状态） ────────────
 

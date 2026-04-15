@@ -38,6 +38,7 @@ import type {
 	SendResultCardData,
 	EmailSearchCardData,
 	AskUserCardData,
+	BatchClassifyCardData,
 	AgentUICard,
 } from "./types";
 import { getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
@@ -653,6 +654,111 @@ export function AskUserCard({
 	);
 }
 
+// ── 批量分类结果卡片 ──────────────────────────────────────
+
+const ENTITY_TYPE_COLORS: Record<string, string> = {
+	APPROVAL: "text-orange-600 dark:text-orange-400",
+	REPORT: "text-emerald-600 dark:text-emerald-400",
+	ISSUE: "text-red-600 dark:text-red-400",
+	FEEDBACK: "text-blue-600 dark:text-blue-400",
+	NOISE: "text-muted-foreground",
+};
+
+export function BatchClassifyCard({
+	data,
+	onConfirmAll,
+	onConfirmFiltered,
+}: {
+	data: BatchClassifyCardData;
+	onConfirmAll?: () => void;
+	onConfirmFiltered?: (entityIds: string[]) => void;
+}) {
+	const okResults = data.results.filter((r) => r.status === "ok");
+	const noiseResults = okResults.filter((r) => r.categorySlug === "noise");
+	const businessResults = okResults.filter((r) => r.categorySlug !== "noise");
+
+	return (
+		<div className="rounded-xl border overflow-hidden bg-card">
+			<div className="px-3.5 py-2.5 border-b bg-primary/5 flex items-center justify-between">
+				<div className="flex items-center gap-2">
+					<SparklesIcon className="size-4 text-primary shrink-0" />
+					<span className="text-xs font-semibold">分类结果预览</span>
+				</div>
+				<span className="text-[10px] text-muted-foreground">
+					{data.succeeded} 成功
+					{data.failed > 0 && ` · ${data.failed} 失败`}
+				</span>
+			</div>
+
+			<ul className="divide-y max-h-[280px] overflow-y-auto">
+				{okResults.map((r) => (
+					<li key={r.entityId} className="px-3.5 py-2 flex items-center gap-2">
+						<div className="flex-1 min-w-0">
+							<p className="text-xs font-medium truncate">{r.title}</p>
+							<p className="text-[10px] text-muted-foreground truncate">
+								{r.sender} · {r.reasoning.slice(0, 60)}
+							</p>
+						</div>
+						<div className="flex items-center gap-1.5 shrink-0">
+							<Badge
+								className={cn(
+									"h-4 rounded-sm px-1.5 text-[10px] font-semibold",
+									ENTITY_TYPE_COLORS[r.entityType] ?? "text-muted-foreground",
+								)}
+								status={
+									r.entityType === "APPROVAL" ? "warning"
+									: r.entityType === "REPORT" ? "success"
+									: r.entityType === "ISSUE" ? "error"
+									: r.entityType === "NOISE" ? "info"
+									: "info"
+								}
+							>
+								{getEntityTypeLabel(r.entityType)}
+							</Badge>
+							<span className={cn(
+								"text-[10px]",
+								r.confidence >= 0.8 ? "text-emerald-600 dark:text-emerald-400"
+								: r.confidence >= 0.5 ? "text-amber-600 dark:text-amber-400"
+								: "text-red-500",
+							)}>
+								{Math.round(r.confidence * 100)}%
+							</span>
+						</div>
+					</li>
+				))}
+			</ul>
+
+			<div className="px-3.5 py-2.5 border-t bg-muted/20 space-y-2">
+				{noiseResults.length > 0 && (
+					<p className="text-[10px] text-muted-foreground">
+						其中 {noiseResults.length} 封被识别为营销/通知邮件，将自动过滤
+					</p>
+				)}
+				<div className="flex gap-2">
+					<Button
+						size="sm"
+						className="flex-1 h-8 text-xs gap-1.5"
+						onClick={onConfirmAll}
+					>
+						<CheckIcon className="size-3" />
+						确认并深度分析全部 ({businessResults.length})
+					</Button>
+					{noiseResults.length > 0 && businessResults.length > 0 && (
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-8 text-xs"
+							onClick={() => onConfirmFiltered?.(businessResults.map((r) => r.entityId))}
+						>
+							仅分析业务邮件
+						</Button>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+}
+
 // ── 里程碑图标 ────────────────────────────────────────────
 
 export function MilestoneIcon() {
@@ -693,6 +799,25 @@ export function AgentCard({
 			return <EmailSearchCard data={card.data} />;
 		case "ask_user":
 			return <AskUserCard data={card.data} onSelect={onSendMessage} />;
+		case "batch_classify":
+			return (
+				<BatchClassifyCard
+					data={card.data}
+					onConfirmAll={() => {
+						const bizIds = card.data.results
+							.filter((r) => r.status === "ok" && r.categorySlug !== "noise")
+							.map((r) => r.entityId);
+						if (bizIds.length > 0 && onSendMessage) {
+							onSendMessage(`确认分类结果，请对以下 ${bizIds.length} 个事项执行深度分析：${bizIds.join(",")}`);
+						}
+					}}
+					onConfirmFiltered={(ids) => {
+						if (ids.length > 0 && onSendMessage) {
+							onSendMessage(`确认分类，仅对这 ${ids.length} 个业务邮件深度分析：${ids.join(",")}`);
+						}
+					}}
+				/>
+			);
 		default:
 			return null;
 	}
@@ -792,6 +917,7 @@ const TOOL_SKELETON_MAP: Record<string, () => React.ReactNode> = {
 	approve_entity: () => <GenericToolSkeleton label="执行审批…" />,
 	add_note: () => <GenericToolSkeleton label="添加笔记…" />,
 	update_entity_status: () => <GenericToolSkeleton label="更新状态…" />,
+	batch_classify: () => <EntityListCardSkeleton />,
 	list_connections: () => <EntityListCardSkeleton />,
 	sync_emails: () => <GenericToolSkeleton label="同步邮件中…" />,
 	send_email: () => <GenericToolSkeleton label="发送邮件中…" />,

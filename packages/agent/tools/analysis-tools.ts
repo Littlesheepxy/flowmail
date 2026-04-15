@@ -2,7 +2,18 @@ import { tool, textModel, fastModel, safeGenerateObject } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
 
-export function createAnalysisTools() {
+export function createAnalysisTools(deps?: {
+	classifyEntityOnly?: (entityId: string) => Promise<{
+		entityId: string;
+		title: string;
+		categorySlug: string;
+		entityType: string;
+		confidence: number;
+		reasoning: string;
+		sender: string;
+		subject: string;
+	}>;
+}) {
 	return {
 		predict_risk: tool({
 			description:
@@ -128,6 +139,59 @@ ${eventsText}
 				});
 
 				return { ...result, entityId: input.entityId };
+			},
+		}),
+
+		batch_classify: tool({
+			description:
+				"批量快速分类（只分类，不深度分析）。对未分析的事项执行 AI 分类，返回每个事项的分类结果供用户确认。" +
+				"确认后再调用 batch_enrich 进行深度分析。每次最多处理 20 个。",
+			inputSchema: z.object({
+				organizationId: z.string().describe("组织 ID"),
+				entityIds: z.array(z.string()).min(1).max(20).describe("待分类的事项 ID 列表"),
+			}),
+			execute: async (input: { organizationId: string; entityIds: string[] }) => {
+				if (!deps?.classifyEntityOnly) {
+					return { error: "classifyEntityOnly not available" };
+				}
+
+				const results: Array<{
+					entityId: string;
+					title: string;
+					categorySlug: string;
+					entityType: string;
+					confidence: number;
+					reasoning: string;
+					sender: string;
+					status: "ok" | "error";
+					error?: string;
+				}> = [];
+
+				for (const entityId of input.entityIds) {
+					try {
+						const r = await deps.classifyEntityOnly(entityId);
+						results.push({ ...r, status: "ok" });
+					} catch (err) {
+						results.push({
+							entityId,
+							title: "",
+							categorySlug: "unknown",
+							entityType: "FEEDBACK",
+							confidence: 0,
+							reasoning: "",
+							sender: "",
+							status: "error",
+							error: err instanceof Error ? err.message : "Unknown error",
+						});
+					}
+				}
+
+				return {
+					total: input.entityIds.length,
+					succeeded: results.filter((r) => r.status === "ok").length,
+					failed: results.filter((r) => r.status === "error").length,
+					results,
+				};
 			},
 		}),
 

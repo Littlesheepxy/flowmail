@@ -261,6 +261,108 @@ function stripHtmlForAI(html: string): string {
 		.trim();
 }
 
+/**
+ * Lightweight classification-only pass. Runs the classifier but skips
+ * extraction, summarization, and tag generation. Returns the result
+ * without writing to the database so the user can review first.
+ */
+export async function classifyEntityOnly(entityId: string): Promise<{
+	entityId: string;
+	title: string;
+	categorySlug: string;
+	entityType: string;
+	confidence: number;
+	reasoning: string;
+	categoryId?: string;
+	sender: string;
+	subject: string;
+}> {
+	const LOG_TAG = "[ClassifyOnly]";
+
+	const entity = await db.flowEntity.findUnique({
+		where: { id: entityId },
+		include: {
+			threads: {
+				select: {
+					subject: true,
+					sender: true,
+					senderName: true,
+					bodyText: true,
+					bodyHtml: true,
+					snippet: true,
+				},
+				orderBy: { receivedAt: "desc" },
+				take: 3,
+			},
+		},
+	});
+
+	if (!entity) {
+		throw new Error(`Entity ${entityId} not found`);
+	}
+	if (entity.threads.length === 0) {
+		throw new Error(`Entity ${entityId} has no threads`);
+	}
+
+	const primaryThread = entity.threads[0];
+	let content = extractBestContent(primaryThread);
+	const subject = primaryThread.subject ?? entity.title;
+	const sender = primaryThread.senderName ?? primaryThread.sender ?? "";
+
+	try {
+		const { text: attachmentText } = await readEntityAttachments(entityId);
+		if (attachmentText) {
+			content = content ? `${content}\n\n${attachmentText}` : attachmentText;
+		}
+	} catch {
+		// non-critical
+	}
+
+	console.info(`${LOG_TAG} entity=${entityId} subject="${subject.slice(0, 60)}" contentLen=${content.length}`);
+
+	const orgCategories = await db.category.findMany({
+		where: { organizationId: entity.organizationId },
+		select: { id: true, name: true, slug: true, aiPrompt: true },
+		orderBy: { sortOrder: "asc" },
+	});
+
+	let categoryId: string | undefined;
+	let categorySlug = "unknown";
+	let entityType = "FEEDBACK";
+	let confidence = 0;
+	let reasoning = "";
+
+	if (orgCategories.length > 0) {
+		const cats = orgCategories.map((c) => ({ ...c, aiPrompt: c.aiPrompt ?? "" }));
+		const result = await classifyEmailDynamic({ subject, sender, content }, cats);
+		categorySlug = result.categorySlug;
+		confidence = result.confidence;
+		reasoning = result.reasoning;
+		categoryId = orgCategories.find((c) => c.slug === categorySlug)?.id;
+		entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
+	} else {
+		const result = await classifyEmail({ subject, sender, content });
+		entityType = result.type;
+		confidence = result.confidence;
+		reasoning = result.reasoning;
+		categorySlug = result.type.toLowerCase();
+	}
+
+	console.info(`${LOG_TAG} Result entity=${entityId} → ${categorySlug} (${Math.round(confidence * 100)}%)`);
+
+	return {
+		entityId: entity.id,
+		title: entity.title,
+		categorySlug,
+		entityType,
+		confidence,
+		reasoning,
+		categoryId,
+		sender,
+		subject,
+	};
+}
+
 function determineStatus(slug: string, fields: Record<string, unknown>): string {
 	switch (slug) {
 		case "approval":

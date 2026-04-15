@@ -284,6 +284,28 @@ function toolResultToBlock(
 		};
 	}
 
+	if (toolName === "batch_classify" && result.results) {
+		return {
+			type: "batch_classify",
+			data: {
+				total: Number(result.total ?? 0),
+				succeeded: Number(result.succeeded ?? 0),
+				failed: Number(result.failed ?? 0),
+				results: result.results as Array<{
+					entityId: string;
+					title: string;
+					categorySlug: string;
+					entityType: string;
+					confidence: number;
+					reasoning: string;
+					sender: string;
+					status: "ok" | "error";
+					error?: string;
+				}>,
+			},
+		};
+	}
+
 	if (toolName === "ask_user" && result.question) {
 		return {
 			type: "ask_user",
@@ -325,6 +347,7 @@ const TOOL_LABELS: Record<string, string> = {
 	sync_emails: "正在同步邮件...",
 	send_email: "正在发送邮件...",
 	search_emails: "正在搜索邮件...",
+	batch_classify: "正在批量快速分类...",
 	batch_enrich: "正在批量 AI 分析...",
 	draft_reply: "正在起草回复...",
 	learn_reply_style: "正在学习写作风格...",

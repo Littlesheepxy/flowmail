@@ -230,10 +230,10 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 ## 可用工具速查
 
 事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note
-分析：predict_risk · get_timeline_diff · batch_reclassify · compare_entities（多事项对比）
+分析：predict_risk · get_timeline_diff · batch_classify · batch_reclassify · compare_entities（多事项对比）
 附件：list_attachments · read_attachment
 邮件正文：read_email_body（当 aiSummary 为空时先读正文）
-AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_enrich（批量 AI 分析，最多 10 个/次）
+AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_classify（批量快速分类，最多 20 个/次，只分类不深度分析）· batch_enrich（批量深度分析，最多 10 个/次）
 邮件：search_emails · list_connections · sync_emails · send_email
 收件箱：get_inbox_summary · list_entities · list_pending_approvals
 深度分析：summarize_thread（重新读取全部邮件生成综合摘要）
@@ -246,11 +246,15 @@ AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_enrich�
 
 **严格限制：只能调用上面列出的工具。不要调用任何不存在的工具名。**
 
-**批量 AI 分析流程（用户要求分析/分类所有邮件时）：**
-1. list_entities(organizationId, unanalyzed=true, limit=15) — 找出未分析的事项
-2. 如果有未分析事项 → batch_enrich(organizationId, entityIds=[...]) — 每次最多 10 个
-3. 如果超过 10 个，分多次调用 batch_enrich
-4. 向用户报告分析结果（成功/失败数量，关键分类发现）
+**批量分析流程（先分类 → 确认 → 再深度分析）：**
+1. list_entities(organizationId, unanalyzed=true, limit=20) — 找出未分析的事项
+2. batch_classify(organizationId, entityIds=[...]) — 快速分类（只分类不深度分析，速度快），每次最多 20 个
+3. 向用户展示分类结果（卡片自带确认按钮），等用户确认分类是否正确
+4. 用户确认后 → batch_enrich(organizationId, entityIds=[...]) — 对确认的事项执行深度分析（提取字段 + 摘要 + 打标签）
+5. 如果超过 10 个需要深度分析，分多次调用 batch_enrich，每次最多 10 个
+6. 向用户报告最终结果
+
+**关键原则：** 分类是轻量操作（快速廉价），深度分析是重量操作（慢且消耗 AI token）。必须让用户先确认分类结果，再投入深度分析资源。不要跳过分类直接 batch_enrich。
 
 **ask_user 使用场景：**
 - 分类不确定需要用户判断（如"这封邮件更像是审批还是汇报？"）

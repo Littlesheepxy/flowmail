@@ -5,7 +5,6 @@ import { Spinner, cn } from "@repo/ui";
 import { Button } from "@repo/ui/components/button";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { orpcClient } from "@shared/lib/orpc-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	AlertDialog,
@@ -37,6 +36,7 @@ import { DemoBanner } from "./DemoBanner";
 import { InboxEmptyState } from "./InboxEmptyState";
 import { getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
 import { toast } from "sonner";
+import { useAgent } from "./AgentProvider";
 
 const STATUS_CONFIG: Record<
 	string,
@@ -69,6 +69,7 @@ export function EntityCardList({
 	search = "",
 }: EntityCardListProps) {
 	const { activeOrganization } = useActiveOrganization();
+	const { executeSuggestion } = useAgent();
 	const prevCountRef = useRef<number | null>(null);
 
 	const { data, isLoading } = useQuery({
@@ -204,48 +205,6 @@ export function EntityCardList({
 		}),
 	);
 
-	const [batchProgress, setBatchProgress] = useState<{
-		running: boolean;
-		total: number;
-		done: number;
-		failed: number;
-		currentTitle: string;
-	} | null>(null);
-
-	const batchEnrichSequential = useCallback(async () => {
-		if (!activeOrganization?.id) {
-			return;
-		}
-		const unanalyzed = filteredEntities.filter((e) => !e.aiSummary);
-		if (unanalyzed.length === 0) {
-			return;
-		}
-
-		setBatchProgress({ running: true, total: unanalyzed.length, done: 0, failed: 0, currentTitle: unanalyzed[0].title });
-
-		let done = 0;
-		let failed = 0;
-
-		for (const entity of unanalyzed) {
-			setBatchProgress((prev) => prev ? { ...prev, currentTitle: entity.title } : prev);
-			try {
-				await orpcClient.flowEntities.enrich({ entityId: entity.id });
-				done++;
-			} catch {
-				failed++;
-			}
-			setBatchProgress((prev) => prev ? { ...prev, done: done + failed, failed } : prev);
-			queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
-		}
-
-		setBatchProgress(null);
-		if (failed === 0) {
-			toast.success(`批量分析完成：${done} 封全部成功`);
-		} else {
-			toast.success(`批量分析完成：${done} 成功，${failed} 失败`, { duration: 5000 });
-		}
-	}, [activeOrganization?.id, filteredEntities, queryClient]);
-
 	type CategoryInfo = { name: string; color: string };
 	const grouped = !categorySlug;
 	const categoryGroups: {
@@ -355,28 +314,7 @@ export function EntityCardList({
 					)}
 				</div>
 			)}
-			{batchProgress ? (
-				<div className="px-3 py-2.5 md:py-2 border-b bg-amber-50/50 dark:bg-amber-950/20 space-y-1.5">
-					<div className="flex items-center justify-between">
-						<span className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-							<Spinner className="size-3" />
-							分析中 {batchProgress.done}/{batchProgress.total}
-							{batchProgress.failed > 0 && (
-								<span className="text-red-500">（{batchProgress.failed} 失败）</span>
-							)}
-						</span>
-						<span className="text-[10px] text-muted-foreground truncate max-w-[140px]">
-							{batchProgress.currentTitle}
-						</span>
-					</div>
-					<div className="h-1.5 w-full bg-amber-100 dark:bg-amber-900/30 rounded-full overflow-hidden">
-						<div
-							className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-300 ease-out"
-							style={{ width: `${Math.round((batchProgress.done / batchProgress.total) * 100)}%` }}
-						/>
-					</div>
-				</div>
-			) : unanalyzedCount > 0 ? (
+			{unanalyzedCount > 0 ? (
 				<div className="flex items-center justify-between px-3 py-2.5 md:py-2 border-b bg-amber-50/50 dark:bg-amber-950/20">
 					<span className="text-xs text-amber-700 dark:text-amber-400">
 						{unanalyzedCount} 封邮件待 AI 分析
@@ -385,10 +323,25 @@ export function EntityCardList({
 						variant="outline"
 						size="sm"
 						className="h-7 gap-1.5 text-xs"
-						onClick={batchEnrichSequential}
+						onClick={() => {
+							const unanalyzed = filteredEntities.filter((e) => !e.aiSummary);
+							const entityIds = unanalyzed.map((e) => e.id);
+							executeSuggestion({
+								entityId: "",
+								entityTitle: "",
+								actionLabel: `批量分类 ${unanalyzed.length} 封邮件`,
+								actionTool: "batch_classify",
+								actionParams: {
+									organizationId: activeOrganization?.id ?? "",
+									entityIds,
+								},
+								suggestionMessage: `有 ${unanalyzed.length} 封未分析的邮件需要分类。请先用 batch_classify 进行快速分类，展示结果让我确认后再深度分析。`,
+								severity: "info",
+							});
+						}}
 					>
 						<SparklesIcon className="size-3" />
-						全部分析
+						AI 分类
 					</Button>
 				</div>
 			) : null}

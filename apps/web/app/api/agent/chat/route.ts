@@ -17,6 +17,7 @@ import {
 	extractReportFields,
 	summarizeThread,
 	enrichEntityById,
+	classifyEntityOnly,
 } from "@repo/email-processor";
 import {
 	ToolRegistry,
@@ -121,7 +122,7 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 		}),
 	);
 
-	registry.registerBuiltin(createAnalysisTools());
+	registry.registerBuiltin(createAnalysisTools({ classifyEntityOnly }));
 
 	registry.registerBuiltin(
 		createEmailTools({
