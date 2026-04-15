@@ -5,6 +5,7 @@ import { Spinner, cn } from "@repo/ui";
 import { Button } from "@repo/ui/components/button";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
+import { orpcClient } from "@shared/lib/orpc-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	AlertDialog,
@@ -203,19 +204,47 @@ export function EntityCardList({
 		}),
 	);
 
-	const batchEnrichMutation = useMutation(
-		orpc.flowEntities.enrichBatch.mutationOptions({
-			onSuccess: (result) => {
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
-				toast.success(`批量分析完成：${result.succeeded} 成功，${result.failed} 失败`, {
-					duration: 5000,
-				});
-			},
-			onError: (err) => {
-				toast.error(`批量分析失败：${err.message}`);
-			},
-		}),
-	);
+	const [batchProgress, setBatchProgress] = useState<{
+		running: boolean;
+		total: number;
+		done: number;
+		failed: number;
+		currentTitle: string;
+	} | null>(null);
+
+	const batchEnrichSequential = useCallback(async () => {
+		if (!activeOrganization?.id) {
+			return;
+		}
+		const unanalyzed = filteredEntities.filter((e) => !e.aiSummary);
+		if (unanalyzed.length === 0) {
+			return;
+		}
+
+		setBatchProgress({ running: true, total: unanalyzed.length, done: 0, failed: 0, currentTitle: unanalyzed[0].title });
+
+		let done = 0;
+		let failed = 0;
+
+		for (const entity of unanalyzed) {
+			setBatchProgress((prev) => prev ? { ...prev, currentTitle: entity.title } : prev);
+			try {
+				await orpcClient.flowEntities.enrich({ entityId: entity.id });
+				done++;
+			} catch {
+				failed++;
+			}
+			setBatchProgress((prev) => prev ? { ...prev, done: done + failed, failed } : prev);
+			queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
+		}
+
+		setBatchProgress(null);
+		if (failed === 0) {
+			toast.success(`批量分析完成：${done} 封全部成功`);
+		} else {
+			toast.success(`批量分析完成：${done} 成功，${failed} 失败`, { duration: 5000 });
+		}
+	}, [activeOrganization?.id, filteredEntities, queryClient]);
 
 	type CategoryInfo = { name: string; color: string };
 	const grouped = !categorySlug;
@@ -326,7 +355,28 @@ export function EntityCardList({
 					)}
 				</div>
 			)}
-			{unanalyzedCount > 0 && (
+			{batchProgress ? (
+				<div className="px-3 py-2.5 md:py-2 border-b bg-amber-50/50 dark:bg-amber-950/20 space-y-1.5">
+					<div className="flex items-center justify-between">
+						<span className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+							<Spinner className="size-3" />
+							分析中 {batchProgress.done}/{batchProgress.total}
+							{batchProgress.failed > 0 && (
+								<span className="text-red-500">（{batchProgress.failed} 失败）</span>
+							)}
+						</span>
+						<span className="text-[10px] text-muted-foreground truncate max-w-[140px]">
+							{batchProgress.currentTitle}
+						</span>
+					</div>
+					<div className="h-1.5 w-full bg-amber-100 dark:bg-amber-900/30 rounded-full overflow-hidden">
+						<div
+							className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-300 ease-out"
+							style={{ width: `${Math.round((batchProgress.done / batchProgress.total) * 100)}%` }}
+						/>
+					</div>
+				</div>
+			) : unanalyzedCount > 0 ? (
 				<div className="flex items-center justify-between px-3 py-2.5 md:py-2 border-b bg-amber-50/50 dark:bg-amber-950/20">
 					<span className="text-xs text-amber-700 dark:text-amber-400">
 						{unanalyzedCount} 封邮件待 AI 分析
@@ -335,29 +385,13 @@ export function EntityCardList({
 						variant="outline"
 						size="sm"
 						className="h-7 gap-1.5 text-xs"
-						disabled={batchEnrichMutation.isPending}
-						onClick={() => {
-							if (!activeOrganization?.id) {
-								return;
-							}
-							toast.loading("正在批量 AI 分析...", { id: "batch-enrich" });
-							batchEnrichMutation.mutate({
-								organizationId: activeOrganization.id,
-								limit: 20,
-							}, {
-								onSettled: () => toast.dismiss("batch-enrich"),
-							});
-						}}
+						onClick={batchEnrichSequential}
 					>
-						{batchEnrichMutation.isPending ? (
-							<Spinner className="size-3" />
-						) : (
-							<SparklesIcon className="size-3" />
-						)}
+						<SparklesIcon className="size-3" />
 						全部分析
 					</Button>
 				</div>
-			)}
+			) : null}
 			{allTags.length > 0 && (
 				<div className="flex items-center gap-1 px-3 py-1.5 border-b overflow-x-auto scrollbar-none">
 					{allTags.slice(0, 8).map((tag) => (

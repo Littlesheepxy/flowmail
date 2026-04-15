@@ -200,8 +200,8 @@ export async function processInboundEmail(
 				title: entityTitle,
 				status: "pending",
 				extractedFields: JSON.stringify({}),
-				aiSummary: "",
-				aiConfidence: 0,
+				aiSummary: null,
+				aiConfidence: null,
 				requiresReview: true,
 			},
 		});

@@ -9,9 +9,13 @@
 		"@repo/agent": "workspace:*",
 		"@repo/ai": "workspace:*",
 		"@repo/database": "workspace:*",
+		"@repo/storage": "workspace:*",
 		"googleapis": "^171.4.0",
 		"imapflow": "^1.2.18",
 		"mailparser": "^3.9.8",
+		"mammoth": "^1.8.0",
+		"pdf-parse": "^1.1.1",
+		"xlsx": "^0.18.5",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {

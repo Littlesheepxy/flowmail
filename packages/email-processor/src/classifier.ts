@@ -51,7 +51,7 @@ export async function classifyEmail(input: {
 
 Email Subject: ${input.subject}
 Sender: ${input.sender}
-Email Content (first 500 chars): ${input.content.slice(0, 500)}
+Email Content (first 2000 chars): ${input.content.slice(0, 2000)}
 
 Classify as:
 - APPROVAL: contains approval requests, authorization needs ("please approve", "需要审批", etc.)
@@ -97,7 +97,7 @@ export async function classifyEmailDynamic(
 
 Email Subject: ${input.subject}
 Sender: ${input.sender}
-Email Content (first 500 chars): ${input.content.slice(0, 500)}
+Email Content (first 2000 chars): ${input.content.slice(0, 2000)}
 
 Available categories:
 ${categoryDescriptions}
@@ -139,7 +139,7 @@ export async function classifyEmailWithMemory(
 
 Email Subject: ${input.subject}
 Sender: ${input.sender}
-Email Content (first 500 chars): ${input.content.slice(0, 500)}
+Email Content (first 2000 chars): ${input.content.slice(0, 2000)}
 
 Classify as:
 - APPROVAL: contains approval requests, authorization needs ("please approve", "需要审批", etc.)

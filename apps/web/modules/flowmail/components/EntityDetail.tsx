@@ -403,20 +403,26 @@ export function EntityDetail() {
 				<div className="flex-1">
 					<h2 className="text-xl font-semibold">{entity.title}</h2>
 					<div className="mt-1 flex items-center gap-2 flex-wrap">
-						<Badge status={statusCfg.badgeStatus} className="gap-1">
-							<StatusIcon className="size-3" />
-							{getStatusLabel(entity.status)}
-						</Badge>
-						<Badge status={getEntityTypeBadgeStatus(entity.type)}>{getEntityTypeLabel(entity.type)}</Badge>
-						{entity.category && (
-							<Badge className="gap-1" style={{ backgroundColor: `${entity.category.color}20`, color: entity.category.color, borderColor: `${entity.category.color}40` }}>
-								{entity.category.name}
-							</Badge>
-						)}
-						{entity.aiConfidence != null && (
-							<span className="text-xs text-muted-foreground">
-								{Math.round(entity.aiConfidence * 100)}% AI 置信度
-							</span>
+						{entity.aiSummary ? (
+							<>
+								<Badge status={statusCfg.badgeStatus} className="gap-1">
+									<StatusIcon className="size-3" />
+									{getStatusLabel(entity.status)}
+								</Badge>
+								<Badge status={getEntityTypeBadgeStatus(entity.type)}>{getEntityTypeLabel(entity.type)}</Badge>
+								{entity.category && (
+									<Badge className="gap-1" style={{ backgroundColor: `${entity.category.color}20`, color: entity.category.color, borderColor: `${entity.category.color}40` }}>
+										{entity.category.name}
+									</Badge>
+								)}
+								{entity.aiConfidence != null && (
+									<span className="text-xs text-muted-foreground">
+										{Math.round(entity.aiConfidence * 100)}% AI 置信度
+									</span>
+								)}
+							</>
+						) : (
+							<Badge status="info">待 AI 分析</Badge>
 						)}
 					</div>
 				</div>

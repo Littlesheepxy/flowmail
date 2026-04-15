@@ -1,4 +1,5 @@
 import { db } from "@repo/database";
+import { readEntityAttachments } from "./attachment-reader";
 import { classifyEmail, classifyEmailDynamic } from "./classifier";
 import { extractApprovalFields, extractReportFields } from "./extractor";
 import { summarizeThread } from "./summarizer";
@@ -30,6 +31,7 @@ export async function enrichEntityById(entityId: string): Promise<{
 					sender: true,
 					senderName: true,
 					bodyText: true,
+					bodyHtml: true,
 					snippet: true,
 				},
 				orderBy: { receivedAt: "desc" },
@@ -47,11 +49,28 @@ export async function enrichEntityById(entityId: string): Promise<{
 	}
 
 	const primaryThread = entity.threads[0];
-	const content = primaryThread.bodyText ?? primaryThread.snippet ?? "";
+	let content = extractBestContent(primaryThread);
 	const subject = primaryThread.subject ?? entity.title;
 	const sender = primaryThread.senderName ?? primaryThread.sender ?? "";
 
-	console.info(`${LOG_TAG} Starting entity=${entityId} subject="${subject.slice(0, 60)}" sender="${sender}"`);
+	// When the email body is thin (e.g. forwarded emails where the real
+	// data lives in attachments like .docx / .xlsx / .pdf), read and
+	// append the attachment text so the AI has something to work with.
+	let attachmentFilenames: string[] = [];
+	try {
+		const { text: attachmentText, filenames } = await readEntityAttachments(entityId);
+		if (attachmentText) {
+			content = content
+				? `${content}\n\n${attachmentText}`
+				: attachmentText;
+			attachmentFilenames = filenames;
+			console.info(`${LOG_TAG} Appended attachment content entity=${entityId} files=${filenames.join(", ")} chars=${attachmentText.length}`);
+		}
+	} catch (err) {
+		console.warn(`${LOG_TAG} Attachment read failed (non-critical) entity=${entityId}`, err instanceof Error ? err.message : String(err));
+	}
+
+	console.info(`${LOG_TAG} Starting entity=${entityId} subject="${subject.slice(0, 60)}" sender="${sender}" contentLen=${content.length} attachments=${attachmentFilenames.length}`);
 
 	const orgCategories = await db.category.findMany({
 		where: { organizationId: entity.organizationId },
@@ -189,6 +208,57 @@ export async function enrichEntityById(entityId: string): Promise<{
 		confidence,
 		summary,
 	};
+}
+
+/**
+ * Pick the richest text representation of an email thread for AI analysis.
+ *
+ * For forwarded emails the plain-text body is often empty or contains only
+ * headers + signature because the real content lives in an HTML table / div.
+ * When bodyText looks too thin we fall back to an HTML→text conversion that
+ * preserves more structure.
+ */
+function extractBestContent(thread: {
+	bodyText: string | null;
+	bodyHtml: string | null;
+	snippet: string | null;
+}): string {
+	const text = thread.bodyText?.trim() ?? "";
+	const meaningfulTextLen = text
+		.replace(/[-─=]{3,}[^-─=]*[-─=]{3,}/g, "")
+		.replace(/^(发件人|收件人|抄送人?|日期|主题|From|To|Cc|Date|Subject)[：:].+$/gim, "")
+		.replace(/\s+/g, " ")
+		.trim().length;
+
+	if (meaningfulTextLen > 100) {
+		return text;
+	}
+
+	if (thread.bodyHtml) {
+		const fromHtml = stripHtmlForAI(thread.bodyHtml);
+		if (fromHtml.length > meaningfulTextLen) {
+			return fromHtml;
+		}
+	}
+
+	return text || thread.snippet || "";
+}
+
+function stripHtmlForAI(html: string): string {
+	return html
+		.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+		.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<\/(?:p|div|tr|li|h[1-6])>/gi, "\n")
+		.replace(/<\/td>/gi, "\t")
+		.replace(/<[^>]+>/g, "")
+		.replace(/&nbsp;/gi, " ")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&amp;/g, "&")
+		.replace(/&#?\w+;/g, "")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
 }
 
 function determineStatus(slug: string, fields: Record<string, unknown>): string {
