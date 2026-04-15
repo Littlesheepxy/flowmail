@@ -142,13 +142,14 @@ export async function enrichEntityById(entityId: string): Promise<{
 		throw err;
 	}
 
-	const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"] as const).includes(
-		entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE",
+	const isNoise = entityType === "NOISE";
+	const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"] as const).includes(
+		entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK",
 	)
-		? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE")
+		? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK")
 		: "FEEDBACK";
 
-	const isFiltered = validEntityType === "NOISE";
+	const isFiltered = isNoise;
 	const initialStatus = determineStatus(categorySlug ?? entityType.toLowerCase(), extractedFields);
 
 	await db.flowEntity.update({
