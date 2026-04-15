@@ -38,7 +38,7 @@ import {
 	type PageContext,
 } from "@repo/agent";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const memoryManager = new MemoryManager();
 

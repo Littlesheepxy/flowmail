@@ -2,6 +2,7 @@ import { db } from "@repo/database";
 import { readEntityAttachments } from "./attachment-reader";
 import { classifyEmail, classifyEmailDynamic } from "./classifier";
 import { extractApprovalFields, extractReportFields } from "./extractor";
+import { ensureDefaultCategories } from "./seed-categories";
 import { summarizeThread } from "./summarizer";
 import { generateTags } from "./tagger";
 
@@ -72,11 +73,7 @@ export async function enrichEntityById(entityId: string): Promise<{
 
 	console.info(`${LOG_TAG} Starting entity=${entityId} subject="${subject.slice(0, 60)}" sender="${sender}" contentLen=${content.length} attachments=${attachmentFilenames.length}`);
 
-	const orgCategories = await db.category.findMany({
-		where: { organizationId: entity.organizationId },
-		select: { id: true, name: true, slug: true, aiPrompt: true },
-		orderBy: { sortOrder: "asc" },
-	});
+	const orgCategories = await ensureDefaultCategories(entity.organizationId);
 
 	let categoryId: string | undefined;
 	let categorySlug: string | undefined;
@@ -320,11 +317,7 @@ export async function classifyEntityOnly(entityId: string): Promise<{
 
 	console.info(`${LOG_TAG} entity=${entityId} subject="${subject.slice(0, 60)}" contentLen=${content.length}`);
 
-	const orgCategories = await db.category.findMany({
-		where: { organizationId: entity.organizationId },
-		select: { id: true, name: true, slug: true, aiPrompt: true },
-		orderBy: { sortOrder: "asc" },
-	});
+	const orgCategories = await ensureDefaultCategories(entity.organizationId);
 
 	let categoryId: string | undefined;
 	let categorySlug = "unknown";

@@ -155,7 +155,7 @@ ${eventsText}
 					return { error: "classifyEntityOnly not available" };
 				}
 
-				const results: Array<{
+				type ClassifyResult = {
 					entityId: string;
 					title: string;
 					categorySlug: string;
@@ -165,14 +165,22 @@ ${eventsText}
 					sender: string;
 					status: "ok" | "error";
 					error?: string;
-				}> = [];
+				};
 
-				for (const entityId of input.entityIds) {
+				const CONCURRENCY = 3;
+				const results: ClassifyResult[] = [];
+				const queue = [...input.entityIds];
+
+				async function processOne(entityId: string): Promise<ClassifyResult> {
 					try {
-						const r = await deps.classifyEntityOnly(entityId);
-						results.push({ ...r, status: "ok" });
+						const classify = deps.classifyEntityOnly;
+						if (!classify) {
+							throw new Error("classifyEntityOnly not available");
+						}
+						const r = await classify(entityId);
+						return { ...r, status: "ok" as const };
 					} catch (err) {
-						results.push({
+						return {
 							entityId,
 							title: "",
 							categorySlug: "unknown",
@@ -180,10 +188,16 @@ ${eventsText}
 							confidence: 0,
 							reasoning: "",
 							sender: "",
-							status: "error",
+							status: "error" as const,
 							error: err instanceof Error ? err.message : "Unknown error",
-						});
+						};
 					}
+				}
+
+				for (let i = 0; i < queue.length; i += CONCURRENCY) {
+					const batch = queue.slice(i, i + CONCURRENCY);
+					const batchResults = await Promise.all(batch.map(processOne));
+					results.push(...batchResults);
 				}
 
 				return {
