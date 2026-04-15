@@ -3,11 +3,17 @@ import {
 	Font,
 	Head,
 	Html,
+	Img,
 	Section,
 	Tailwind,
 } from "@react-email/components";
-import { Logo } from "@repo/ui";
 import React, { type PropsWithChildren } from "react";
+
+const baseUrl =
+	process.env.NEXT_PUBLIC_SITE_URL ??
+	(process.env.NEXT_PUBLIC_VERCEL_URL
+		? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+		: "http://localhost:3000");
 
 export default function Wrapper({ children }: PropsWithChildren) {
 	return (
@@ -75,7 +81,17 @@ export default function Wrapper({ children }: PropsWithChildren) {
 				</Head>
 				<Section className="bg-background p-4">
 					<Container className="rounded-lg bg-card p-6 text-card-foreground">
-						<Logo />
+						<div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+							<Img
+								src={`${baseUrl}/logo-dark.png`}
+								alt="Flowmail"
+								width={28}
+								height={28}
+							/>
+							<span style={{ fontSize: "16px", fontWeight: 600, letterSpacing: "-0.01em" }}>
+								Flowmail
+							</span>
+						</div>
 						{children}
 					</Container>
 				</Section>
