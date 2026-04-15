@@ -120,7 +120,7 @@ export type EntityTagScalarFieldEnum = z.infer<typeof EntityTagScalarFieldEnumSc
 
 // File: FlowEntityScalarFieldEnum.schema.ts
 
-export const FlowEntityScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'type', 'categoryId', 'title', 'status', 'extractedFields', 'aiSummary', 'aiConfidence', 'requiresReview', 'assigneeId', 'createdAt', 'updatedAt'])
+export const FlowEntityScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'type', 'categoryId', 'title', 'status', 'extractedFields', 'aiSummary', 'aiConfidence', 'requiresReview', 'isFiltered', 'assigneeId', 'createdAt', 'updatedAt'])
 
 export type FlowEntityScalarFieldEnum = z.infer<typeof FlowEntityScalarFieldEnumSchema>;
 
@@ -210,7 +210,7 @@ export type TagSource = z.infer<typeof TagSourceSchema>;
 
 // File: EntityType.schema.ts
 
-export const EntityTypeSchema = z.enum(['APPROVAL', 'REPORT', 'ISSUE', 'FEEDBACK'])
+export const EntityTypeSchema = z.enum(['APPROVAL', 'REPORT', 'ISSUE', 'FEEDBACK', 'NOISE'])
 
 export type EntityType = z.infer<typeof EntityTypeSchema>;
 
@@ -560,6 +560,7 @@ export const FlowEntitySchema = z.object({
   aiSummary: z.string().nullish(),
   aiConfidence: z.number().nullish(),
   requiresReview: z.boolean(),
+  isFiltered: z.boolean(),
   assigneeId: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),

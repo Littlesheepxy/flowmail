@@ -38,6 +38,12 @@ export const listEntities = protectedProcedure
 			where.status = input.status;
 		}
 
+		if (input.categorySlug === "noise") {
+			where.isFiltered = true;
+		} else if (!input.includeFiltered) {
+			where.isFiltered = false;
+		}
+
 		const [entities, total] = await Promise.all([
 			db.flowEntity.findMany({
 				where,

@@ -1,5 +1,4 @@
-import { generateText, textModel } from "@repo/ai";
-import { Output } from "@repo/ai";
+import { textModel, safeGenerateObject } from "@repo/ai";
 import { z } from "zod";
 
 export const SuggestionsOutputSchema = z.object({
@@ -92,9 +91,9 @@ function flatToSuggestion(
 export async function generateSuggestions(
 	input: SuggesterInput,
 ): Promise<AISuggestion[]> {
-	const { output: object } = await generateText({
+	const object = await safeGenerateObject({
 		model: textModel,
-		output: Output.object({ schema: SuggestionsOutputSchema }),
+		schema: SuggestionsOutputSchema,
 		prompt: `你是 Flowmail 的智能助手。根据当前事项的完整上下文，判断是否有需要用户注意或可以自动执行的事项。
 
 当前事项：

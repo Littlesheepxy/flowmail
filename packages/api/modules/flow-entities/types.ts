@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const entityTypeSchema = z.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"]);
+export const entityTypeSchema = z.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"]);
 
 export const listEntitiesSchema = z.object({
 	organizationId: z.string(),
@@ -8,6 +8,7 @@ export const listEntitiesSchema = z.object({
 	categoryId: z.string().optional(),
 	categorySlug: z.string().optional(),
 	status: z.string().optional(),
+	includeFiltered: z.boolean().optional().default(false),
 	limit: z.number().int().min(1).max(100).optional().default(50),
 	offset: z.number().int().min(0).optional().default(0),
 });

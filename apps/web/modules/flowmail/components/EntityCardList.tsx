@@ -34,6 +34,7 @@ import {
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { DemoBanner } from "./DemoBanner";
 import { InboxEmptyState } from "./InboxEmptyState";
+import { getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
 import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<
@@ -484,7 +485,7 @@ function EntityCard({
 	const queryClient = useQueryClient();
 	const statusCfg = STATUS_CONFIG[entity.status] ?? STATUS_CONFIG.pending;
 	const catColor = entity.category?.color ?? "#94a3b8";
-	const catName = entity.category?.name ?? entity.type;
+	const catName = entity.category?.name ?? getEntityTypeLabel(entity.type);
 	const threadCount = entity._count?.threads ?? 0;
 	const timelineCount = entity._count?.timeline ?? 0;
 	const tags = entity.tags ?? [];
@@ -557,7 +558,7 @@ function EntityCard({
 						status={needsAI ? "info" : statusCfg.variant}
 						className="text-[10px] px-1 py-0"
 					>
-						{needsAI ? "未分析" : entity.status}
+						{needsAI ? "未分析" : getStatusLabel(entity.status)}
 					</Badge>
 				</div>
 				<p className="text-sm font-medium truncate">{entity.title}</p>

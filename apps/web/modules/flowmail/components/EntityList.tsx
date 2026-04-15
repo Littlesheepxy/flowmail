@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getStatusLabel } from "../lib/entity-type-config";
 
 const statusConfig: Record<string, { badgeStatus: "success" | "info" | "warning" | "error"; icon: typeof ClockIcon }> = {
 	pending: { badgeStatus: "warning", icon: ClockIcon },
@@ -41,7 +42,7 @@ function StatusBadge({ status }: { status: string }) {
 	return (
 		<Badge status={config.badgeStatus} className="gap-1 inline-flex items-center">
 			<Icon className="size-3" />
-			{status}
+			{getStatusLabel(status)}
 		</Badge>
 	);
 }

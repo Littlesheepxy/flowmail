@@ -40,6 +40,7 @@ import type {
 	AskUserCardData,
 	AgentUICard,
 } from "./types";
+import { getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
 
 // ── 工具函数 ──────────────────────────────────────────────
 
@@ -396,7 +397,7 @@ export function EntityListCard({ data }: { data: EntityListCardData }) {
 						<div className="flex-1 min-w-0">
 							<p className="text-xs font-medium truncate">{item.title}</p>
 							<p className="text-[10px] text-muted-foreground">
-								{item.type} · {new Date(item.updatedAt).toLocaleDateString("zh-CN")}
+								{getEntityTypeLabel(item.type)} · {new Date(item.updatedAt).toLocaleDateString("zh-CN")}
 							</p>
 						</div>
 						<Badge
@@ -408,7 +409,7 @@ export function EntityListCard({ data }: { data: EntityListCardData }) {
 							}
 							className="h-4 rounded-sm px-1.5 text-[10px] shrink-0"
 						>
-							{item.status}
+							{getStatusLabel(item.status)}
 						</Badge>
 					</li>
 				))}
@@ -602,7 +603,7 @@ export function EmailSearchCard({ data }: { data: EmailSearchCardData }) {
 										}
 										className="h-4 rounded-sm px-1.5 text-[10px] shrink-0"
 									>
-										{email.entity.type}
+										{getEntityTypeLabel(email.entity.type)}
 									</Badge>
 								)}
 							</div>

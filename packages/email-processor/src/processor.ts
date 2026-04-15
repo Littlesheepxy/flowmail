@@ -46,6 +46,7 @@ const SLUG_TO_ENTITY_TYPE: Record<string, string> = {
 	report: "REPORT",
 	issue: "ISSUE",
 	feedback: "FEEDBACK",
+	noise: "NOISE",
 };
 
 export async function processEmail(input: EmailInput): Promise<ProcessResult> {
@@ -100,30 +101,22 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					memoryManager,
 				);
 
-				if (result.type === "UNKNOWN") {
-					return {
-						success: true,
-						classification: "UNKNOWN",
-						requiresManualReview: true,
-					};
-				}
-
-				entityType = result.type;
+					entityType = result.type;
 				confidence = result.confidence;
 				reasoning = result.reasoning;
 				categorySlug = result.type.toLowerCase();
 			}
 
 			if (categorySlug === "unknown" && !categoryId) {
-				return {
-					success: true,
-					classification: "UNKNOWN",
-					categorySlug: "unknown",
-					requiresManualReview: true,
-				};
+				const uncategorized = orgCategories.find((c) => c.slug === "uncategorized");
+				if (uncategorized) {
+					categoryId = uncategorized.id;
+				}
+				entityType = "FEEDBACK";
+				requiresReview = true;
 			}
 
-			requiresReview = confidence < 0.7;
+			requiresReview = requiresReview || confidence < 0.7;
 
 			if (entityType === "APPROVAL" || categorySlug === "approval") {
 				extractedFields = await extractApprovalFields(input.content);
@@ -322,11 +315,13 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 
 		// ─── 兜底：创建新 Entity ───
 
-		const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"] as const).includes(
-			entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK",
+		const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"] as const).includes(
+			entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE",
 		)
-			? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK")
+			? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE")
 			: "FEEDBACK";
+
+		const isFiltered = validEntityType === "NOISE";
 
 		const initialStatus = determineInitialStatus(
 			categorySlug ?? entityType.toLowerCase(),
@@ -345,6 +340,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				aiSummary: summary,
 				aiConfidence: confidence,
 				requiresReview,
+				isFiltered,
 			},
 		});
 
@@ -533,6 +529,8 @@ function determineInitialStatus(
 			return "open";
 		case "feedback":
 			return "received";
+		case "noise":
+			return "filtered";
 		default:
 			return "pending";
 	}

@@ -400,6 +400,7 @@ enum EntityType {
   REPORT
   ISSUE
   FEEDBACK
+  NOISE
 }
 
 model FlowEntity {
@@ -415,6 +416,7 @@ model FlowEntity {
   aiSummary       String?         @db.Text
   aiConfidence    Float?
   requiresReview  Boolean         @default(false)
+  isFiltered      Boolean         @default(false)
   assigneeId      String?
   assignee        User?           @relation("AssignedEntities", fields: [assigneeId], references: [id])
   threads         EmailThread[]
@@ -428,6 +430,7 @@ model FlowEntity {
   @@index([organizationId, type])
   @@index([organizationId, categoryId])
   @@index([organizationId, status])
+  @@index([organizationId, isFiltered])
   @@index([assigneeId])
   @@map("flow_entity")
 }

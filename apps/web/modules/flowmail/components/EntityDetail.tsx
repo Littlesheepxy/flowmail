@@ -40,6 +40,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { getEntityTypeBadgeStatus, getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
 import { EntityTimeline } from "./EntityTimeline";
 import type { ReplyMode } from "./ReplyComposer";
 import { ReplyComposer } from "./ReplyComposer";
@@ -404,9 +405,9 @@ export function EntityDetail() {
 					<div className="mt-1 flex items-center gap-2 flex-wrap">
 						<Badge status={statusCfg.badgeStatus} className="gap-1">
 							<StatusIcon className="size-3" />
-							{entity.status}
+							{getStatusLabel(entity.status)}
 						</Badge>
-						<Badge status="info">{entity.type}</Badge>
+						<Badge status={getEntityTypeBadgeStatus(entity.type)}>{getEntityTypeLabel(entity.type)}</Badge>
 						{entity.category && (
 							<Badge className="gap-1" style={{ backgroundColor: `${entity.category.color}20`, color: entity.category.color, borderColor: `${entity.category.color}40` }}>
 								{entity.category.name}

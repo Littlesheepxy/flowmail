@@ -1,0 +1,261 @@
+import type { z } from "zod";
+import { generateText, Output } from "ai";
+
+/**
+ * Wraps generateText + Output.object with a fallback for providers/proxies
+ * that don't support tool calling (which Output.object relies on for Anthropic).
+ *
+ * Strategy:
+ * 1. Try Output.object (tool-based structured output) — ideal path
+ * 2. On failure, retry with explicit JSON instructions in the prompt
+ *    and parse the text response manually with zod validation
+ */
+export async function safeGenerateObject<T extends z.ZodType>(options: {
+	model: Parameters<typeof generateText>[0]["model"];
+	schema: T;
+	prompt: string;
+	system?: string;
+}): Promise<z.infer<T>> {
+	try {
+		const { output } = await generateText({
+			model: options.model,
+			output: Output.object({ schema: options.schema }),
+			prompt: options.prompt,
+			system: options.system,
+		});
+		return output as z.infer<T>;
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		const isStructuredOutputFailure =
+			message.includes("not valid JSON") ||
+			message.includes("Unexpected token") ||
+			message.includes("output failed to parse") ||
+			message.includes("No object generated") ||
+			message.includes("could not parse") ||
+			message.includes("tool_use");
+
+		if (!isStructuredOutputFailure) {
+			throw err;
+		}
+
+		console.warn(
+			"[AI] Output.object failed (proxy likely doesn't support tool calling), falling back to prompt-based JSON:",
+			message.slice(0, 120),
+		);
+
+		const schemaExample = schemaToExample(options.schema);
+		const jsonPrompt = `${options.prompt}
+
+CRITICAL INSTRUCTION: You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation, no extra text — ONLY the raw JSON object.
+
+You MUST follow this EXACT JSON structure (use the same field names and types):
+${schemaExample}`;
+
+		const { text } = await generateText({
+			model: options.model,
+			prompt: jsonPrompt,
+			system: options.system,
+		});
+
+		const parsed = extractJson(text);
+		const result = options.schema.safeParse(parsed);
+		if (result.success) {
+			return result.data;
+		}
+
+		console.warn("[AI] Strict parse failed, attempting coercion:", result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
+		const coerced = coerceToSchema(parsed as Record<string, unknown>, options.schema);
+		return options.schema.parse(coerced);
+	}
+}
+
+function extractJson(text: string): unknown {
+	const trimmed = text.trim();
+
+	const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+	const raw = fenceMatch ? fenceMatch[1].trim() : trimmed;
+
+	const start = raw.indexOf("{");
+	const end = raw.lastIndexOf("}");
+	if (start === -1 || end === -1 || end <= start) {
+		throw new Error(`No JSON object found in AI response: ${raw.slice(0, 200)}`);
+	}
+
+	return JSON.parse(raw.slice(start, end + 1));
+}
+
+// ── Zod introspection helpers ──
+// Zod 4 uses _def.type (e.g. "string", "enum", "object")
+// Zod 3 uses _def.typeName (e.g. "ZodString", "ZodEnum", "ZodObject")
+// We support both for forward/backward compatibility.
+
+interface ZodDef {
+	type?: string;
+	typeName?: string;
+	entries?: Record<string, string>;
+	values?: string[];
+	innerType?: z.ZodType;
+	description?: string;
+}
+
+function getDef(t: z.ZodType): ZodDef | undefined {
+	return (t as { _def?: ZodDef })._def;
+}
+
+function defType(def: ZodDef): string {
+	return def.type ?? def.typeName?.replace("Zod", "").toLowerCase() ?? "";
+}
+
+function getEnumValues(def: ZodDef): string[] {
+	if (def.entries) {
+		return Object.values(def.entries);
+	}
+	if (def.values && Array.isArray(def.values)) {
+		return def.values;
+	}
+	return [];
+}
+
+function getArrayItemSchema(t: z.ZodType): z.ZodType | undefined {
+	const d = getDef(t);
+	if (!d) {
+		return undefined;
+	}
+	// Zod 4: _def.element, Zod 3: _def.type
+	const any = d as Record<string, unknown>;
+	return (any.element ?? any.type) as z.ZodType | undefined;
+}
+
+// ── Coercion ──
+
+function coerceToSchema(data: Record<string, unknown>, schema: z.ZodType): Record<string, unknown> {
+	const def = getDef(schema);
+	if (!def || defType(def) !== "object" || !("shape" in schema)) {
+		return data;
+	}
+
+	const shape = schema.shape as Record<string, z.ZodType>;
+	const result = { ...data };
+
+	for (const [key, fieldSchema] of Object.entries(shape)) {
+		const fd = getDef(fieldSchema);
+		if (!fd) {
+			continue;
+		}
+
+		const value = result[key];
+		const ft = defType(fd);
+
+		if (ft === "object" && (value === null || value === undefined || typeof value === "string")) {
+			result[key] = buildDefaultObject(fieldSchema, typeof value === "string" ? value : undefined);
+		}
+
+		if (ft === "enum" && typeof value === "string") {
+			const validValues = getEnumValues(fd);
+			if (validValues.length > 0 && !validValues.includes(value)) {
+				const lower = value.toLowerCase().replace(/[\s_-]/g, "_");
+				const match = validValues.find((v) => v.toLowerCase() === lower);
+				result[key] = match ?? validValues[0];
+			}
+		}
+
+		if (ft === "array" && value === null) {
+			result[key] = [];
+		}
+	}
+
+	return result;
+}
+
+function buildDefaultObject(schema: z.ZodType, hint?: string): Record<string, unknown> {
+	if (!("shape" in schema)) {
+		return {};
+	}
+	const shape = schema.shape as Record<string, z.ZodType>;
+	const obj: Record<string, unknown> = {};
+	for (const [key, fieldSchema] of Object.entries(shape)) {
+		const fd = getDef(fieldSchema);
+		if (!fd) {
+			continue;
+		}
+		const ft = defType(fd);
+		switch (ft) {
+			case "string":
+				obj[key] = key === "name" && hint ? hint : key === "email" ? "unknown@unknown.com" : "";
+				break;
+			case "number":
+				obj[key] = 0;
+				break;
+			case "boolean":
+				obj[key] = false;
+				break;
+			case "enum":
+				obj[key] = getEnumValues(fd)[0] ?? "";
+				break;
+			case "array":
+				obj[key] = [];
+				break;
+			case "optional":
+				obj[key] = undefined;
+				break;
+			default:
+				obj[key] = null;
+		}
+	}
+	return obj;
+}
+
+// ── Schema example generation ──
+
+function schemaToExample(schema: z.ZodType, depth = 0): string {
+	const indent = "  ".repeat(depth);
+	const inner = "  ".repeat(depth + 1);
+	const def = getDef(schema);
+
+	if (!def) {
+		return "{}";
+	}
+
+	if (defType(def) === "object" && "shape" in schema) {
+		const shape = schema.shape as Record<string, z.ZodType>;
+		const entries = Object.entries(shape).map(([key, val]) => {
+			const example = fieldExample(val, depth + 1);
+			return `${inner}"${key}": ${example}`;
+		});
+		return `{\n${entries.join(",\n")}\n${indent}}`;
+	}
+
+	return "{}";
+}
+
+function fieldExample(t: z.ZodType, depth: number): string {
+	const def = getDef(t);
+	if (!def) {
+		return `"..."`;
+	}
+
+	const ft = defType(def);
+	switch (ft) {
+		case "string":
+			return `"${def.description ? `<${def.description}>` : "..."}"`;
+		case "number":
+			return "0";
+		case "boolean":
+			return "false";
+		case "enum": {
+			const vals = getEnumValues(def);
+			return `"${vals[0] ?? "..."}"  /* one of: ${vals.map((v) => `"${v}"`).join(", ")} */`;
+		}
+		case "array": {
+			const item = getArrayItemSchema(t);
+			return `[${item ? fieldExample(item, depth) : `"..."`}]`;
+		}
+		case "optional":
+		case "nullable":
+			return `${fieldExample(def.innerType as z.ZodType, depth)}  /* optional, can be null */`;
+		case "object":
+			return schemaToExample(t, depth);
+		default:
+			return `"..."`;
+	}
+}

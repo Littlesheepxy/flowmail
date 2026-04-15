@@ -80,25 +80,75 @@ export function createReplyTools() {
 				let styleContext = "";
 				let contactContext = "";
 
-				if (organizationId) {
-					const styleMemories = await memoryManager.recall({
-						organizationId,
-						categories: [MEMORY_CATEGORIES.user_preference],
-						query: "写作风格 回复 邮件",
-						limit: 5,
-					});
-					if (styleMemories.length > 0) {
-						styleContext = `\n--- 用户写作风格参考 ---\n${styleMemories.map((m) => `- ${m.content}`).join("\n")}`;
+			if (organizationId) {
+					const selfObjects = await memoryManager.listObjects(organizationId, "self");
+					const selfObject = selfObjects[0];
+					if (selfObject) {
+						const attrs = selfObject.attributes as Record<string, string>;
+						const parts: string[] = [];
+						if (attrs.writing_style) {
+							parts.push(`风格总结：${attrs.writing_style}`);
+						}
+						if (attrs.sample_emails) {
+							parts.push(`参照邮件：\n${attrs.sample_emails}`);
+						}
+						if (attrs.reply_patterns) {
+							parts.push(`回复模式：\n${attrs.reply_patterns}`);
+						}
+						if (attrs.signature) {
+							parts.push(`署名：${attrs.signature}`);
+						}
+						if (parts.length > 0) {
+							styleContext = `\n--- 用户写作风格参考 ---\n${parts.join("\n\n")}`;
+						}
 					}
 
-					const contactMemories = await memoryManager.recall({
-						organizationId,
-						categories: [MEMORY_CATEGORIES.contact_profile],
-						scope: { type: MEMORY_SCOPES.contact, id: latest.sender },
-						limit: 5,
-					});
-					if (contactMemories.length > 0) {
-						contactContext = `\n--- 收件人画像（${senderName}）---\n${contactMemories.map((m) => `- ${m.content}`).join("\n")}`;
+					if (!styleContext) {
+						const styleMemories = await memoryManager.recall({
+							organizationId,
+							categories: [MEMORY_CATEGORIES.user_preference],
+							query: "写作风格 回复 邮件",
+							limit: 5,
+						});
+						if (styleMemories.length > 0) {
+							styleContext = `\n--- 用户写作风格参考 ---\n${styleMemories.map((m) => `- ${m.content}`).join("\n")}`;
+						}
+					}
+
+					const contactObject = await memoryManager.getObject(organizationId, "person", latest.sender);
+					if (contactObject) {
+						const attrs = contactObject.attributes as Record<string, string>;
+						const parts: string[] = [];
+						if (attrs.role) {
+							parts.push(`职务：${attrs.role}`);
+						}
+						if (attrs.company) {
+							parts.push(`公司：${attrs.company}`);
+						}
+						if (attrs.communication_style) {
+							parts.push(`沟通风格：${attrs.communication_style}`);
+						}
+						if (attrs.sample_interactions) {
+							parts.push(`典型对话：\n${attrs.sample_interactions}`);
+						}
+						if (attrs.sensitivity) {
+							parts.push(`敏感点：${attrs.sensitivity}`);
+						}
+						if (parts.length > 0) {
+							contactContext = `\n--- 收件人画像（${senderName}）---\n${parts.join("\n")}`;
+						}
+					}
+
+					if (!contactContext) {
+						const contactMemories = await memoryManager.recall({
+							organizationId,
+							categories: [MEMORY_CATEGORIES.contact_profile],
+							scope: { type: MEMORY_SCOPES.contact, id: latest.sender },
+							limit: 5,
+						});
+						if (contactMemories.length > 0) {
+							contactContext = `\n--- 收件人画像（${senderName}）---\n${contactMemories.map((m) => `- ${m.content}`).join("\n")}`;
+						}
 					}
 				}
 
@@ -130,8 +180,8 @@ ${input.instructions ? `用户具体要求：${input.instructions}` : "根据邮
 语气：${toneDesc}
 语言：${langDesc}
 ${includeGreeting ? `包含对 ${senderName} 的称呼和落款` : "不需要称呼和落款，只写正文"}
-${styleContext ? "请参考上方的用户写作风格，模仿其用词习惯和语气。" : ""}
-${contactContext ? "请参考上方的收件人画像，注意沟通偏好和敏感点。" : ""}
+${styleContext ? "请严格模仿上方「参照邮件」中的用词、句式和语气来撰写回复。如有「回复模式」，按照对应场景的模式组织回复结构。" : ""}
+${contactContext ? "请参考上方的收件人画像。如有「典型对话」样本，注意收件人的沟通习惯和敏感点，据此调整回复策略。" : ""}
 
 请直接输出回复邮件的正文，不要加任何解释、标注或引号。回复应该自然、得体、切中要点。`;
 
@@ -209,19 +259,33 @@ ${contactContext ? "请参考上方的收件人画像，注意沟通偏好和敏
 					return `--- 样本 ${i + 1} ---\n主题: ${e.subject}\n${body}`;
 				}).join("\n\n");
 
-				const analysisPrompt = `请分析以下邮件样本，总结发件人的写作风格特征。
+				const analysisPrompt = `请分析以下邮件样本，总结发件人的写作风格特征。输出 3 个部分，用 ===SECTION=== 分隔。
 
 ${emailSamples}
 
-请从以下维度总结：
-1. 语言偏好（中文/英文/混合）
-2. 语气风格（正式/友好/简洁/其他）
-3. 常用开头和结尾方式
-4. 用词特点（如是否使用敬语、感叹词等）
-5. 段落结构偏好
-6. 署名习惯
+=== 第一部分：writing_style ===
+从以下维度总结风格（纯文本，每个维度一行）：
+- 语言偏好（中文/英文/混合）
+- 语气风格（正式/友好/简洁/其他）
+- 常用开头和结尾方式
+- 用词特点
+- 段落结构偏好
+- 署名习惯
 
-输出格式为纯文本，每个维度一行，简洁描述。不要加编号或标题格式。`;
+=== 第二部分：sample_emails ===
+从样本中挑选 2-3 封最能代表风格的典型邮件，按场景分类引用原文片段。格式示例：
+📧 审批回复（同意）：
+"Hi 张伟，采购申请已审批通过..."
+
+📧 汇报回复：
+"收到，进展符合预期。两个关注点..."
+
+=== 第三部分：reply_patterns ===
+总结不同场景的回复模式（同意类/拒绝类/催促类/信息确认类），每种模式一行：
+同意类：直接给结论 + 一句行动指引
+拒绝/待定类：先说结论，再说原因和下一步
+
+请严格按 ===SECTION=== 分隔三部分输出。`;
 
 				try {
 					const model = textModel;
@@ -232,12 +296,17 @@ ${emailSamples}
 
 					const styleAnalysis = result.text.trim();
 
+					const sections = styleAnalysis.split(/===SECTION===/);
+					const writingStyle = (sections[0] ?? styleAnalysis).trim();
+					const sampleEmails = (sections[1] ?? "").trim();
+					const replyPatterns = (sections[2] ?? "").trim();
+
 					await memoryManager.write({
 						organizationId: input.organizationId,
 						category: MEMORY_CATEGORIES.user_preference,
 						scope: MEMORY_SCOPES.user,
 						scopeId: input.userEmail,
-						content: `用户邮件写作风格:\n${styleAnalysis}`,
+						content: `用户邮件写作风格:\n${writingStyle}`,
 						metadata: {
 							type: "reply_style",
 							userEmail: input.userEmail,
@@ -247,11 +316,30 @@ ${emailSamples}
 						importance: 8,
 					});
 
+					const selfObjectId = input.userEmail;
+					const updates: Record<string, string> = { writing_style: writingStyle };
+					if (sampleEmails) {
+						updates.sample_emails = sampleEmails;
+					}
+					if (replyPatterns) {
+						updates.reply_patterns = replyPatterns;
+					}
+
+					await memoryManager.upsertObject({
+						organizationId: input.organizationId,
+						objectType: "self",
+						objectId: selfObjectId,
+						name: "我的画像",
+						updates,
+					});
+
 					return {
 						success: true,
-						styleAnalysis,
+						styleAnalysis: writingStyle,
+						sampleEmails: sampleEmails || undefined,
+						replyPatterns: replyPatterns || undefined,
 						samplesAnalyzed: sentEmails.length,
-						hint: "写作风格已记录。下次使用 draft_reply 时会自动参考此风格。",
+						hint: "写作风格、参照邮件和回复模式已记录到记忆对象。下次使用 draft_reply 时会自动参考。",
 					};
 				} catch (err) {
 					return {

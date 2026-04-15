@@ -1,4 +1,4 @@
-import { generateText, fastModel, Output } from "@repo/ai";
+import { fastModel, safeGenerateObject } from "@repo/ai";
 import {
 	ClassificationResultSchema,
 	DynamicClassificationResultSchema,
@@ -44,9 +44,9 @@ export async function classifyEmail(input: {
 	sender: string;
 	content: string;
 }): Promise<ClassificationResult> {
-	const { output: object } = await generateText({
+	return safeGenerateObject({
 		model: fastModel,
-		output: Output.object({ schema: ClassificationResultSchema }),
+		schema: ClassificationResultSchema,
 		prompt: `You are an enterprise email classifier. Analyze the following email and determine its business type.
 
 Email Subject: ${input.subject}
@@ -58,12 +58,11 @@ Classify as:
 - REPORT: progress updates, weekly/daily reports, status updates
 - ISSUE: problems, bugs, incidents, complaints
 - FEEDBACK: suggestions, feedback, reviews
+- NOISE: marketing emails, subscription notifications, automated system notifications, ads, newsletters, promotional content, non-business emails (营销推广、订阅通知、自动系统邮件、广告、新闻简报)
 - UNKNOWN: cannot determine
 
 Return your classification with confidence (0-1) and brief reasoning.`,
 	});
-
-	return object;
 }
 
 /**
@@ -91,9 +90,9 @@ export async function classifyEmailDynamic(
 
 	const validSlugs = categories.map((c) => c.slug).join(", ");
 
-	const { output: object } = await generateText({
+	return safeGenerateObject({
 		model: fastModel,
-		output: Output.object({ schema: DynamicClassificationResultSchema }),
+		schema: DynamicClassificationResultSchema,
 		prompt: `You are an enterprise email classifier. Analyze the following email and classify it into ONE of the provided categories.
 
 Email Subject: ${input.subject}
@@ -106,8 +105,6 @@ ${categoryDescriptions}
 Return the categorySlug of the best matching category (one of: ${validSlugs}, or "unknown" if no category fits).
 Include confidence (0-1) and brief reasoning.`,
 	});
-
-	return object;
 }
 
 /**
@@ -135,9 +132,9 @@ export async function classifyEmailWithMemory(
 		historyBlock = `\n\nHistorical classifications from this sender:\n${lines.join("\n")}\nUse this history to inform your classification, especially if the user corrected previous classifications.`;
 	}
 
-	const { output: object } = await generateText({
+	const result = await safeGenerateObject({
 		model: fastModel,
-		output: Output.object({ schema: ClassificationResultSchema }),
+		schema: ClassificationResultSchema,
 		prompt: `You are an enterprise email classifier. Analyze the following email and determine its business type.
 
 Email Subject: ${input.subject}
@@ -149,6 +146,7 @@ Classify as:
 - REPORT: progress updates, weekly/daily reports, status updates
 - ISSUE: problems, bugs, incidents, complaints
 - FEEDBACK: suggestions, feedback, reviews
+- NOISE: marketing emails, subscription notifications, automated system notifications, ads, newsletters, promotional content, non-business emails (营销推广、订阅通知、自动系统邮件、广告、新闻简报)
 - UNKNOWN: cannot determine
 
 Return your classification with confidence (0-1) and brief reasoning.${historyBlock}`,
@@ -159,10 +157,10 @@ Return your classification with confidence (0-1) and brief reasoning.${historyBl
 			organizationId,
 			emailSubject: input.subject,
 			sender: input.sender,
-			classification: object.type,
-			confidence: object.confidence,
+			classification: result.type,
+			confidence: result.confidence,
 		})
 		.catch(() => {});
 
-	return object;
+	return result;
 }

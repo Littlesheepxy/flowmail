@@ -16,6 +16,7 @@ const SLUG_TO_ENTITY_TYPE: Record<string, string> = {
 	report: "REPORT",
 	issue: "ISSUE",
 	feedback: "FEEDBACK",
+	noise: "NOISE",
 };
 
 const enrichBatchSchema = z.object({
@@ -75,11 +76,15 @@ export const enrichBatch = protectedProcedure
 			? orgCategories.map((c) => ({ ...c, aiPrompt: c.aiPrompt ?? "" }))
 			: [];
 
+		const LOG_TAG = "[EnrichBatch]";
+		console.info(`${LOG_TAG} Starting org=${input.organizationId} count=${entities.length}`);
+
 		const results: { entityId: string; status: "ok" | "error"; categorySlug?: string; error?: string }[] = [];
 
 		for (const entity of entities) {
 			try {
 				if (entity.threads.length === 0) {
+					console.warn(`${LOG_TAG} Skipped entity=${entity.id} — no threads`);
 					results.push({ entityId: entity.id, status: "error", error: "No threads" });
 					continue;
 				}
@@ -120,10 +125,10 @@ export const enrichBatch = protectedProcedure
 
 				const summary = await summarizeThread(content);
 
-				const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"] as const).includes(
-					entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK",
+				const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"] as const).includes(
+					entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE",
 				)
-					? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK")
+					? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE")
 					: "FEEDBACK";
 
 				const initialStatus = determineStatus(categorySlug ?? entityType.toLowerCase(), extractedFields);
@@ -139,6 +144,7 @@ export const enrichBatch = protectedProcedure
 						aiSummary: summary,
 						aiConfidence: confidence,
 						requiresReview: confidence < 0.7,
+						isFiltered: validEntityType === "NOISE",
 						updatedAt: new Date(),
 					},
 				});
@@ -166,26 +172,33 @@ export const enrichBatch = protectedProcedure
 							update: {},
 						});
 					}
-				} catch {
-					// non-critical
+				} catch (err) {
+					console.warn(`${LOG_TAG} Tags failed (non-critical) entity=${entity.id}`, {
+						error: err instanceof Error ? err.message : String(err),
+					});
 				}
 
+				console.info(`${LOG_TAG} OK entity=${entity.id} → ${categorySlug} (${Math.round(confidence * 100)}%)`);
 				results.push({ entityId: entity.id, status: "ok", categorySlug });
 			} catch (err) {
+				const errorMsg = err instanceof Error ? err.message : "Unknown error";
+				console.error(`${LOG_TAG} FAILED entity=${entity.id}`, {
+					error: errorMsg,
+					stack: err instanceof Error ? err.stack : undefined,
+				});
 				results.push({
 					entityId: entity.id,
 					status: "error",
-					error: err instanceof Error ? err.message : "Unknown error",
+					error: errorMsg,
 				});
 			}
 		}
 
-		return {
-			total: entities.length,
-			succeeded: results.filter((r) => r.status === "ok").length,
-			failed: results.filter((r) => r.status === "error").length,
-			results,
-		};
+		const succeeded = results.filter((r) => r.status === "ok").length;
+		const failed = results.filter((r) => r.status === "error").length;
+		console.info(`${LOG_TAG} Done org=${input.organizationId} total=${entities.length} succeeded=${succeeded} failed=${failed}`);
+
+		return { total: entities.length, succeeded, failed, results };
 	});
 
 function determineStatus(slug: string, fields: Record<string, unknown>): string {

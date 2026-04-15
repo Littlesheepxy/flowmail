@@ -46,7 +46,7 @@ export function createInboxTools() {
 			inputSchema: z.object({
 				organizationId: z.string(),
 				type: z
-					.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"])
+					.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"])
 					.optional()
 					.describe("按事项类型筛选"),
 				status: z

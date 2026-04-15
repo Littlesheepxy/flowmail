@@ -1,6 +1,6 @@
+import { MemoryManagerPanel } from "@flowmail/components/MemoryManagerPanel";
 import { getActiveOrganization } from "@saas/auth/lib/server";
 import { PageHeader } from "@saas/shared/components/PageHeader";
-import { MemoryManagerPanel } from "@flowmail/components/MemoryManagerPanel";
 import { notFound } from "next/navigation";
 
 export const metadata = { title: "AI 记忆" };

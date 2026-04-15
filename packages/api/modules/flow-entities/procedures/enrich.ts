@@ -18,6 +18,7 @@ const SLUG_TO_ENTITY_TYPE: Record<string, string> = {
 	report: "REPORT",
 	issue: "ISSUE",
 	feedback: "FEEDBACK",
+	noise: "NOISE",
 };
 
 const enrichEntitySchema = z.object({
@@ -33,6 +34,8 @@ export const enrichEntity = protectedProcedure
 	})
 	.input(enrichEntitySchema)
 	.handler(async ({ input, context }) => {
+		const LOG_TAG = "[Enrich]";
+
 		const entity = await db.flowEntity.findUnique({
 			where: { id: input.entityId },
 			include: {
@@ -68,6 +71,8 @@ export const enrichEntity = protectedProcedure
 		const subject = primaryThread.subject ?? entity.title;
 		const sender = primaryThread.senderName ?? primaryThread.sender ?? "";
 
+		console.info(`${LOG_TAG} Starting entity=${input.entityId} subject="${subject.slice(0, 60)}" sender="${sender}"`);
+
 		const orgCategories = await db.category.findMany({
 			where: { organizationId: entity.organizationId },
 			select: { id: true, name: true, slug: true, aiPrompt: true },
@@ -83,45 +88,81 @@ export const enrichEntity = protectedProcedure
 
 		const useDynamic = orgCategories.length > 0;
 
-		if (useDynamic) {
-			const cats = orgCategories.map((c) => ({
-				...c,
-				aiPrompt: c.aiPrompt ?? "",
-			}));
-			const result = await classifyEmailDynamic(
-				{ subject, sender, content },
-				cats,
-			);
-			categorySlug = result.categorySlug;
-			confidence = result.confidence;
-			reasoning = result.reasoning;
+		try {
+			if (useDynamic) {
+				const cats = orgCategories.map((c) => ({
+					...c,
+					aiPrompt: c.aiPrompt ?? "",
+				}));
+				const result = await classifyEmailDynamic(
+					{ subject, sender, content },
+					cats,
+				);
+				categorySlug = result.categorySlug;
+				confidence = result.confidence;
+				reasoning = result.reasoning;
 
-			const matched = orgCategories.find((c) => c.slug === categorySlug);
-			categoryId = matched?.id;
-			entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
-		} else {
-			const result = await classifyEmail(
-				{ subject, sender, content },
-			);
+				const matched = orgCategories.find((c) => c.slug === categorySlug);
+				categoryId = matched?.id;
+				entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
+			} else {
+				const result = await classifyEmail(
+					{ subject, sender, content },
+				);
 
-			entityType = result.type;
-			confidence = result.confidence;
-			reasoning = result.reasoning;
-			categorySlug = result.type.toLowerCase();
+				entityType = result.type;
+				confidence = result.confidence;
+				reasoning = result.reasoning;
+				categorySlug = result.type.toLowerCase();
+			}
+			console.info(`${LOG_TAG} Classified entity=${input.entityId} → ${categorySlug} (${Math.round(confidence * 100)}%)`);
+		} catch (err) {
+			console.error(`${LOG_TAG} Classification FAILED entity=${input.entityId}`, {
+				error: err instanceof Error ? err.message : String(err),
+				stack: err instanceof Error ? err.stack : undefined,
+				useDynamic,
+				contentLength: content.length,
+			});
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: `AI classification failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+			});
 		}
 
-		if (entityType === "APPROVAL" || categorySlug === "approval") {
-			extractedFields = await extractApprovalFields(content);
-		} else if (entityType === "REPORT" || categorySlug === "report") {
-			extractedFields = await extractReportFields(content);
+		try {
+			if (entityType === "APPROVAL" || categorySlug === "approval") {
+				extractedFields = await extractApprovalFields(content);
+			} else if (entityType === "REPORT" || categorySlug === "report") {
+				extractedFields = await extractReportFields(content);
+			}
+			console.info(`${LOG_TAG} Extracted entity=${input.entityId} type=${entityType} fields=${Object.keys(extractedFields).length}`);
+		} catch (err) {
+			console.error(`${LOG_TAG} Extraction FAILED entity=${input.entityId} type=${entityType}`, {
+				error: err instanceof Error ? err.message : String(err),
+				stack: err instanceof Error ? err.stack : undefined,
+			});
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: `AI extraction failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+			});
 		}
 
-		const summary = await summarizeThread(content);
+		let summary: string;
+		try {
+			summary = await summarizeThread(content);
+			console.info(`${LOG_TAG} Summarized entity=${input.entityId} length=${summary.length}`);
+		} catch (err) {
+			console.error(`${LOG_TAG} Summarization FAILED entity=${input.entityId}`, {
+				error: err instanceof Error ? err.message : String(err),
+				stack: err instanceof Error ? err.stack : undefined,
+			});
+			throw new ORPCError("INTERNAL_SERVER_ERROR", {
+				message: `AI summarization failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+			});
+		}
 
-		const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"] as const).includes(
-			entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK",
+		const validEntityType = (["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"] as const).includes(
+			entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE",
 		)
-			? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK")
+			? (entityType as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE")
 			: "FEEDBACK";
 
 		const initialStatus = determineStatus(
@@ -140,6 +181,7 @@ export const enrichEntity = protectedProcedure
 				aiSummary: summary,
 				aiConfidence: confidence,
 				requiresReview: confidence < 0.7,
+				isFiltered: validEntityType === "NOISE",
 				updatedAt: new Date(),
 			},
 		});
@@ -159,8 +201,10 @@ export const enrichEntity = protectedProcedure
 					"update_entity_status",
 				],
 			});
-		} catch {
-			// non-critical
+		} catch (err) {
+			console.warn(`${LOG_TAG} Suggestions failed (non-critical) entity=${input.entityId}`, {
+				error: err instanceof Error ? err.message : String(err),
+			});
 		}
 
 		await db.timelineEvent.create({
@@ -203,9 +247,13 @@ export const enrichEntity = protectedProcedure
 					update: {},
 				});
 			}
-		} catch {
-			// non-critical
+		} catch (err) {
+			console.warn(`${LOG_TAG} Tags failed (non-critical) entity=${input.entityId}`, {
+				error: err instanceof Error ? err.message : String(err),
+			});
 		}
+
+		console.info(`${LOG_TAG} Completed entity=${input.entityId} → ${categorySlug} confidence=${Math.round(confidence * 100)}%`);
 
 		return {
 			entityId: entity.id,

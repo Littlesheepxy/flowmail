@@ -1,4 +1,4 @@
-import { tool, Output, generateText, textModel, fastModel } from "@repo/ai";
+import { tool, textModel, fastModel, safeGenerateObject } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
 
@@ -35,22 +35,20 @@ export function createAnalysisTools() {
 					)
 					.join("\n");
 
-				const { output: object } = await generateText({
+				const result = await safeGenerateObject({
 					model: textModel,
-					output: Output.object({
-						schema: z.object({
-							riskLevel: z.enum(["low", "medium", "high", "critical"]),
-							riskFactors: z.array(z.string()),
-							predictedOutcome: z.string(),
-							suggestedActions: z.array(z.string()),
-							deadlineRisk: z.object({
-								hasDeadline: z.boolean(),
-								deadline: z.string().nullable(),
-								daysRemaining: z.number().nullable(),
-								isAtRisk: z.boolean(),
-							}),
-							confidence: z.number().min(0).max(1),
+					schema: z.object({
+						riskLevel: z.enum(["low", "medium", "high", "critical"]),
+						riskFactors: z.array(z.string()),
+						predictedOutcome: z.string(),
+						suggestedActions: z.array(z.string()),
+						deadlineRisk: z.object({
+							hasDeadline: z.boolean(),
+							deadline: z.string().nullable(),
+							daysRemaining: z.number().nullable(),
+							isAtRisk: z.boolean(),
 						}),
+						confidence: z.number().min(0).max(1),
 					}),
 					prompt: `请用简体中文分析以下事项的风险。所有文本字段（riskFactors, predictedOutcome, suggestedActions）必须使用中文。
 
@@ -62,7 +60,7 @@ export function createAnalysisTools() {
 请评估风险等级、风险因素、预测结果、建议操作和截止日期风险。`,
 				});
 
-				return { ...object, entityId: input.entityId };
+				return { ...result, entityId: input.entityId };
 			},
 		}),
 
@@ -99,28 +97,26 @@ export function createAnalysisTools() {
 					)
 					.join("\n");
 
-				const { output: object } = await generateText({
+				const result = await safeGenerateObject({
 					model: textModel,
-					output: Output.object({
-						schema: z.object({
-							summary: z.string(),
-							changes: z.array(
-								z.object({
-									field: z.string(),
-									before: z.string().nullable(),
-									after: z.string().nullable(),
-									significance: z.enum([
-										"low",
-										"medium",
-										"high",
-										"critical",
-									]),
-								}),
-							),
-							riskSignals: z.array(z.string()),
-							progressDelta: z.number().nullable(),
-							recommendation: z.string().nullable(),
-						}),
+					schema: z.object({
+						summary: z.string(),
+						changes: z.array(
+							z.object({
+								field: z.string(),
+								before: z.string().nullable(),
+								after: z.string().nullable(),
+								significance: z.enum([
+									"low",
+									"medium",
+									"high",
+									"critical",
+								]),
+							}),
+						),
+						riskSignals: z.array(z.string()),
+						progressDelta: z.number().nullable(),
+						recommendation: z.string().nullable(),
 					}),
 					prompt: `请用简体中文分析以下事项的时间线变化。所有文本字段必须使用中文。
 
@@ -131,7 +127,7 @@ ${eventsText}
 分析：发生了什么变化？有哪些风险信号？进展变化量（-100到100）？有什么建议？`,
 				});
 
-				return { ...object, entityId: input.entityId };
+				return { ...result, entityId: input.entityId };
 			},
 		}),
 
@@ -189,28 +185,26 @@ ${eventsText}
 					)
 					.join("\n");
 
-				const { output: object } = await generateText({
+				const result = await safeGenerateObject({
 					model: fastModel,
-					output: Output.object({
-						schema: z.object({
-							suggestions: z.array(
-								z.object({
-									entityId: z.string(),
-									title: z.string(),
-									currentType: z.string(),
-									suggestedType: z
-										.enum([
-											"APPROVAL",
-											"REPORT",
-											"ISSUE",
-											"FEEDBACK",
-										])
-										.nullable(),
-									confidence: z.number(),
-									reason: z.string(),
-								}),
-							),
-						}),
+					schema: z.object({
+						suggestions: z.array(
+							z.object({
+								entityId: z.string(),
+								title: z.string(),
+								currentType: z.string(),
+								suggestedType: z
+									.enum([
+										"APPROVAL",
+										"REPORT",
+										"ISSUE",
+										"FEEDBACK",
+									])
+									.nullable(),
+								confidence: z.number(),
+								reason: z.string(),
+							}),
+						),
 					}),
 					prompt: `请用简体中文分析以下事项的分类是否正确。对于分类可能有误的，给出建议的新分类和原因。
 如果分类正确，suggestedType 设为 null。
@@ -218,14 +212,14 @@ ${eventsText}
 事项列表：
 ${itemsText || "（无低置信度事项）"}
 
-可用分类：APPROVAL（审批）、REPORT（汇报）、ISSUE（问题）、FEEDBACK（反馈）`,
+可用分类：APPROVAL（审批）、REPORT（汇报）、ISSUE（问题）、FEEDBACK（反馈）、NOISE（已过滤/营销）`,
 				});
 
 				return {
 					total: entities.length,
 					byType,
 					lowConfidenceCount: lowConfidence.length,
-					suggestions: object.suggestions,
+					suggestions: result.suggestions,
 				};
 			},
 		}),

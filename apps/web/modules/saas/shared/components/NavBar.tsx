@@ -123,6 +123,7 @@ export function NavBar() {
 		badge?: number;
 		color?: string;
 		dataTour?: string;
+		indent?: boolean;
 	};
 
 	type MenuGroup = {
@@ -156,20 +157,16 @@ export function NavBar() {
 								href: `${basePath}/inbox`,
 								icon: InboxIcon,
 								dataTour: "inbox",
-						isActive:
+								isActive:
 								pathname.startsWith(`${basePath}/inbox`) &&
 								!searchParams.has("category"),
 							},
+							...categoryMenuItems.map((item) => ({
+								...item,
+								indent: true as const,
+							})),
 						],
 					},
-					...(categoryMenuItems.length > 0
-						? [
-								{
-									groupLabel: "分类",
-									items: categoryMenuItems,
-								},
-							]
-						: []),
 					{
 						groupLabel: "管理",
 						items: [
@@ -388,12 +385,14 @@ export function NavBar() {
 										menuItem.isActive
 											? "font-semibold bg-primary/8 text-primary"
 											: "hover:bg-muted/50",
+										menuItem.indent && "ml-3",
 									);
 									const iconStyle = menuItem.color
 										? { color: menuItem.color }
 										: undefined;
 									const iconClass = cn(
-										"size-4 shrink-0",
+										"shrink-0",
+										menuItem.indent ? "size-3.5" : "size-4",
 										!menuItem.color &&
 											(menuItem.isActive
 												? "text-primary"
@@ -486,7 +485,8 @@ export function NavBar() {
 											onClick={menuItem.onClick}
 											className={cn(
 												itemClass,
-												"group w-full whitespace-nowrap rounded-lg px-3 py-2 text-left",
+												"group w-full whitespace-nowrap rounded-lg text-left",
+												menuItem.indent ? "px-2.5 py-1.5 text-[13px]" : "px-3 py-2",
 											)}
 										>
 											{itemContent}
@@ -496,7 +496,8 @@ export function NavBar() {
 											href={menuItem.href ?? "#"}
 											className={cn(
 												itemClass,
-												"group w-full whitespace-nowrap rounded-lg px-3 py-2",
+												"group w-full whitespace-nowrap rounded-lg",
+												menuItem.indent ? "px-2.5 py-1.5 text-[13px]" : "px-3 py-2",
 											)}
 											prefetch
 										>

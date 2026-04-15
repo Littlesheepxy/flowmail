@@ -1,5 +1,4 @@
-import { generateText, textModel } from "@repo/ai";
-import { Output } from "@repo/ai";
+import { textModel, safeGenerateObject } from "@repo/ai";
 import { z } from "zod";
 
 const TagsOutputSchema = z.object({
@@ -23,9 +22,9 @@ export async function generateTags(params: {
 				.join("\n")
 		: "";
 
-	const { output } = await generateText({
+	const output = await safeGenerateObject({
 		model: textModel,
-		output: Output.object({ schema: TagsOutputSchema }),
+		schema: TagsOutputSchema,
 		prompt: `Extract 3-5 short, descriptive tags from this email. Tags should help categorize and find this item later.
 
 Good tags: department names (市场部, 技术部), person names (张三), project names (Q3推广), urgency (紧急), topics (预算, 差旅), amounts (¥150K).
@@ -40,6 +39,6 @@ ${params.content.slice(0, 1500)}`,
 	});
 
 	return output.tags
-		.map((t) => t.trim())
-		.filter((t) => t.length > 0 && t.length <= 30);
+		.map((t: string) => t.trim())
+		.filter((t: string) => t.length > 0 && t.length <= 30);
 }

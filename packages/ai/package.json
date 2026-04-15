@@ -1,11 +1,12 @@
 {
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.0",
+		"@ai-sdk/mcp": "^1.0.0",
 		"@ai-sdk/openai": "^3.0.0",
 		"@ai-sdk/react": "^3.0.0",
-		"@ai-sdk/mcp": "^1.0.0",
 		"ai": "^6.0.0",
-		"openai": "^6.9.0"
+		"openai": "^6.9.0",
+		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.13",

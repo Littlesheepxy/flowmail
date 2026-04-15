@@ -11,6 +11,7 @@ import {
 	CheckCircle2Icon,
 	ClockIcon,
 	FileTextIcon,
+	FilterIcon,
 	InboxIcon,
 	ListTodoIcon,
 	MailIcon,
@@ -18,12 +19,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getStatusLabel } from "../lib/entity-type-config";
 
 const TYPE_CONFIGS: Record<string, { icon: typeof InboxIcon; color: string; bg: string; label: string }> = {
 	APPROVAL: { icon: CheckCircle2Icon, color: "text-amber-600", bg: "bg-amber-500/10", label: "审批" },
 	REPORT: { icon: FileTextIcon, color: "text-blue-600", bg: "bg-blue-500/10", label: "汇报" },
 	ISSUE: { icon: AlertCircleIcon, color: "text-red-600", bg: "bg-red-500/10", label: "问题" },
 	FEEDBACK: { icon: MessageSquareIcon, color: "text-emerald-600", bg: "bg-emerald-500/10", label: "反馈" },
+	NOISE: { icon: FilterIcon, color: "text-slate-600", bg: "bg-slate-500/10", label: "已过滤" },
 };
 
 export function DashboardCards() {
@@ -168,7 +171,7 @@ export function DashboardCards() {
 										)}
 									</div>
 									<Badge status={entity.status === "pending" ? "warning" : entity.status === "approved" ? "success" : "info"} className="text-[10px] px-1.5 py-0 shrink-0">
-										{entity.status}
+										{getStatusLabel(entity.status)}
 									</Badge>
 									<span className="text-[10px] text-muted-foreground/60 shrink-0">
 										{new Date(entity.updatedAt).toLocaleDateString()}

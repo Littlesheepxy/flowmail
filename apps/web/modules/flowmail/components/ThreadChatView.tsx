@@ -67,24 +67,11 @@ import type { ReplyMode } from "./ReplyComposer";
 import { ReplyComposer } from "./ReplyComposer";
 
 import DOMPurify from "isomorphic-dompurify";
+import { getEntityTypeConfig, getEntityTypeLabel, getStatusLabel, ALL_ENTITY_TYPES } from "../lib/entity-type-config";
 
 const Letter = dynamic(() => import("react-letter").then((m) => m.Letter), {
 	ssr: false,
 });
-
-const TYPE_LABELS: Record<string, string> = {
-	APPROVAL: "审批",
-	REPORT: "汇报",
-	ISSUE: "问题",
-	FEEDBACK: "反馈",
-};
-
-const TYPE_COLORS: Record<string, string> = {
-	APPROVAL: "#3b82f6",
-	REPORT: "#10b981",
-	ISSUE: "#ef4444",
-	FEEDBACK: "#f59e0b",
-};
 
 interface AISuggestion {
 	id?: string;
@@ -266,14 +253,13 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 		}
 	})();
 
+	const typeConfig = getEntityTypeConfig(entity.type);
 	const categoryLabel =
 		(entity as { category?: { name: string } }).category?.name ??
-		TYPE_LABELS[entity.type] ??
-		entity.type;
+		typeConfig.label;
 	const categoryColor =
 		(entity as { category?: { color: string } }).category?.color ??
-		TYPE_COLORS[entity.type] ??
-		"#94a3b8";
+		typeConfig.color;
 
 	return (
 		<div className="flex flex-col h-full">
@@ -1677,7 +1663,7 @@ function MergeEntityDialog({
 						>
 							<div className="text-xs font-medium truncate">{e.title}</div>
 							<div className="text-[10px] text-muted-foreground mt-0.5">
-								{e.type} · {e.status} · {new Date(e.updatedAt).toLocaleDateString()}
+								{getEntityTypeLabel(e.type)} · {getStatusLabel(e.status)} · {new Date(e.updatedAt).toLocaleDateString()}
 							</div>
 						</button>
 					))}
@@ -1691,13 +1677,6 @@ function MergeEntityDialog({
 }
 
 // ─── Reclassify Dialog ───
-
-const ENTITY_TYPES = [
-	{ value: "APPROVAL", label: "审批", desc: "请审批、签字确认", color: "bg-blue-500", hex: "#3b82f6" },
-	{ value: "REPORT", label: "汇报", desc: "周报、进展更新", color: "bg-emerald-500", hex: "#10b981" },
-	{ value: "ISSUE", label: "问题", desc: "工单、Bug、投诉", color: "bg-red-500", hex: "#ef4444" },
-	{ value: "FEEDBACK", label: "反馈", desc: "建议、评审意见", color: "bg-amber-500", hex: "#f59e0b" },
-] as const;
 
 function ReclassifyDialog({
 	open,
@@ -1733,7 +1712,7 @@ function ReclassifyDialog({
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-1.5 mt-1">
-					{ENTITY_TYPES.map((t) => (
+					{ALL_ENTITY_TYPES.map((t) => (
 						<button
 							key={t.value}
 							type="button"
@@ -1744,15 +1723,15 @@ function ReclassifyDialog({
 									: "hover:bg-muted/50",
 							)}
 							disabled={reclassifyMutation.isPending || currentType === t.value}
-							onClick={() => reclassifyMutation.mutate({ entityId, type: t.value as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" })}
+							onClick={() => reclassifyMutation.mutate({ entityId, type: t.value as "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE" })}
 						>
 							<div
 								className="size-3 rounded-full shrink-0"
-								style={{ backgroundColor: t.hex }}
+								style={{ backgroundColor: getEntityTypeConfig(t.value).color }}
 							/>
 							<div className="min-w-0 flex-1">
 								<span className="text-xs font-medium text-foreground">{t.label}</span>
-								<p className="text-[10px] text-muted-foreground">{t.desc}</p>
+								<p className="text-[10px] text-muted-foreground">{t.description}</p>
 							</div>
 							{currentType === t.value && (
 								<CheckIcon className="size-3.5 shrink-0 text-primary" />

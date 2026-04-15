@@ -45,6 +45,15 @@ const DEFAULT_CATEGORIES = [
 		aiPrompt:
 			"建议、反馈、评价类邮件，如：用户反馈、产品建议、improvement、feature request、满意度调查",
 	},
+	{
+		slug: "noise",
+		name: "已过滤",
+		icon: "FilterIcon",
+		color: "#94a3b8",
+		sortOrder: 10,
+		aiPrompt:
+			"营销推广、订阅通知、自动生成的系统邮件、广告、新闻简报、促销活动、邮件列表群发等非业务性邮件",
+	},
 ];
 
 async function main() {
@@ -79,6 +88,7 @@ async function main() {
 			REPORT: "report",
 			ISSUE: "issue",
 			FEEDBACK: "feedback",
+			NOISE: "noise",
 		};
 
 		const categories = await db.category.findMany({

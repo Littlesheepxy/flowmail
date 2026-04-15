@@ -287,7 +287,13 @@ AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_enrich�
 - person 按邮箱去重，同一个联系人的所有特征聚合在一个对象里
 - 一次性的操作请求、已有的信息、临时性信息**不写入**
 
-**learn_reply_style**：用户说"学习我的写作风格"时调用，分析结果会自动写入 self 对象的 writing_style 属性。
+**参照样本原则（重要）：**
+- **self.sample_emails**：学习写作风格时，必须同时保存 2-3 封典型邮件原文作为参照。按场景分类（审批回复、汇报回复、催促等），每封注明场景标签
+- **self.reply_patterns**：总结不同场景的回复模式（同意/拒绝/待定/催促），而非只写笼统的风格描述
+- **person.sample_interactions**：记录联系人的 2-3 段典型邮件片段，标注其沟通特点（如「收到 = 同意」「出现"不可接受"需高度关注」）
+- **preference.examples**：每条规则必须附带具体的输入→输出示例，格式为「收到 XXX → AI 应该 YYY」
+
+**learn_reply_style**：用户说"学习我的写作风格"时调用，分析已发邮件后写入 self 对象的 writing_style + sample_emails + reply_patterns 三个属性。
 
 ---
 

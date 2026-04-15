@@ -340,13 +340,13 @@ export function createEntityTools(deps: {
 			inputSchema: z.object({
 				entityId: z.string(),
 				newType: z
-					.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"])
+					.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"])
 					.describe("新的分类类型"),
 				reason: z.string().optional().describe("重新分类的原因"),
 			}),
 			execute: async (input: {
 				entityId: string;
-				newType: "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK";
+				newType: "APPROVAL" | "REPORT" | "ISSUE" | "FEEDBACK" | "NOISE";
 				reason?: string;
 			}) => {
 				const entity = await db.flowEntity.findUnique({
@@ -358,7 +358,10 @@ export function createEntityTools(deps: {
 				const previousType = entity.type;
 				await db.flowEntity.update({
 					where: { id: input.entityId },
-					data: { type: input.newType },
+					data: {
+						type: input.newType,
+						isFiltered: input.newType === "NOISE",
+					},
 				});
 				await db.timelineEvent.create({
 					data: {

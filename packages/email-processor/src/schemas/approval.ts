@@ -5,7 +5,7 @@ export const ApprovalExtractionSchema = z.object({
 	requester: z
 		.object({
 			name: z.string(),
-			email: z.string().email(),
+			email: z.string().describe("Requester email, or empty string if unknown"),
 		})
 		.describe("Requester info"),
 	requestContent: z.string().describe("Request content summary, max 100 chars"),

@@ -1,5 +1,4 @@
-import { generateText, textModel } from "@repo/ai";
-import { Output } from "@repo/ai";
+import { textModel, safeGenerateObject } from "@repo/ai";
 import { ApprovalExtractionSchema } from "./schemas/approval";
 import type { ApprovalExtraction } from "./schemas/approval";
 import { ReportExtractionSchema } from "./schemas/report";
@@ -8,9 +7,9 @@ import type { ReportExtraction } from "./schemas/report";
 export async function extractApprovalFields(
 	emailContent: string,
 ): Promise<ApprovalExtraction> {
-	const { output: object } = await generateText({
+	return safeGenerateObject({
 		model: textModel,
-		output: Output.object({ schema: ApprovalExtractionSchema }),
+		schema: ApprovalExtractionSchema,
 		prompt: `Extract approval-related information from this email. If a field is not present, use reasonable defaults.
 
 For nextActions: identify what needs to happen next (e.g. "review budget details", "approve request", "request additional documentation").
@@ -21,21 +20,17 @@ Return empty arrays if none apply.
 Email content:
 ${emailContent}`,
 	});
-
-	return object;
 }
 
 export async function extractReportFields(
 	emailContent: string,
 ): Promise<ReportExtraction> {
-	const { output: object } = await generateText({
+	return safeGenerateObject({
 		model: textModel,
-		output: Output.object({ schema: ReportExtractionSchema }),
+		schema: ReportExtractionSchema,
 		prompt: `Extract report/progress update information from this email. Parse completed items, in-progress items, blockers, and next steps.
 
 Email content:
 ${emailContent}`,
 	});
-
-	return object;
 }

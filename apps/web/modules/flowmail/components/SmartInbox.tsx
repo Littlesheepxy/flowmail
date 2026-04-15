@@ -42,6 +42,7 @@ const FILTER_CATEGORIES = [
 	{ value: "report", label: "汇报", color: "#10b981" },
 	{ value: "issue", label: "问题", color: "#ef4444" },
 	{ value: "feedback", label: "反馈", color: "#f59e0b" },
+	{ value: "noise", label: "已过滤", color: "#94a3b8" },
 ] as const;
 
 function useMediaQuery(query: string) {

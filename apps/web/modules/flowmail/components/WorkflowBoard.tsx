@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getEntityTypeBadgeStatus, getEntityTypeLabel } from "../lib/entity-type-config";
 
 export function WorkflowBoard() {
 	const { activeOrganization } = useActiveOrganization();
@@ -136,8 +137,8 @@ export function WorkflowBoard() {
 												</p>
 											)}
 											</div>
-											<Badge status="info" className="text-[9px] px-1 py-0 shrink-0">
-												{item.type}
+											<Badge status={getEntityTypeBadgeStatus(item.type)} className="text-[9px] px-1 py-0 shrink-0">
+												{getEntityTypeLabel(item.type)}
 											</Badge>
 										</div>
 

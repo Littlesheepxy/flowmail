@@ -1,7 +1,7 @@
 import { db } from "@repo/database";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { generateText, textModel as mcpTextModel, Output } from "@repo/ai";
+import { textModel as mcpTextModel, safeGenerateObject } from "@repo/ai";
 import { verifyApiToken } from "@repo/api";
 import { getSignedUrl } from "@repo/storage";
 import { z } from "zod";
@@ -35,7 +35,7 @@ const rawHandler = createMcpHandler(
 					"List structured business entities (approvals, reports, issues, feedback) for an organization.",
 				inputSchema: {
 					type: z
-						.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK"])
+						.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"])
 						.optional()
 						.describe("Filter by entity type"),
 					status: z.string().optional().describe("Filter by status"),
@@ -480,9 +480,9 @@ const rawHandler = createMcpHandler(
 					recommendation: z.string().nullable(),
 				});
 
-				const { output: diff } = await generateText({
+				const diff = await safeGenerateObject({
 					model: mcpTextModel,
-					output: Output.object({ schema: diffSchema }),
+					schema: diffSchema,
 					prompt: `Analyze these timeline events for entity "${entity.title}" (type: ${entity.type}).\n\nEvents:\n${eventsText}\n\nProduce a semantic diff: what changed, risk signals, progress delta (-100 to 100), and recommendation.`,
 				});
 
@@ -535,9 +535,9 @@ const rawHandler = createMcpHandler(
 					confidence: z.number().min(0).max(1),
 				});
 
-				const { output: prediction } = await generateText({
+				const prediction = await safeGenerateObject({
 					model: mcpTextModel,
-					output: Output.object({ schema: riskSchema }),
+					schema: riskSchema,
 					prompt: `Analyze risk for entity "${entity.title}" (${entity.type}, status: ${entity.status}).\n\nFields: ${JSON.stringify(fields, null, 2)}\nTimeline: ${timelineText || "(none)"}\nToday: ${new Date().toISOString().split("T")[0]}\n\nAssess risk level, factors, predicted outcome, suggested actions, and deadline risk.`,
 				});
 

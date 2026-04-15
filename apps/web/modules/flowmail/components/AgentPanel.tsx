@@ -4,6 +4,11 @@ import { useChat } from "@ai-sdk/react";
 import { cn, Spinner } from "@repo/ui";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@repo/ui/components/popover";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -21,9 +26,13 @@ import {
 	BrainIcon,
 	CheckCircle2Icon,
 	ChevronDownIcon,
+	FileTextIcon,
 	GlobeIcon,
+	HistoryIcon,
+	InboxIcon,
 	RefreshCwIcon,
 	SparklesIcon,
+	Trash2Icon,
 	XIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -34,6 +43,8 @@ import { toast } from "sonner";
 import { AgentCard, ToolSkeleton } from "../agent/AgentCards";
 import { buildPageContext } from "../agent/build-page-context";
 import type { AgentUICard } from "../agent/types";
+import { useChatHistory } from "../hooks/use-chat-history";
+import { getEntityTypeBadgeStatus, getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
 import { useAgent } from "./AgentProvider";
 
 interface AgentPanelProps {
@@ -328,23 +339,49 @@ function toolLabel(name: string): string {
 
 // ── 快捷建议 ─────────────────────────────────────────────
 
-const GLOBAL_SUGGESTIONS = [
-	"收件箱概览",
-	"批量分析所有邮件",
-	"有多少待审批？",
-	"同步邮件",
+const ALL_SCOPE_SUGGESTIONS = [
+	"查看待审批事项",
+	"本周汇报概览",
+	"有哪些高风险事项？",
+	"同步最新邮件",
+	"搜索包含发票的邮件",
+	"最近一周的事项统计",
 ];
 
-function getSuggestions(type: string | null, status: string | null): string[] {
-	if (!type) {
-		return GLOBAL_SUGGESTIONS;
+function formatTimeAgo(isoStr: string): string {
+	const diff = Date.now() - new Date(isoStr).getTime();
+	const minutes = Math.floor(diff / 60000);
+	if (minutes < 1) {
+		return "刚刚";
+	}
+	if (minutes < 60) {
+		return `${minutes} 分钟前`;
+	}
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) {
+		return `${hours} 小时前`;
+	}
+	const days = Math.floor(hours / 24);
+	if (days < 7) {
+		return `${days} 天前`;
+	}
+	return new Date(isoStr).toLocaleDateString("zh-CN");
+}
+
+function getSuggestions(
+	scope: AgentScope,
+	type: string | null,
+	status: string | null,
+): string[] {
+	if (scope === "all" || !type) {
+		return ALL_SCOPE_SUGGESTIONS;
 	}
 
 	if (type === "APPROVAL") {
 		if (status === "pending") {
-			return ["分析这个审批", "评估风险", "批准", "拒绝"];
+			return ["分析这个审批", "评估风险", "批准", "拒绝", "起草回复"];
 		}
-		return ["查看审批详情", "查看时间线变化"];
+		return ["查看审批详情", "查看时间线变化", "起草回复"];
 	}
 	if (type === "REPORT") {
 		if (status === "in_progress" || status === "received") {
@@ -352,15 +389,19 @@ function getSuggestions(type: string | null, status: string | null): string[] {
 				"总结项目进展",
 				"分析风险",
 				"查看最近变化",
-				"有什么需要跟进的？",
+				"对比上期汇报",
+				"标记风险项",
 			];
 		}
-		return ["查看汇报详情", "分析风险"];
+		return ["查看汇报详情", "提取关键数据", "分析风险"];
 	}
 	if (type === "ISSUE") {
-		return ["分析这个问题", "评估风险和影响", "查看处理进展"];
+		return ["分析这个问题", "评估风险和影响", "查看处理进展", "起草回复"];
 	}
-	return ["分析这个事项", "评估风险", "查看时间线变化"];
+	if (type === "NOISE") {
+		return ["重新分类这封邮件", "这不是垃圾邮件", "查看邮件详情"];
+	}
+	return ["总结这个事项", "分析风险", "查看时间线变化", "起草回复"];
 }
 
 // ── Markdown 渲染 ────────────────────────────────────────
@@ -598,15 +639,31 @@ export function AgentPanel({
 		transport,
 	});
 	const { pendingExecution, consumeExecution } = useAgent();
+	const chatHistory = useChatHistory();
+	const [historyOpen, setHistoryOpen] = useState(false);
 
 	const isLoading = status === "streaming" || status === "submitted";
 	const hasError = status === "error";
 	const hasMessages = messages.length > 0;
 
 	useEffect(() => {
+		if (messages.length > 0 && !isLoading) {
+			chatHistory.saveSession(
+				scope,
+				effectiveEntityId,
+				entity?.title ?? null,
+				messages as UIMessage[],
+			);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [messages, isLoading]);
+
+	useEffect(() => {
 		setMessages([]);
 		setInput("");
 		initialConsumedRef.current = false;
+		chatHistory.startNewSession();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [entityId, setMessages]);
 
 	useEffect(() => {
@@ -708,6 +765,7 @@ export function AgentPanel({
 	}
 
 	const suggestions = getSuggestions(
+		scope,
 		entity?.type ?? null,
 		entity?.status ?? null,
 	);
@@ -733,12 +791,110 @@ export function AgentPanel({
 							)}
 						</div>
 						<div className="flex items-center gap-1">
+							<Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+								<PopoverTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="size-7 text-muted-foreground hover:text-foreground"
+										onClick={() => {
+											chatHistory.refresh();
+											setHistoryOpen(true);
+										}}
+									>
+										<HistoryIcon className="size-3" />
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent
+									align="end"
+									className="w-72 p-0 max-h-80 overflow-hidden"
+								>
+									<div className="px-3 py-2.5 border-b flex items-center justify-between">
+										<span className="text-xs font-semibold">聊天记录</span>
+										{chatHistory.sessions.length > 0 && (
+											<button
+												type="button"
+												onClick={() => {
+													chatHistory.clearAll();
+												}}
+												className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+											>
+												清空
+											</button>
+										)}
+									</div>
+									<div className="overflow-y-auto max-h-64">
+										{chatHistory.sessions.length === 0 ? (
+											<div className="px-3 py-6 text-center text-xs text-muted-foreground">
+												暂无聊天记录
+											</div>
+										) : (
+											chatHistory.sessions.map((session) => {
+												const preview = chatHistory.getFirstUserMessage(session.messages);
+												const timeAgo = formatTimeAgo(session.updatedAt);
+												return (
+													<button
+														type="button"
+														key={session.id}
+														className="px-3 py-2.5 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 group transition-colors w-full text-left"
+														onClick={() => {
+															const loaded = chatHistory.loadSession(session.id);
+															if (loaded) {
+																setScope(loaded.scope);
+																setMessages(loaded.messages);
+																setHistoryOpen(false);
+															}
+														}}
+													>
+														<div className="flex items-center gap-1.5 mb-1">
+															<Badge
+																className="h-4 rounded-sm px-1.5 py-0 text-[10px]"
+																status={session.scope === "entity" ? "info" : "warning"}
+															>
+																{session.scope === "entity" ? (
+																	<><FileTextIcon className="size-2.5 mr-0.5" />当前事项</>
+																) : (
+																	<><InboxIcon className="size-2.5 mr-0.5" />全部</>
+																)}
+															</Badge>
+															{session.entityTitle && (
+																<span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+																	{session.entityTitle}
+																</span>
+															)}
+															<button
+																type="button"
+																className="ml-auto opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+																onClick={(e) => {
+																	e.stopPropagation();
+																	chatHistory.deleteSession(session.id);
+																}}
+															>
+																<Trash2Icon className="size-3" />
+															</button>
+														</div>
+														<p className="text-xs truncate text-foreground/80">
+															{preview || "（空对话）"}
+														</p>
+														<p className="text-[10px] text-muted-foreground mt-0.5">
+															{timeAgo}
+														</p>
+													</button>
+												);
+											})
+										)}
+									</div>
+								</PopoverContent>
+							</Popover>
 							{hasMessages && (
 								<Button
 									variant="ghost"
 									size="icon"
 									className="size-7 text-muted-foreground hover:text-foreground"
-									onClick={() => setMessages([])}
+									onClick={() => {
+										setMessages([]);
+										chatHistory.startNewSession();
+									}}
 								>
 									<RefreshCwIcon className="size-3" />
 								</Button>
@@ -761,26 +917,38 @@ export function AgentPanel({
 						<div className="mx-3 mt-2 flex rounded-lg bg-muted/50 p-0.5 shrink-0">
 							<button
 								type="button"
-								onClick={() => setScope("entity")}
+								onClick={() => {
+									if (scope !== "entity") {
+										setScope("entity");
+										setMessages([]);
+									}
+								}}
 								className={cn(
-									"flex-1 rounded-md px-3 py-1 text-xs font-medium transition-all",
+									"flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all flex items-center justify-center gap-1.5",
 									scope === "entity"
 										? "bg-background text-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
+								<FileTextIcon className="size-3" />
 								当前事项
 							</button>
 							<button
 								type="button"
-								onClick={() => setScope("all")}
+								onClick={() => {
+									if (scope !== "all") {
+										setScope("all");
+										setMessages([]);
+									}
+								}}
 								className={cn(
-									"flex-1 rounded-md px-3 py-1 text-xs font-medium transition-all",
+									"flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all flex items-center justify-center gap-1.5",
 									scope === "all"
 										? "bg-background text-foreground shadow-sm"
 										: "text-muted-foreground hover:text-foreground",
 								)}
 							>
+								<InboxIcon className="size-3" />
 								全部
 							</button>
 						</div>
@@ -792,16 +960,10 @@ export function AgentPanel({
 							<div className="flex items-center gap-1.5 mb-0.5">
 								<div className="size-1.5 rounded-full bg-(--agent-accent) shrink-0" />
 								<Badge
-									status={
-										entity.type === "APPROVAL"
-											? "warning"
-											: entity.type === "REPORT"
-												? "success"
-												: "info"
-									}
+									status={getEntityTypeBadgeStatus(entity.type)}
 									className="h-4 rounded-sm px-1.5 py-0 text-[10px]"
 								>
-									{entity.type}
+									{getEntityTypeLabel(entity.type)}
 								</Badge>
 								<Badge
 									status={
@@ -817,7 +979,7 @@ export function AgentPanel({
 									}
 									className="h-4 rounded-sm px-1.5 py-0 text-[10px]"
 								>
-									{entity.status}
+									{getStatusLabel(entity.status)}
 								</Badge>
 								{entity.aiConfidence != null && (
 									<span className="ml-auto text-[10px] text-muted-foreground">
@@ -838,26 +1000,38 @@ export function AgentPanel({
 						className="flex-1 overflow-y-auto px-3 py-3 space-y-4"
 					>
 						{!effectiveEntityId && !hasMessages && (
-							<div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 pb-8 gap-2">
+							<div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 pb-8 gap-3">
 								<div className="flex items-center justify-center size-10 rounded-xl bg-foreground/5 border border-border/50">
-									<SparklesIcon className="size-5 text-muted-foreground/40" />
+									<InboxIcon className="size-5 text-muted-foreground/40" />
 								</div>
-								<p className="text-xs text-center leading-relaxed">
-									试试问我：收件箱概览、待审批列表、
-									<br />
-									搜索邮件、同步邮箱…
-								</p>
+								<div className="text-center">
+									<p className="text-xs font-medium text-muted-foreground/70 mb-1">
+										收件箱助手
+									</p>
+									<p className="text-[11px] text-center leading-relaxed">
+										查看所有事项、搜索邮件、批量操作
+										<br />
+										试试下面的快捷操作
+									</p>
+								</div>
 							</div>
 						)}
 
 						{effectiveEntityId && !hasMessages && (
-							<div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 pb-8 gap-2">
+							<div className="flex flex-col items-center justify-center h-full text-muted-foreground/50 pb-8 gap-3">
 								<div className="flex items-center justify-center size-10 rounded-xl bg-foreground/5 border border-border/50">
-									<SparklesIcon className="size-5 text-muted-foreground/40" />
+									<FileTextIcon className="size-5 text-muted-foreground/40" />
 								</div>
-								<p className="text-xs text-center">
-									有什么我可以帮你的？
-								</p>
+								<div className="text-center">
+									<p className="text-xs font-medium text-muted-foreground/70 mb-1">
+										事项助手
+									</p>
+									<p className="text-[11px] text-center leading-relaxed">
+										分析、审批、回复当前事项
+										<br />
+										试试下面的快捷操作
+									</p>
+								</div>
 							</div>
 						)}
 

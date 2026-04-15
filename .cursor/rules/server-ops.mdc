@@ -1,0 +1,76 @@
+---
+description: Flowmail 生产服务器 SSH 连接与运维操作规范
+globs:
+alwaysApply: false
+---
+
+# Flowmail 服务器运维
+
+## SSH 连接
+
+| 项目 | 值 |
+|------|------|
+| 服务器 IP | `43.163.212.200` |
+| 用户名 | `root` |
+| 密钥文件 | `~/.ssh/flowmail_deploy` |
+| 主机名 | `VM-0-8-ubuntu` |
+
+### 连接命令
+
+```bash
+ssh -i ~/.ssh/flowmail_deploy root@43.163.212.200
+```
+
+### 执行远程命令
+
+```bash
+ssh -i ~/.ssh/flowmail_deploy root@43.163.212.200 "<command>"
+```
+
+## 部署架构
+
+Docker Compose 部署，项目目录 `/opt/flowmail`：
+
+| 容器 | 镜像 | 端口 |
+|------|------|------|
+| `flowmail-web` | `ghcr.io/littlesheepxy/flowmail:*` | 3000（内部） |
+| `flowmail-docs` | `ghcr.io/littlesheepxy/flowmail-docs:*` | 3001（内部） |
+| `flowmail-nginx` | `nginx:alpine` | 80, 443 |
+| `flowmail-postgres` | `postgres:16-alpine` | 5432（内部） |
+| `flowmail-minio` | `minio/minio:latest` | 9000（内部） |
+
+## 常用运维命令
+
+```bash
+# 查看所有容器状态
+docker ps
+
+# 查看 web 应用日志（最近 200 行）
+docker logs flowmail-web --tail 200
+
+# 搜索错误日志
+docker logs flowmail-web --tail 500 2>&1 | grep -iE 'error|fail|500'
+
+# 查看环境变量（AI 相关）
+docker exec flowmail-web env | grep -iE 'AI_|OPENAI|ANTHROPIC|GATEWAY'
+
+# 重启 web 容器
+docker restart flowmail-web
+
+# 进入 web 容器 shell
+docker exec -it flowmail-web sh
+
+# 查看 docker compose 配置
+cat /opt/flowmail/docker-compose.yml
+```
+
+## AI 环境变量（当前配置）
+
+服务器通过 Anthropic 代理调用 AI，关键变量：
+
+- `ANTHROPIC_AUTH_TOKEN` — API 密钥
+- `ANTHROPIC_BASE_URL` — 代理地址（非官方直连）
+- `AI_FAST_MODEL` — 快速模型（分类等）
+- `AI_TEXT_MODEL` — 主力模型（抽取、摘要等）
+
+**注意**：代理不支持 tool calling，代码中所有结构化输出必须使用 `safeGenerateObject` 而非直接 `Output.object`，以确保 prompt-based JSON 降级可用。

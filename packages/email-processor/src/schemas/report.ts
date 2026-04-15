@@ -5,14 +5,14 @@ export const ReportExtractionSchema = z.object({
 	reporter: z
 		.object({
 			name: z.string(),
-			email: z.string().email(),
+			email: z.string().describe("Reporter email, or empty string if unknown"),
 		})
 		.describe("Reporter info"),
 	period: z
 		.object({
 			type: z.enum(["daily", "weekly", "monthly", "ad_hoc"]),
-			startDate: z.string().optional(),
-			endDate: z.string().optional(),
+			startDate: z.string().nullable().optional().describe("Start date ISO 8601, or null"),
+			endDate: z.string().nullable().optional().describe("End date ISO 8601, or null"),
 		})
 		.describe("Reporting period"),
 	keyPoints: z.array(z.string()).max(5).describe("Key points, max 5"),
