@@ -28,6 +28,7 @@ export const streamMessage = protectedProcedure
 			model: textModel,
 			messages: await convertToModelMessages(
 				messages as unknown as UIMessage[],
+				{ ignoreIncompleteToolCalls: true },
 			),
 		});
 

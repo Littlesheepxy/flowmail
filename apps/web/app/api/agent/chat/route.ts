@@ -267,7 +267,9 @@ export async function POST(req: Request) {
 		stopWhen: stepCountIs(agentConfig.maxSteps),
 	});
 
-	const modelMessages = await convertToModelMessages(messages);
+	const modelMessages = await convertToModelMessages(messages, {
+		ignoreIncompleteToolCalls: true,
+	});
 
 	const result = await agent.stream({
 		messages: modelMessages,
