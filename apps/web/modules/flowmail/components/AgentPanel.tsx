@@ -658,7 +658,7 @@ export function AgentPanel({
 		[],
 	);
 
-	const { messages, sendMessage, status, setMessages, error } = useChat({
+	const { messages, sendMessage, status, setMessages, error, clearError } = useChat({
 		transport,
 	});
 	const { pendingExecution, consumeExecution } = useAgent();
@@ -683,6 +683,7 @@ export function AgentPanel({
 
 	useEffect(() => {
 		setMessages([]);
+		clearError();
 		setInput("");
 		initialConsumedRef.current = false;
 		chatHistory.startNewSession();
@@ -916,6 +917,7 @@ export function AgentPanel({
 									className="size-7 text-muted-foreground hover:text-foreground"
 									onClick={() => {
 										setMessages([]);
+										clearError();
 										chatHistory.startNewSession();
 									}}
 								>
@@ -944,6 +946,7 @@ export function AgentPanel({
 									if (scope !== "entity") {
 										setScope("entity");
 										setMessages([]);
+										clearError();
 									}
 								}}
 								className={cn(
@@ -962,6 +965,7 @@ export function AgentPanel({
 									if (scope !== "all") {
 										setScope("all");
 										setMessages([]);
+										clearError();
 									}
 								}}
 								className={cn(
@@ -1303,10 +1307,10 @@ export function AgentPanel({
 								</p>
 								<button
 									type="button"
-									onClick={() => setMessages([])}
-									className="mt-1.5 text-[11px] text-destructive/80 hover:text-destructive underline"
-								>
-									清除对话重试
+								onClick={() => { setMessages([]); clearError(); }}
+								className="mt-1.5 text-[11px] text-destructive/80 hover:text-destructive underline"
+							>
+								清除对话重试
 								</button>
 							</div>
 						)}
