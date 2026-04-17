@@ -658,7 +658,7 @@ export function AgentPanel({
 		[],
 	);
 
-	const { messages, sendMessage, status, setMessages, error, clearError } = useChat({
+	const { messages, sendMessage, status, setMessages, error, clearError, stop } = useChat({
 		transport,
 	});
 	const { pendingExecution, consumeExecution } = useAgent();
@@ -668,6 +668,12 @@ export function AgentPanel({
 	const isLoading = status === "streaming" || status === "submitted";
 	const hasError = status === "error";
 	const hasMessages = messages.length > 0;
+
+	function resetChat() {
+		stop();
+		setMessages([]);
+		clearError();
+	}
 
 	useEffect(() => {
 		if (messages.length > 0 && !isLoading) {
@@ -682,13 +688,12 @@ export function AgentPanel({
 	}, [messages, isLoading]);
 
 	useEffect(() => {
-		setMessages([]);
-		clearError();
+		resetChat();
 		setInput("");
 		initialConsumedRef.current = false;
 		chatHistory.startNewSession();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [entityId, setMessages]);
+	}, [entityId]);
 
 	useEffect(() => {
 		if (initialMessage && !initialConsumedRef.current) {
@@ -807,12 +812,17 @@ export function AgentPanel({
 							<span className="text-sm font-semibold">
 								Flowmail Agent
 							</span>
-							{isLoading && (
-								<span className="text-[10px] text-(--agent-accent) flex items-center gap-1 font-medium">
-									<Spinner className="size-2.5" />
-									思考中
-								</span>
-							)}
+						{isLoading && (
+							<button
+								type="button"
+								onClick={stop}
+								className="text-[10px] text-(--agent-accent) flex items-center gap-1 font-medium hover:opacity-70 transition-opacity"
+								title="停止"
+							>
+								<Spinner className="size-2.5" />
+								思考中
+							</button>
+						)}
 						</div>
 						<div className="flex items-center gap-1">
 							<Popover open={historyOpen} onOpenChange={setHistoryOpen}>
@@ -916,8 +926,7 @@ export function AgentPanel({
 									size="icon"
 									className="size-7 text-muted-foreground hover:text-foreground"
 									onClick={() => {
-										setMessages([]);
-										clearError();
+										resetChat();
 										chatHistory.startNewSession();
 									}}
 								>
@@ -945,8 +954,7 @@ export function AgentPanel({
 								onClick={() => {
 									if (scope !== "entity") {
 										setScope("entity");
-										setMessages([]);
-										clearError();
+										resetChat();
 									}
 								}}
 								className={cn(
@@ -964,8 +972,7 @@ export function AgentPanel({
 								onClick={() => {
 									if (scope !== "all") {
 										setScope("all");
-										setMessages([]);
-										clearError();
+										resetChat();
 									}
 								}}
 								className={cn(
@@ -1307,7 +1314,7 @@ export function AgentPanel({
 								</p>
 								<button
 									type="button"
-								onClick={() => { setMessages([]); clearError(); }}
+								onClick={resetChat}
 								className="mt-1.5 text-[11px] text-destructive/80 hover:text-destructive underline"
 							>
 								清除对话重试
