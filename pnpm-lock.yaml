@@ -479,9 +479,6 @@ importers:
       '@repo/ai':
         specifier: workspace:*
         version: link:../ai
-      '@repo/api':
-        specifier: workspace:*
-        version: link:../api
       '@repo/database':
         specifier: workspace:*
         version: link:../database
@@ -625,6 +622,9 @@ importers:
       '@orpc/zod':
         specifier: 1.13.2
         version: 1.13.2(@opentelemetry/api@1.9.0)(@orpc/contract@1.13.2(@opentelemetry/api@1.9.0))(@orpc/server@1.13.2(@opentelemetry/api@1.9.0)(ws@8.18.3))(ws@8.18.3)(zod@4.3.6)
+      '@repo/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@repo/ai':
         specifier: workspace:*
         version: link:../ai

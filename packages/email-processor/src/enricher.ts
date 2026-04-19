@@ -2,6 +2,7 @@ import { db } from "@repo/database";
 import { readEntityAttachments } from "./attachment-reader";
 import { classifyEmail, classifyEmailDynamic } from "./classifier";
 import { extractApprovalFields, extractReportFields } from "./extractor";
+import { detectMultipleProjects } from "./multi-project-detector";
 import { ensureDefaultCategories } from "./seed-categories";
 import { summarizeThread } from "./summarizer";
 import { generateTags } from "./tagger";
@@ -59,13 +60,40 @@ export async function enrichEntityById(entityId: string): Promise<{
 	// append the attachment text so the AI has something to work with.
 	let attachmentFilenames: string[] = [];
 	try {
-		const { text: attachmentText, filenames } = await readEntityAttachments(entityId);
-		if (attachmentText) {
+		const result = await readEntityAttachments(entityId);
+		if (result.text) {
 			content = content
-				? `${content}\n\n${attachmentText}`
-				: attachmentText;
-			attachmentFilenames = filenames;
-			console.info(`${LOG_TAG} Appended attachment content entity=${entityId} files=${filenames.join(", ")} chars=${attachmentText.length}`);
+				? `${content}\n\n${result.text}`
+				: result.text;
+			attachmentFilenames = result.filenames;
+			console.info(`${LOG_TAG} Appended attachment content entity=${entityId} files=${result.filenames.join(", ")} chars=${result.text.length}`);
+		}
+
+		// Visible footprint: log a timeline event so users can see "AI 读取了哪些附件"
+		if (result.details.length > 0) {
+			const totalChars = result.details.reduce((sum, d) => sum + d.chars, 0);
+			const okFiles = result.details.filter((d) => d.chars > 0);
+			const ocrFiles = result.details.filter((d) => d.ocrUsed);
+			const failedFiles = result.details.filter((d) => d.error);
+			const summary = okFiles.length > 0
+				? `已读取 ${okFiles.length} 个附件（共 ${totalChars} 字${ocrFiles.length > 0 ? `，其中 ${ocrFiles.length} 个走了 OCR` : ""}${failedFiles.length > 0 ? `，${failedFiles.length} 个解析失败` : ""}${result.skipped > 0 ? `，${result.skipped} 个因长度受限被跳过` : ""}）`
+				: `检测到 ${result.details.length} 个附件，但全部解析失败`;
+			await db.timelineEvent.create({
+				data: {
+					entityId,
+					type: "attachment_parsed",
+					content: summary,
+					metadata: JSON.stringify({
+						details: result.details,
+						totalChars,
+						ocrUsed: ocrFiles.length > 0,
+						skipped: result.skipped,
+						totalParseable: result.totalParseable,
+					}),
+				},
+			}).catch((err) => {
+				console.warn(`${LOG_TAG} Failed to log attachment_parsed event entity=${entityId}`, err instanceof Error ? err.message : String(err));
+			});
 		}
 	} catch (err) {
 		console.warn(`${LOG_TAG} Attachment read failed (non-critical) entity=${entityId}`, err instanceof Error ? err.message : String(err));
@@ -176,6 +204,48 @@ export async function enrichEntityById(entityId: string): Promise<{
 			metadata: JSON.stringify({ categorySlug, categoryId, confidence, reasoning, extractedFields }),
 		},
 	});
+
+	// Multi-project detection: check if this email actually contains 2+ independent
+	// sub-projects (e.g. subsidiary monthly report covering several initiatives).
+	// We don't auto-split — we surface a "needs decision" timeline event so the user
+	// can decide whether to split, keep merged, or focus on one.
+	if (!isFiltered && content.length >= 200) {
+		try {
+			const detection = await detectMultipleProjects({ subject, content });
+			if (detection.hasMultipleProjects && detection.subProjects && detection.subProjects.length >= 2) {
+				console.info(`${LOG_TAG} Detected ${detection.subProjects.length} sub-projects in entity=${entityId}`);
+
+				// Persist sub-project candidates into extractedFields for UI rendering and Agent tools.
+				const mergedFields = {
+					...extractedFields,
+					subProjects: detection.subProjects,
+					subProjectsDetectedAt: new Date().toISOString(),
+					subProjectsDecision: null as null | "split" | "merged" | "focused",
+				};
+				await db.flowEntity.update({
+					where: { id: entity.id },
+					data: { extractedFields: JSON.stringify(mergedFields) },
+				});
+
+				const titles = detection.subProjects.map((p) => p.title).join(" / ");
+				await db.timelineEvent.create({
+					data: {
+						entityId: entity.id,
+						type: "needs_user_decision",
+						content: `检测到本邮件包含 ${detection.subProjects.length} 个独立子项目：${titles}。是否拆分追踪？`,
+						metadata: JSON.stringify({
+							kind: "multi_project_split",
+							confidence: detection.confidence,
+							reasoning: detection.reasoning,
+							subProjects: detection.subProjects,
+						}),
+					},
+				});
+			}
+		} catch (err) {
+			console.warn(`${LOG_TAG} multi-project detection failed (non-critical) entity=${entityId}`, err instanceof Error ? err.message : String(err));
+		}
+	}
 
 	try {
 		const tagNames = await generateTags({ subject, content, sender, extractedFields });

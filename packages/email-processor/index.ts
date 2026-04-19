@@ -13,6 +13,8 @@ export { generateTags } from "./src/tagger";
 export { enrichEntityById, classifyEntityOnly } from "./src/enricher";
 export { findEntityByAiMatch } from "./src/ai-entity-matcher";
 export type { AiEntityMatchInput, AiEntityMatchResult } from "./src/ai-entity-matcher";
+export { detectMultipleProjects, MultiProjectDetectionSchema } from "./src/multi-project-detector";
+export type { MultiProjectDetection, SubProjectCandidate } from "./src/multi-project-detector";
 export { ensureDefaultCategories } from "./src/seed-categories";
 export { unwrapForwardedEmail } from "./src/unwrap-forward";
 export type { UnwrapResult } from "./src/unwrap-forward";

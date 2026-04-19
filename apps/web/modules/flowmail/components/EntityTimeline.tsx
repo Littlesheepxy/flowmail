@@ -38,6 +38,7 @@ import {
 	AlertTriangleIcon,
 	ZapIcon,
 	SendIcon,
+	PaperclipIcon,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 
@@ -84,6 +85,8 @@ const EVENT_LAYER: Record<string, "email" | "action" | "system"> = {
 	status_changed: "system",
 	milestone: "action",
 	note: "action",
+	attachment_parsed: "system",
+	needs_user_decision: "system",
 };
 
 const EVENT_ICONS: Record<string, typeof MailIcon> = {
@@ -93,6 +96,8 @@ const EVENT_ICONS: Record<string, typeof MailIcon> = {
 	status_changed: AlertCircleIcon,
 	milestone: FlagIcon,
 	note: StickyNoteIcon,
+	attachment_parsed: PaperclipIcon,
+	needs_user_decision: AlertTriangleIcon,
 };
 
 const LAYER_COLORS = {

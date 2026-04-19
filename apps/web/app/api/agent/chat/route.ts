@@ -18,7 +18,6 @@ import {
 	summarizeThread,
 	enrichEntityById,
 	classifyEntityOnly,
-	ocrPdfBuffer,
 } from "@repo/email-processor";
 import {
 	ToolRegistry,
@@ -138,7 +137,8 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 	registry.registerBuiltin(
 		createAttachmentTools({
 			ocrPdfBuffer: async (buffer: Buffer) => {
-				const r = await ocrPdfBuffer(buffer, { maxPages: 10, viewportScale: 2 });
+				const mod = await import("@repo/email-processor/src/ocr");
+				const r = await mod.ocrPdfBuffer(buffer, { maxPages: 10, viewportScale: 2 });
 				return {
 					text: r.text,
 					successCount: r.successCount,

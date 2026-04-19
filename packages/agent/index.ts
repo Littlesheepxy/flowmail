@@ -20,6 +20,20 @@ export { createMemoryTools } from "./tools/memory-tools";
 export { createViewTools } from "./tools/view-tools";
 
 export {
+	ViewSpecSchema,
+	ViewBlockSchema,
+	VIEW_COMPONENT_DOCS,
+	type ViewSpec,
+	type ViewBlock,
+	type SummaryBlock,
+	type KpiCardsBlock,
+	type TodoListBlock,
+	type TimelineBlock,
+	type TableBlock,
+	type QuickActionsBlock,
+} from "./views/schema";
+
+export {
 	MEMORY_CATEGORIES,
 	MEMORY_SCOPES,
 	CATEGORY_LABELS,

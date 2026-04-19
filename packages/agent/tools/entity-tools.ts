@@ -536,6 +536,139 @@ export function createEntityTools(deps: {
 			},
 		}),
 
+		split_entity_into_subprojects: tool({
+			description:
+				"当一个 entity 在 extractedFields.subProjects 里被检测出多个独立子项目时，把它「拆分」成多个新 entity。每个子项目变成一个独立 entity（克隆 organizationId、categoryId、来源 thread），原 entity 保留为「母事项」并更新 subProjectsDecision='split'。仅在用户明确同意拆分时调用。",
+			inputSchema: z.object({
+				entityId: z.string().describe("待拆分的母 entity ID"),
+				keepOriginal: z
+					.boolean()
+					.optional()
+					.default(true)
+					.describe("是否保留原 entity（默认 true，作为「合并视图」存在）"),
+			}),
+			execute: async (input: { entityId: string; keepOriginal?: boolean }) => {
+				const entity = await db.flowEntity.findUnique({
+					where: { id: input.entityId },
+					include: { threads: { select: { id: true } } },
+				});
+				if (!entity) {
+					return { error: "Entity not found" };
+				}
+
+				let fields: Record<string, unknown> = {};
+				try {
+					fields = entity.extractedFields ? JSON.parse(entity.extractedFields as string) : {};
+				} catch {
+					fields = {};
+				}
+
+				const subProjects = fields.subProjects as
+					| Array<{ title: string; summary: string; keywords?: string[] }>
+					| undefined;
+				if (!subProjects || subProjects.length < 2) {
+					return { error: "该 entity 没有 subProjects 候选，无法拆分" };
+				}
+
+				const created: { id: string; title: string }[] = [];
+				for (const sp of subProjects) {
+					const newEntity = await db.flowEntity.create({
+						data: {
+							organizationId: entity.organizationId,
+							type: entity.type,
+							categoryId: entity.categoryId,
+							title: sp.title,
+							status: entity.status,
+							aiSummary: sp.summary,
+							aiConfidence: entity.aiConfidence,
+							extractedFields: JSON.stringify({
+								summary: sp.summary,
+								keywords: sp.keywords ?? [],
+								splitFromEntityId: entity.id,
+							}),
+						},
+					});
+					await db.timelineEvent.create({
+						data: {
+							entityId: newEntity.id,
+							type: "entity_split_from",
+							content: `从「${entity.title}」拆分而来`,
+							metadata: JSON.stringify({ parentEntityId: entity.id, parentTitle: entity.title }),
+						},
+					});
+					created.push({ id: newEntity.id, title: sp.title });
+				}
+
+				fields.subProjectsDecision = "split";
+				fields.splitChildEntityIds = created.map((c) => c.id);
+				await db.flowEntity.update({
+					where: { id: entity.id },
+					data: { extractedFields: JSON.stringify(fields) },
+				});
+				await db.timelineEvent.create({
+					data: {
+						entityId: entity.id,
+						type: "action_taken",
+						content: `Agent 拆分：${created.length} 个子项目已创建为独立 entity`,
+						metadata: JSON.stringify({ via: "agent", action: "split", children: created }),
+					},
+				});
+
+				return { success: true, parentEntityId: entity.id, children: created };
+			},
+		}),
+
+		mark_subprojects_decision: tool({
+			description:
+				"对检测到的多子项目，记录用户的决策为「保持合并」或「只关心某一个」。会更新 extractedFields.subProjectsDecision 并写入 action_taken 时间线事件。不会真的拆分。",
+			inputSchema: z.object({
+				entityId: z.string(),
+				decision: z.enum(["merged", "focused"]).describe("merged=保持合并；focused=只关心某一个子项目"),
+				focusedTitle: z
+					.string()
+					.optional()
+					.describe("当 decision=focused 时，指定要关心的子项目 title"),
+				note: z.string().optional().describe("用户备注"),
+			}),
+			execute: async (input: {
+				entityId: string;
+				decision: "merged" | "focused";
+				focusedTitle?: string;
+				note?: string;
+			}) => {
+				const entity = await db.flowEntity.findUnique({ where: { id: input.entityId } });
+				if (!entity) {
+					return { error: "Entity not found" };
+				}
+				let fields: Record<string, unknown> = {};
+				try {
+					fields = entity.extractedFields ? JSON.parse(entity.extractedFields as string) : {};
+				} catch {
+					fields = {};
+				}
+				fields.subProjectsDecision = input.decision;
+				if (input.focusedTitle) {
+					fields.subProjectsFocused = input.focusedTitle;
+				}
+				await db.flowEntity.update({
+					where: { id: entity.id },
+					data: { extractedFields: JSON.stringify(fields) },
+				});
+				await db.timelineEvent.create({
+					data: {
+						entityId: entity.id,
+						type: "action_taken",
+						content:
+							input.decision === "focused"
+								? `保留合并视图，仅关注子项目「${input.focusedTitle}」${input.note ? `（${input.note}）` : ""}`
+								: `保持子项目合并展示${input.note ? `（${input.note}）` : ""}`,
+						metadata: JSON.stringify({ via: "agent", action: "subprojects_decision", ...input }),
+					},
+				});
+				return { success: true, decision: input.decision };
+			},
+		}),
+
 		batch_enrich: tool({
 			description:
 				"批量对未经 AI 分析的事项执行 AI 分类和摘要。先用 list_entities(unanalyzed=true) 获取待分析列表，再调用本工具传入 entityId 数组。每次最多处理 10 个。",

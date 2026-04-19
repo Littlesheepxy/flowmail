@@ -5,6 +5,7 @@
 		"@orpc/openapi": "1.13.2",
 		"@orpc/server": "1.13.2",
 		"@orpc/zod": "1.13.2",
+		"@repo/agent": "workspace:*",
 		"@repo/ai": "workspace:*",
 		"@repo/auth": "workspace:*",
 		"@repo/database": "workspace:*",

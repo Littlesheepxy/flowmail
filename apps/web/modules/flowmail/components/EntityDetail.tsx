@@ -42,6 +42,7 @@ import {
 	PlusIcon,
 	LayoutDashboardIcon,
 	CheckSquareIcon,
+	AlertTriangleIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -503,6 +504,8 @@ export function EntityDetail() {
 				</div>
 			</div>
 
+			<MultiProjectBanner entityId={entityId} fields={fields} />
+
 			<EntityTabs
 				entityId={entityId}
 				entity={entity}
@@ -514,6 +517,59 @@ export function EntityDetail() {
 				setReplyThreadId={setReplyThreadId}
 				isSending={sendMutation.isPending}
 			/>
+		</div>
+	);
+}
+
+interface SubProjectCandidate {
+	title: string;
+	summary: string;
+	keywords?: string[];
+}
+
+function MultiProjectBanner({
+	entityId,
+	fields,
+}: {
+	entityId: string;
+	fields: Record<string, unknown>;
+}) {
+	const { triggerAgentPrompt } = useAgent();
+	const subProjects = (fields.subProjects as SubProjectCandidate[] | undefined) ?? [];
+	const decision = fields.subProjectsDecision as string | null | undefined;
+
+	if (!subProjects.length || decision) {
+		return null;
+	}
+
+	const titles = subProjects.map((p) => p.title).join(" / ");
+
+	function ask() {
+		const prompt = `当前 entity (id=${entityId}) 检测到 ${subProjects.length} 个独立子项目：${subProjects
+			.map((p, i) => `\n${i + 1}. ${p.title} — ${p.summary}`)
+			.join("")}\n\n请帮我决定如何处理：是「拆成多个独立 entity 分别追踪」，还是「保持合并、只在视图里分组」，还是「只关心其中某一个」？给出建议并按我的回复执行。`;
+		triggerAgentPrompt({
+			text: prompt,
+			entityId,
+		});
+	}
+
+	return (
+		<div className="rounded-lg border border-amber-300/60 bg-amber-50/60 p-3 dark:border-amber-700/50 dark:bg-amber-950/20">
+			<div className="flex items-start gap-3">
+				<AlertTriangleIcon className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+				<div className="flex-1 min-w-0">
+					<div className="font-medium text-sm text-amber-900 dark:text-amber-200">
+						AI 检测到 {subProjects.length} 个独立子项目
+					</div>
+					<div className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80 line-clamp-2">
+						{titles}
+					</div>
+				</div>
+				<Button size="sm" variant="outline" onClick={ask}>
+					让 Agent 处理
+				</Button>
+			</div>
 		</div>
 	);
 }

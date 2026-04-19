@@ -31,6 +31,21 @@ function isParseableFile(filename: string, mimeType: string | null): boolean {
 	return /\.(pdf|docx?|xlsx?|csv|txt|json)$/.test(lower);
 }
 
+export interface AttachmentReadDetail {
+	filename: string;
+	chars: number;
+	ocrUsed: boolean;
+	error?: string;
+}
+
+export interface AttachmentReadResult {
+	text: string;
+	filenames: string[];
+	details: AttachmentReadDetail[];
+	totalParseable: number;
+	skipped: number;
+}
+
 /**
  * Read text content from attachments linked to an entity.
  * Returns concatenated text from all parseable attachments (PDF, Word, Excel, text).
@@ -39,9 +54,16 @@ function isParseableFile(filename: string, mimeType: string | null): boolean {
 export async function readEntityAttachments(
 	entityId: string,
 	maxChars = 8000,
-): Promise<{ text: string; filenames: string[] }> {
+): Promise<AttachmentReadResult> {
+	const empty: AttachmentReadResult = {
+		text: "",
+		filenames: [],
+		details: [],
+		totalParseable: 0,
+		skipped: 0,
+	};
 	if (!isStorageEnabled()) {
-		return { text: "", filenames: [] };
+		return empty;
 	}
 
 	const threads = await db.emailThread.findMany({
@@ -50,7 +72,7 @@ export async function readEntityAttachments(
 	});
 
 	if (threads.length === 0) {
-		return { text: "", filenames: [] };
+		return empty;
 	}
 
 	const attachments = await db.emailAttachment.findMany({
@@ -66,39 +88,58 @@ export async function readEntityAttachments(
 	);
 
 	if (parseable.length === 0) {
-		return { text: "", filenames: [] };
+		return empty;
 	}
 
 	const parts: string[] = [];
 	const filenames: string[] = [];
+	const details: AttachmentReadDetail[] = [];
 	let totalLen = 0;
+	let skipped = 0;
 
 	for (const att of parseable) {
 		if (totalLen >= maxChars) {
-			break;
+			skipped += 1;
+			continue;
 		}
 		try {
-			const content = await extractFileText(att.storageKey as string, att.filename, att.mimeType);
-			if (content) {
+			const result = await extractFileText(att.storageKey as string, att.filename, att.mimeType);
+			if (result?.content) {
 				const remaining = maxChars - totalLen;
-				const chunk = content.length > remaining ? content.slice(0, remaining) : content;
+				const chunk = result.content.length > remaining ? result.content.slice(0, remaining) : result.content;
 				parts.push(`[附件: ${att.filename}]\n${chunk}`);
 				filenames.push(att.filename);
+				details.push({ filename: att.filename, chars: chunk.length, ocrUsed: result.ocrUsed });
 				totalLen += chunk.length;
+			} else {
+				details.push({ filename: att.filename, chars: 0, ocrUsed: false, error: "empty" });
 			}
 		} catch (err) {
-			console.warn(`[AttachmentReader] Failed to parse ${att.filename}:`, err instanceof Error ? err.message : String(err));
+			const msg = err instanceof Error ? err.message : String(err);
+			console.warn(`[AttachmentReader] Failed to parse ${att.filename}:`, msg);
+			details.push({ filename: att.filename, chars: 0, ocrUsed: false, error: msg.slice(0, 120) });
 		}
 	}
 
-	return { text: parts.join("\n\n"), filenames };
+	return {
+		text: parts.join("\n\n"),
+		filenames,
+		details,
+		totalParseable: parseable.length,
+		skipped,
+	};
+}
+
+interface ExtractedFile {
+	content: string | null;
+	ocrUsed: boolean;
 }
 
 async function extractFileText(
 	storageKey: string,
 	filename: string,
 	mimeType: string | null,
-): Promise<string | null> {
+): Promise<ExtractedFile | null> {
 	const url = await getSignedUrl(storageKey, {
 		bucket: "attachments",
 		expiresIn: 300,
@@ -114,7 +155,7 @@ async function extractFileText(
 	const lower = filename.toLowerCase();
 
 	if (mime.startsWith("text/") || mime === "application/json" || lower.endsWith(".txt") || lower.endsWith(".csv") || lower.endsWith(".json")) {
-		return buf.toString("utf-8");
+		return { content: buf.toString("utf-8"), ocrUsed: false };
 	}
 
 	if (mime === "application/pdf" || lower.endsWith(".pdf")) {
@@ -130,10 +171,9 @@ async function extractFileText(
 		}
 
 		if (parsedText.trim().length >= PDF_OCR_FALLBACK_MIN_CHARS) {
-			return parsedText;
+			return { content: parsedText, ocrUsed: false };
 		}
 
-		// 文本极少 → 大概率是扫描件/图片型 PDF，走 OCR
 		if (isZhipuOcrConfigured()) {
 			try {
 				const ocr = await ocrPdfBuffer(buf, { maxPages: 10, viewportScale: 2 });
@@ -141,7 +181,7 @@ async function extractFileText(
 					console.log(
 						`[AttachmentReader] OCR success for ${filename}: ${ocr.successCount}/${ocr.pageCount} pages, ${ocr.text.length} chars`,
 					);
-					return ocr.text;
+					return { content: ocr.text, ocrUsed: true };
 				}
 				if (ocr.errors.length > 0) {
 					console.warn(
@@ -157,12 +197,12 @@ async function extractFileText(
 			}
 		}
 
-		return parsedText || null;
+		return parsedText ? { content: parsedText, ocrUsed: false } : null;
 	}
 
 	if (mime.includes("wordprocessingml") || mime.includes("msword") || lower.endsWith(".docx") || lower.endsWith(".doc")) {
 		const result = await mammoth.extractRawText({ buffer: buf });
-		return result.value || null;
+		return result.value ? { content: result.value, ocrUsed: false } : null;
 	}
 
 	if (mime.includes("spreadsheetml") || mime.includes("ms-excel") || lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
@@ -176,7 +216,8 @@ async function extractFileText(
 			const csv = XLSX.utils.sheet_to_csv(sheet);
 			parts.push(`## Sheet: ${sheetName}\n${csv}`);
 		}
-		return parts.join("\n\n") || null;
+		const joined = parts.join("\n\n");
+		return joined ? { content: joined, ocrUsed: false } : null;
 	}
 
 	return null;

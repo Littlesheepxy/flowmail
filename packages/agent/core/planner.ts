@@ -238,7 +238,7 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 
 ## 可用工具速查
 
-事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note · merge_entities
+事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note · merge_entities · split_entity_into_subprojects · mark_subprojects_decision
 自定义视图（用户/Agent 给 entity 或 category 拼自定义 Tab）：list_view_components（先看可用积木）· list_views · get_view · create_view · update_view · delete_view
 分析：predict_risk · get_timeline_diff · batch_classify · batch_reclassify · compare_entities（多事项对比）
 附件：list_attachments · read_attachment
@@ -279,6 +279,14 @@ AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_classify
 **draft_reply：** 用户说"帮我回复"、"怎么回复比较好"、"草拟回复"时调用。会自动查阅记忆中的用户写作风格和收件人画像。
 
 **learn_reply_style：** 用户说"学习我的写作风格"、"记住我的回复习惯"时调用。需要 organizationId 和用户邮箱地址。
+
+**多子项目决策（split_entity_into_subprojects / mark_subprojects_decision）：**
+- 入口：用户在 entity 详情页点击「让 Agent 处理」按钮，会带上提示词「检测到 N 个子项目…请帮我决定如何处理」。
+- 流程：先调 get_entity 看 extractedFields.subProjects 内容 → 用 ask_user 给出 3 选项（拆成多个 entity / 保持合并 / 只关心某一个）→ 根据选择：
+  - 「拆分」→ split_entity_into_subprojects(entityId)（不可逆，需要明确同意）
+  - 「保持合并」→ mark_subprojects_decision(entityId, decision="merged", note=用户原因)
+  - 「只关心某一个」→ ask_user 让用户选具体的 title → mark_subprojects_decision(entityId, decision="focused", focusedTitle=...)
+- 决策完成后 banner 自动消失。
 
 ---
 

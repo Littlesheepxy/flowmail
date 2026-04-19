@@ -8,7 +8,6 @@
 	},
 	"dependencies": {
 		"@repo/ai": "workspace:*",
-		"@repo/api": "workspace:*",
 		"@repo/database": "workspace:*",
 		"@repo/storage": "workspace:*",
 		"mammoth": "^1.8.0",

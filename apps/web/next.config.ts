@@ -67,7 +67,12 @@ const nextConfig: NextConfig = {
 	typescript: {
 		ignoreBuildErrors: true,
 	},
-	serverExternalPackages: ["livekit-server-sdk"],
+	serverExternalPackages: [
+		"livekit-server-sdk",
+		"@napi-rs/canvas",
+		"pdf-to-png-converter",
+		"pdf-parse",
+	],
 	transpilePackages: [
 		"@repo/api",
 		"@repo/auth",

@@ -1,7 +1,7 @@
 import { tool } from "@repo/ai";
-import { VIEW_COMPONENT_DOCS, ViewSpecSchema } from "@repo/api";
 import { db } from "@repo/database";
 import { z } from "zod";
+import { VIEW_COMPONENT_DOCS, ViewSpecSchema } from "../views/schema";
 
 /**
  * 自定义视图工具：让 Agent 用预定义的「积木」（block）拼出 entity / category 的自定义 Tab。

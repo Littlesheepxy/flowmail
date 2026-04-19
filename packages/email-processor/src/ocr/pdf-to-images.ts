@@ -1,4 +1,7 @@
-import { pdfToPng } from "pdf-to-png-converter";
+// NOTE: pdf-to-png-converter pulls in @napi-rs/canvas (a native binding) which
+// Turbopack cannot statically place into ESM chunks. We lazy-load it inside
+// the function so it only loads at runtime in the Node process and never
+// shows up in the static import graph for the web app.
 
 export interface PdfPageImage {
 	pageNumber: number;
@@ -24,6 +27,8 @@ export async function pdfBufferToPngImages(
 ): Promise<PdfPageImage[]> {
 	const maxPages = options?.maxPages ?? 20;
 	const viewportScale = options?.viewportScale ?? 2;
+
+	const { pdfToPng } = await import("pdf-to-png-converter");
 
 	const pages = await pdfToPng(pdfBuffer, {
 		viewportScale,
