@@ -32,6 +32,7 @@ import {
 	InboxIcon,
 	RefreshCwIcon,
 	SparklesIcon,
+	SquareIcon,
 	Trash2Icon,
 	XIcon,
 } from "lucide-react";
@@ -590,7 +591,7 @@ export function AgentPanel({
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [input, setInput] = useState(initialMessage ?? "");
 	const initialConsumedRef = useRef(false);
-	const [scope, setScope] = useState<AgentScope>("entity");
+	const [scope, setScope] = useState<AgentScope>(entityId ? "entity" : "all");
 	const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 	const pathname = usePathname();
 
@@ -705,6 +706,8 @@ export function AgentPanel({
 		setInput("");
 		initialConsumedRef.current = false;
 		chatHistory.startNewSession();
+		// 进入收件箱（无 entity）时自动切到「全部」scope；进入某事项时切回「事项」
+		setScope(entityId ? "entity" : "all");
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [entityId]);
 
@@ -1500,24 +1503,33 @@ export function AgentPanel({
 								value={input}
 								onChange={(e) => setInput(e.target.value)}
 								placeholder={
-								entity
-									? `问关于「${entity.title.slice(0, 12)}...」的问题`
-									: "收件箱概览、搜索、分类…"
+								isLoading
+									? "正在思考——按右侧停止可中断"
+									: entity
+										? `问关于「${entity.title.slice(0, 12)}...」的问题`
+										: "收件箱概览、搜索、分类…"
 								}
-								className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+								className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed"
 								disabled={isLoading}
 							/>
-							<button
-								type="submit"
-								disabled={!input.trim() || isLoading}
-								className="flex items-center justify-center size-7 rounded-full bg-foreground text-background disabled:opacity-20 transition-all hover:opacity-80"
-							>
-								{isLoading ? (
-									<Spinner className="size-3.5" />
-								) : (
+							{isLoading ? (
+								<button
+									type="button"
+									onClick={() => stop()}
+									title="停止当前任务"
+									className="flex items-center justify-center size-7 rounded-full bg-destructive text-destructive-foreground transition-all hover:opacity-80 animate-pulse"
+								>
+									<SquareIcon className="size-3 fill-current" />
+								</button>
+							) : (
+								<button
+									type="submit"
+									disabled={!input.trim()}
+									className="flex items-center justify-center size-7 rounded-full bg-foreground text-background disabled:opacity-20 transition-all hover:opacity-80"
+								>
 									<ArrowUpIcon className="size-4" />
-								)}
-							</button>
+								</button>
+							)}
 						</div>
 						{webSearchEnabled && (
 							<p className="text-[10px] text-muted-foreground/60 mt-1 ml-1">
