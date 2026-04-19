@@ -60,6 +60,7 @@ import {
 	RefreshCwIcon,
 	BotIcon,
 	Trash2Icon,
+	PencilIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState, useMemo, useCallback, useEffect } from "react";
@@ -212,6 +213,40 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 		onError: () => toast.error("删除失败，请重试"),
 	});
 
+	// 用户自定义重命名（不会被 AI 覆盖）
+	const renameMutation = useMutation(
+		orpc.flowEntities.rename.mutationOptions({
+			onSuccess: (data) => {
+				if (data.changed) {
+					toast.success("已重命名");
+				}
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId: entityId ?? "" },
+					}),
+				});
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.list.key(),
+				});
+			},
+			onError: (err) => toast.error(`重命名失败：${err.message}`),
+		}),
+	);
+	const [titleEditing, setTitleEditing] = useState(false);
+	const [titleDraft, setTitleDraft] = useState("");
+	const commitTitle = () => {
+		if (!entityId) {
+			return;
+		}
+		const next = titleDraft.trim();
+		if (!next) {
+			toast.error("标题不能为空");
+			return;
+		}
+		setTitleEditing(false);
+		renameMutation.mutate({ entityId, title: next });
+	};
+
 	// 项目级 AI 重新分析（重跑分类、字段提取、ai_summary）
 	const enrichMutation = useMutation(
 		orpc.flowEntities.enrich.mutationOptions({
@@ -320,8 +355,41 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 					</button>
 				)}
 				<div className="min-w-0 flex-1">
-					<div className="flex items-center gap-2 mb-0.5">
-						<h2 className="text-sm md:text-base font-semibold truncate leading-tight">{entity.title}</h2>
+					<div className="group/title flex items-center gap-2 mb-0.5">
+						{titleEditing ? (
+							<Input
+								value={titleDraft}
+								autoFocus
+								disabled={renameMutation.isPending}
+								onChange={(e) => setTitleDraft(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") {
+										e.preventDefault();
+										commitTitle();
+									} else if (e.key === "Escape") {
+										setTitleEditing(false);
+									}
+								}}
+								onBlur={commitTitle}
+								className="h-7 text-sm md:text-base font-semibold flex-1"
+							/>
+						) : (
+							<>
+								<h2 className="text-sm md:text-base font-semibold truncate leading-tight">{entity.title}</h2>
+								<button
+									type="button"
+									title="重命名"
+									aria-label="重命名"
+									className="opacity-0 group-hover/title:opacity-100 transition-opacity rounded p-0.5 hover:bg-muted shrink-0"
+									onClick={() => {
+										setTitleDraft(entity.title);
+										setTitleEditing(true);
+									}}
+								>
+									<PencilIcon className="size-3 text-muted-foreground" />
+								</button>
+							</>
+						)}
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>

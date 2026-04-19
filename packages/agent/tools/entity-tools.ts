@@ -358,12 +358,12 @@ export function createEntityTools(deps: {
 
 		update_entity_type: tool({
 			description:
-				"重新分类事项。当用户说'这不是审批，是报告'、'分类错了'、'改成 ISSUE' 时调用。",
+				"重新分类事项的核心类型（APPROVAL/REPORT/ISSUE/FEEDBACK/NOISE）。当用户说'这不是审批，是报告'、'分类错了'、'改成 ISSUE' 时调用。如果用户想归到某个具体的自定义分类（如「子公司月报」「客户反馈」），请改用 recategorize_entity。",
 			inputSchema: z.object({
 				entityId: z.string(),
 				newType: z
 					.enum(["APPROVAL", "REPORT", "ISSUE", "FEEDBACK", "NOISE"])
-					.describe("新的分类类型"),
+					.describe("新的核心类型"),
 				reason: z.string().optional().describe("重新分类的原因"),
 			}),
 			execute: async (input: {
@@ -403,6 +403,138 @@ export function createEntityTools(deps: {
 					success: true,
 					fromType: previousType,
 					toType: input.newType,
+					title: entity.title,
+				};
+			},
+		}),
+
+		recategorize_entity: tool({
+			description:
+				"把事项归类到一个具体的分类（category），支持系统默认分类和用户自定义分类。当用户说「归到子公司月报」「这个属于客户反馈」「分到 XX 类别」时调用。优先用 categorySlug；如果只有名字传 categoryName（会模糊匹配）。如果不确定有哪些分类，先调 list_categories。",
+			inputSchema: z.object({
+				entityId: z.string(),
+				categorySlug: z
+					.string()
+					.optional()
+					.describe("分类 slug（来自 list_categories）"),
+				categoryName: z
+					.string()
+					.optional()
+					.describe("分类显示名（如「子公司月报」），仅当不知道 slug 时用"),
+				reason: z.string().optional().describe("调整原因，会写到时间线"),
+			}),
+			execute: async (input: {
+				entityId: string;
+				categorySlug?: string;
+				categoryName?: string;
+				reason?: string;
+			}) => {
+				if (!input.categorySlug && !input.categoryName) {
+					return {
+						error: "categorySlug 或 categoryName 至少提供一个",
+					};
+				}
+				const entity = await db.flowEntity.findUnique({
+					where: { id: input.entityId },
+					select: {
+						id: true,
+						organizationId: true,
+						title: true,
+						categoryId: true,
+						type: true,
+						category: { select: { name: true, slug: true } },
+					},
+				});
+				if (!entity) {
+					return { error: "Entity not found" };
+				}
+
+				let category = input.categorySlug
+					? await db.category.findFirst({
+							where: {
+								organizationId: entity.organizationId,
+								slug: input.categorySlug,
+							},
+							select: { id: true, slug: true, name: true },
+						})
+					: null;
+
+				if (!category && input.categoryName) {
+					category = await db.category.findFirst({
+						where: {
+							organizationId: entity.organizationId,
+							name: { equals: input.categoryName, mode: "insensitive" },
+						},
+						select: { id: true, slug: true, name: true },
+					});
+					if (!category) {
+						// 模糊匹配
+						category = await db.category.findFirst({
+							where: {
+								organizationId: entity.organizationId,
+								name: { contains: input.categoryName, mode: "insensitive" },
+							},
+							select: { id: true, slug: true, name: true },
+						});
+					}
+				}
+
+				if (!category) {
+					const all = await db.category.findMany({
+						where: { organizationId: entity.organizationId },
+						select: { slug: true, name: true },
+						orderBy: [{ sortOrder: "asc" }],
+					});
+					return {
+						error: `未找到匹配的分类：${input.categorySlug ?? input.categoryName}`,
+						availableCategories: all,
+					};
+				}
+
+				const previousCategoryName = entity.category?.name ?? "未分类";
+				const previousCategorySlug = entity.category?.slug ?? null;
+
+				if (category.id === entity.categoryId) {
+					return {
+						success: true,
+						unchanged: true,
+						categoryId: category.id,
+						categorySlug: category.slug,
+						categoryName: category.name,
+						title: entity.title,
+					};
+				}
+
+				await db.flowEntity.update({
+					where: { id: input.entityId },
+					data: {
+						categoryId: category.id,
+						updatedAt: new Date(),
+					},
+				});
+
+				await db.timelineEvent.create({
+					data: {
+						entityId: input.entityId,
+						type: "reclassified",
+						content: `分类变更：「${previousCategoryName}」→「${category.name}」${input.reason ? `（${input.reason}）` : ""}`,
+						metadata: JSON.stringify({
+							action: "recategorize",
+							previousCategorySlug,
+							previousCategoryName,
+							newCategorySlug: category.slug,
+							newCategoryName: category.name,
+							reason: input.reason,
+							via: "agent",
+						}),
+					},
+				});
+
+				return {
+					success: true,
+					fromCategory: previousCategoryName,
+					toCategory: category.name,
+					categorySlug: category.slug,
 					title: entity.title,
 				};
 			},

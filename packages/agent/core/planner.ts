@@ -242,7 +242,7 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 
 ## 可用工具速查
 
-事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note · merge_entities · find_merge_candidates（扫整个 org 找重复项目组）· find_related_entities（给定事项找它最像的）· split_entity_into_subprojects · mark_subprojects_decision
+事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type（改核心类型 APPROVAL/REPORT/ISSUE/FEEDBACK/NOISE）· recategorize_entity（**改具体分类**——用户说「归到子公司月报」「分到 XX」时用它，支持自定义分类）· add_note · merge_entities · find_merge_candidates（扫整个 org 找重复项目组）· find_related_entities（给定事项找它最像的）· split_entity_into_subprojects · mark_subprojects_decision
 逐封邮件 AI 提炼：check_attachment_ocr_status（看附件解析进度，必做前置）· ocr_pending_attachments（显式 OCR 一批 PDF，用户能看见进度）· analyze_each_email（给该事项每封邮件单独跑 ai_note，含与上封 delta + 建议动作 + 重要性）· regenerate_entity_narrative（基于所有 ai_note 重写整体 ai_summary）
 自定义视图（用户/Agent 给 entity 或 category 拼自定义 Tab）：list_view_components（先看可用积木）· list_views · get_view · create_view · update_view · delete_view
 分类体系（用户的"事儿"标签，不预设默认）：list_categories · list_sample_categories · suggest_categories_from_inbox · create_category · create_categories（批量）· update_category · delete_category
@@ -314,6 +314,12 @@ Flowmail **不预设任何默认分类**——每个用户都按自己的工作�
 - 用户说"把 X 分类改一下规则" → update_category(categoryId, aiPrompt=新规则)
 - 用户说"删掉 X 分类" → 先 ask_user 确认（删除会让该类下的邮件变成未分类）→ delete_category
 - 用户没有任何分类时如果调用 batch_classify，工具会直接报错——必须先建分类
+
+**单个事项归类（recategorize_entity）—— 用户能且应该改：**
+- 用户说「这个归到子公司月报」「分到 XX 分类」「改成客户反馈」时，**不要拒绝**、**不要让用户自己改**、**不要建议"先标记完成等下封邮件再说"**——直接调 recategorize_entity。
+- 流程：（可选）list_categories 取候选 → recategorize_entity({ entityId, categorySlug 或 categoryName, reason }) → 报告"已归到「XX」"。
+- 工具会写一条 reclassified 事件到时间线，前端列表 5 秒内会自动刷新分类徽标。
+- 如果用户想"以后这种邮件都自动归到 XX 分类" → 那是规则层面的调整：update_category(categoryId, aiPrompt=新规则) 让未来的 batch_classify 自动命中。两件事都做：先 recategorize 当前事项，再问"要不要顺便更新「XX」分类的识别规则，让以后类似邮件自动归类？"
 
 **逐封邮件 AI 提炼（标准三步：check → ocr → analyze）：**
 

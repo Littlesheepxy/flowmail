@@ -2,6 +2,7 @@ import { getEntity } from "./procedures/get";
 import { getThreadBody } from "./procedures/get-thread-body";
 import { listEntities } from "./procedures/list";
 import { updateEntityStatus } from "./procedures/update-status";
+import { renameEntity } from "./procedures/rename";
 import { addTimelineEvent } from "./procedures/add-timeline-event";
 import { getTimelineDiff } from "./procedures/get-timeline-diff";
 import { predictEntityRisk } from "./procedures/predict-risk";
@@ -23,6 +24,7 @@ export const flowEntitiesRouter = {
 	get: getEntity,
 	getThreadBody,
 	updateStatus: updateEntityStatus,
+	rename: renameEntity,
 	addTimelineEvent,
 	getTimelineDiff,
 	predictRisk: predictEntityRisk,

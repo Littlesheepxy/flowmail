@@ -3,6 +3,7 @@
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
+import { Input } from "@repo/ui/components/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { Spinner } from "@repo/ui";
 import { orpc } from "@shared/lib/orpc-query-utils";
@@ -43,6 +44,7 @@ import {
 	LayoutDashboardIcon,
 	CheckSquareIcon,
 	AlertTriangleIcon,
+	PencilIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -279,6 +281,40 @@ export function EntityDetail() {
 		}),
 	);
 
+	const renameMutation = useMutation(
+		orpc.flowEntities.rename.mutationOptions({
+			onSuccess: (data) => {
+				if (data.changed) {
+					toast.success("已重命名");
+				}
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+				});
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.list.key(),
+				});
+			},
+			onError: (err) => {
+				toast.error(`重命名失败：${err.message}`);
+			},
+		}),
+	);
+	const [titleEditing, setTitleEditing] = useState(false);
+	const [titleDraft, setTitleDraft] = useState("");
+	function commitTitle() {
+		const next = titleDraft.trim();
+		if (!next) {
+			toast.error("标题不能为空");
+			return;
+		}
+		if (next === entity?.title) {
+			setTitleEditing(false);
+			return;
+		}
+		renameMutation.mutate({ entityId, title: next });
+		setTitleEditing(false);
+	}
+
 	// 详情页打开时懒加载补齐"每封邮件 AI 提炼"——只补缺，不强制重跑。
 	// fire-and-forget，跑完静默刷新时间线，不打扰用户。
 	const backfillMutation = useMutation(
@@ -468,8 +504,48 @@ export function EntityDetail() {
 						<ArrowLeftIcon className="size-4" />
 					</Button>
 				</Link>
-				<div className="flex-1">
-					<h2 className="text-xl font-semibold">{entity.title}</h2>
+				<div className="flex-1 group/title min-w-0">
+					{titleEditing ? (
+						<div className="flex items-center gap-1.5">
+							<Input
+								value={titleDraft}
+								autoFocus
+								disabled={renameMutation.isPending}
+								onChange={(e) => setTitleDraft(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") {
+										e.preventDefault();
+										commitTitle();
+									} else if (e.key === "Escape") {
+										setTitleEditing(false);
+									}
+								}}
+								onBlur={commitTitle}
+								className="h-9 text-xl font-semibold"
+							/>
+						</div>
+					) : (
+						<div className="flex items-center gap-1">
+							<h2
+								className="text-xl font-semibold cursor-text truncate"
+								title="点击右侧铅笔重命名"
+							>
+								{entity.title}
+							</h2>
+							<button
+								type="button"
+								title="重命名"
+								aria-label="重命名"
+								className="opacity-0 group-hover/title:opacity-100 transition-opacity rounded p-1 hover:bg-muted"
+								onClick={() => {
+									setTitleDraft(entity.title);
+									setTitleEditing(true);
+								}}
+							>
+								<PencilIcon className="size-3.5 text-muted-foreground" />
+							</button>
+						</div>
+					)}
 					<div className="mt-1 flex items-center gap-2 flex-wrap">
 						{entity.aiSummary ? (
 							<>

@@ -1,7 +1,9 @@
 "use client";
 
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
+import { Input } from "@repo/ui/components/input";
 import { Spinner } from "@repo/ui";
 import {
 	Table,
@@ -13,16 +15,21 @@ import {
 } from "@repo/ui/components/table";
 import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { orpc } from "@shared/lib/orpc-query-utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	CheckCircle2Icon,
 	ClockIcon,
 	AlertCircleIcon,
 	XCircleIcon,
 	InboxIcon,
+	PencilIcon,
+	CheckIcon,
+	XIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import { getStatusLabel } from "../lib/entity-type-config";
 
 const statusConfig: Record<string, { badgeStatus: "success" | "info" | "warning" | "error"; icon: typeof ClockIcon }> = {
@@ -44,6 +51,134 @@ function StatusBadge({ status }: { status: string }) {
 			<Icon className="size-3" />
 			{getStatusLabel(status)}
 		</Badge>
+	);
+}
+
+function InlineRenameTitle({
+	entityId,
+	title,
+	href,
+	aiSummary,
+	urgency,
+}: {
+	entityId: string;
+	title: string;
+	href: string;
+	aiSummary?: string | null;
+	urgency?: string;
+}) {
+	const queryClient = useQueryClient();
+	const [editing, setEditing] = useState(false);
+	const [draft, setDraft] = useState(title);
+
+	const renameMutation = useMutation(
+		orpc.flowEntities.rename.mutationOptions({
+			onSuccess: (data) => {
+				if (data.changed) {
+					toast.success("已重命名");
+				}
+				setEditing(false);
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.list.key(),
+				});
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+				});
+			},
+			onError: (err) => {
+				toast.error(`重命名失败：${err.message}`);
+			},
+		}),
+	);
+
+	function commit() {
+		const next = draft.trim();
+		if (!next) {
+			toast.error("标题不能为空");
+			return;
+		}
+		if (next === title) {
+			setEditing(false);
+			return;
+		}
+		renameMutation.mutate({ entityId, title: next });
+	}
+
+	if (editing) {
+		return (
+			<div className="flex items-center gap-1.5">
+				<UrgencyDot urgency={urgency} />
+				<Input
+					value={draft}
+					autoFocus
+					disabled={renameMutation.isPending}
+					onChange={(e) => setDraft(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Enter") {
+							e.preventDefault();
+							commit();
+						} else if (e.key === "Escape") {
+							setDraft(title);
+							setEditing(false);
+						}
+					}}
+					className="h-7 text-sm"
+				/>
+				<Button
+					type="button"
+					size="icon"
+					variant="ghost"
+					className="size-7 shrink-0"
+					disabled={renameMutation.isPending}
+					onClick={commit}
+				>
+					<CheckIcon className="size-3.5" />
+				</Button>
+				<Button
+					type="button"
+					size="icon"
+					variant="ghost"
+					className="size-7 shrink-0"
+					disabled={renameMutation.isPending}
+					onClick={() => {
+						setDraft(title);
+						setEditing(false);
+					}}
+				>
+					<XIcon className="size-3.5" />
+				</Button>
+			</div>
+		);
+	}
+
+	return (
+		<Link href={href} className="flex items-center gap-2">
+			<UrgencyDot urgency={urgency} />
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-1">
+					<p className="font-medium group-hover:underline truncate">{title}</p>
+					<button
+						type="button"
+						title="重命名"
+						aria-label="重命名"
+						className="opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-muted"
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							setDraft(title);
+							setEditing(true);
+						}}
+					>
+						<PencilIcon className="size-3 text-muted-foreground" />
+					</button>
+				</div>
+				{aiSummary && (
+					<p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+						{aiSummary}
+					</p>
+				)}
+			</div>
+		</Link>
 	);
 }
 
@@ -118,22 +253,13 @@ export function EntityList({
 								return (
 									<TableRow key={entity.id} className="group cursor-pointer">
 										<TableCell>
-											<Link
+											<InlineRenameTitle
+												entityId={entity.id}
+												title={entity.title}
 												href={`${pathname}/${entity.id}`}
-												className="flex items-center gap-2"
-											>
-												<UrgencyDot urgency={fields.urgency} />
-												<div>
-													<p className="font-medium group-hover:underline">
-														{entity.title}
-													</p>
-													{entity.aiSummary && (
-														<p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
-															{entity.aiSummary}
-														</p>
-													)}
-												</div>
-											</Link>
+												aiSummary={entity.aiSummary}
+												urgency={fields.urgency}
+											/>
 										</TableCell>
 										<TableCell>
 											<StatusBadge status={entity.status} />

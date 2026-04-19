@@ -26,6 +26,11 @@ export const updateEntityStatusSchema = z.object({
 	reason: z.string().optional(),
 });
 
+export const renameEntitySchema = z.object({
+	entityId: z.string(),
+	title: z.string().min(1).max(200).describe("新标题，1-200 字"),
+});
+
 export const submitFeedbackSchema = z.object({
 	entityId: z.string(),
 	feedbackType: z.enum(["thumbs_up", "thumbs_down"]),
@@ -53,6 +58,7 @@ export const reclassifyEntitySchema = z.object({
 export type ListEntitiesInput = z.infer<typeof listEntitiesSchema>;
 export type GetEntityInput = z.infer<typeof getEntitySchema>;
 export type UpdateEntityStatusInput = z.infer<typeof updateEntityStatusSchema>;
+export type RenameEntityInput = z.infer<typeof renameEntitySchema>;
 export type SubmitFeedbackInput = z.infer<typeof submitFeedbackSchema>;
 export type MergeEntitiesInput = z.infer<typeof mergeEntitiesSchema>;
 export type SplitEntityInput = z.infer<typeof splitEntitySchema>;
