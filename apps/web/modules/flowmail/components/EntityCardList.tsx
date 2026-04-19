@@ -95,7 +95,7 @@ export function EntityCardList({
 		if (entities.length > prevCountRef.current) {
 			const newCount = entities.length - prevCountRef.current;
 			toast.success(`收到 ${newCount} 封新邮件`, {
-				description: "已显示在列表中，点击卡片上的 ✨ 按钮运行 AI 分析",
+				description: "已显示在列表中，可点顶部「AI 分类」让 Agent 批量处理",
 				duration: 4000,
 			});
 		}
@@ -469,7 +469,6 @@ function EntityCard({
 	isChecked?: boolean;
 	onDelete?: (id: string) => void;
 }) {
-	const queryClient = useQueryClient();
 	const statusCfg = STATUS_CONFIG[entity.status] ?? STATUS_CONFIG.pending;
 	const catColor = entity.category?.color ?? "#94a3b8";
 	const catName = entity.category?.name ?? getEntityTypeLabel(entity.type);
@@ -477,21 +476,6 @@ function EntityCard({
 	const timelineCount = entity._count?.timeline ?? 0;
 	const tags = entity.tags ?? [];
 	const needsAI = !entity.aiSummary;
-
-	const enrichMutation = useMutation(
-		orpc.flowEntities.enrich.mutationOptions({
-			onSuccess: (result) => {
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.list.key() });
-				queryClient.invalidateQueries({ queryKey: orpc.flowEntities.get.key() });
-				toast.success(`AI 分析完成：${result.categorySlug}`, {
-					description: result.summary?.slice(0, 80),
-				});
-			},
-			onError: (err) => {
-				toast.error(`AI 分析失败：${err.message}`);
-			},
-		}),
-	);
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: div needed to avoid button-in-button hydration error from nested AlertDialogTrigger
@@ -554,28 +538,9 @@ function EntityCard({
 						{entity.aiSummary}
 					</p>
 				) : (
-					<div className="flex items-center gap-1.5 mt-1">
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-6 px-2 gap-1 text-[11px]"
-							disabled={enrichMutation.isPending}
-							onClick={(e) => {
-								e.stopPropagation();
-								enrichMutation.mutate({ entityId: entity.id });
-							}}
-						>
-							{enrichMutation.isPending ? (
-								<Spinner className="size-3" />
-							) : (
-								<SparklesIcon className="size-3" />
-							)}
-							{enrichMutation.isPending ? "分析中..." : "AI 分析"}
-						</Button>
-						<span className="text-[10px] text-muted-foreground/50">
-							点击运行 AI 分类和摘要
-						</span>
-					</div>
+					<p className="text-[11px] text-muted-foreground/60 mt-0.5 italic">
+						待 AI 处理 · 用顶部「AI 分类」批量分析
+					</p>
 				)}
 				{tags.length > 0 && (
 					<div className="flex items-center gap-1 mt-1 flex-wrap">
