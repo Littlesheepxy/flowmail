@@ -15,6 +15,19 @@ export { ensureDefaultCategories } from "./src/seed-categories";
 export { unwrapForwardedEmail } from "./src/unwrap-forward";
 export type { UnwrapResult } from "./src/unwrap-forward";
 export { getConnector } from "./src/connectors";
+export {
+	isZhipuOcrConfigured,
+	recognizeImageWithZhipu,
+	recognizeImagesWithZhipu,
+	pdfBufferToPngImages,
+	ocrPdfBuffer,
+	type ZhipuOcrOptions,
+	type ZhipuOcrResult,
+	type ZhipuOcrWord,
+	type PdfPageImage,
+	type PdfToImagesOptions,
+	type OcrPdfResult,
+} from "./src/ocr";
 export type { ClassificationResult } from "./src/schemas/classification";
 export type { ApprovalExtraction } from "./src/schemas/approval";
 export type { ReportExtraction } from "./src/schemas/report";

@@ -18,6 +18,7 @@ import {
 	summarizeThread,
 	enrichEntityById,
 	classifyEntityOnly,
+	ocrPdfBuffer,
 } from "@repo/email-processor";
 import {
 	ToolRegistry,
@@ -133,7 +134,18 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 	);
 
 	registry.registerBuiltin(createInboxTools());
-	registry.registerBuiltin(createAttachmentTools());
+	registry.registerBuiltin(
+		createAttachmentTools({
+			ocrPdfBuffer: async (buffer: Buffer) => {
+				const r = await ocrPdfBuffer(buffer, { maxPages: 10, viewportScale: 2 });
+				return {
+					text: r.text,
+					successCount: r.successCount,
+					pageCount: r.pageCount,
+				};
+			},
+		}),
+	);
 
 	registry.registerBuiltin(createSummarizeThreadTool());
 	registry.registerBuiltin(createCompareEntitiesTool());

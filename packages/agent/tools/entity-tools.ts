@@ -417,6 +417,125 @@ export function createEntityTools(deps: {
 			},
 		}),
 
+		merge_entities: tool({
+			description:
+				"将两个事项合并为同一个：把【源事项】的所有邮件、时间线、收件箱关联和标签全部迁移到【目标事项】，源事项被删除。当用户说【这两个是同一个项目】【把 X 合并到 Y】【这俩重复了】，或在分析中发现两条 entity 实际指向同一业务时调用。⚠️ 不可逆，调用前应通过 ask_user 让用户确认。",
+			inputSchema: z.object({
+				targetEntityId: z
+					.string()
+					.describe("目标事项 ID（保留下来的事项，所有数据合并到这里）"),
+				sourceEntityId: z
+					.string()
+					.describe("源事项 ID（合并后会被删除）"),
+				reason: z.string().optional().describe("合并原因，会写入时间线"),
+			}),
+			execute: async (input: {
+				targetEntityId: string;
+				sourceEntityId: string;
+				reason?: string;
+			}) => {
+				if (input.targetEntityId === input.sourceEntityId) {
+					return { error: "目标和源事项不能相同" };
+				}
+
+				const [target, source] = await Promise.all([
+					db.flowEntity.findUnique({
+						where: { id: input.targetEntityId },
+						select: { id: true, organizationId: true, title: true },
+					}),
+					db.flowEntity.findUnique({
+						where: { id: input.sourceEntityId },
+						include: {
+							threads: { select: { id: true } },
+							timeline: { select: { id: true } },
+							tags: { select: { id: true, tagId: true } },
+							inboundEmails: { select: { id: true } },
+						},
+					}),
+				]);
+
+				if (!target || !source) {
+					return { error: "事项不存在" };
+				}
+				if (target.organizationId !== source.organizationId) {
+					return { error: "不能跨组织合并" };
+				}
+
+				const threadIds = source.threads.map((t) => t.id);
+				const timelineIds = source.timeline.map((t) => t.id);
+				const inboundIds = source.inboundEmails.map((e) => e.id);
+
+				const existingTargetTags = await db.entityTag.findMany({
+					where: { entityId: input.targetEntityId },
+					select: { tagId: true },
+				});
+				const existingTagIds = new Set(existingTargetTags.map((t) => t.tagId));
+				const newTagIds = source.tags
+					.map((t) => t.tagId)
+					.filter((id) => !existingTagIds.has(id));
+
+				try {
+					await db.$transaction([
+						...(threadIds.length > 0
+							? [db.emailThread.updateMany({ where: { id: { in: threadIds } }, data: { entityId: input.targetEntityId } })]
+							: []),
+						...(timelineIds.length > 0
+							? [db.timelineEvent.updateMany({ where: { id: { in: timelineIds } }, data: { entityId: input.targetEntityId } })]
+							: []),
+						...(inboundIds.length > 0
+							? [db.inboundEmail.updateMany({ where: { id: { in: inboundIds } }, data: { entityId: input.targetEntityId } })]
+							: []),
+						...(source.tags.length > 0
+							? [db.entityTag.deleteMany({ where: { entityId: input.sourceEntityId } })]
+							: []),
+						...(newTagIds.length > 0
+							? [db.entityTag.createMany({
+									data: newTagIds.map((tagId) => ({
+										entityId: input.targetEntityId,
+										tagId,
+									})),
+								})]
+							: []),
+						db.timelineEvent.create({
+							data: {
+								entityId: input.targetEntityId,
+								type: "entity_merged",
+								content: `Agent 合并事项「${source.title}」→「${target.title}」：迁移 ${threadIds.length} 封邮件、${timelineIds.length} 条动态${input.reason ? `（${input.reason}）` : ""}`,
+								metadata: JSON.stringify({
+									sourceEntityId: input.sourceEntityId,
+									sourceTitle: source.title,
+									threadsMoved: threadIds.length,
+									timelineMoved: timelineIds.length,
+									reason: input.reason,
+									via: "agent",
+								}),
+							},
+						}),
+						db.flowEntity.delete({ where: { id: input.sourceEntityId } }),
+						db.flowEntity.update({
+							where: { id: input.targetEntityId },
+							data: { updatedAt: new Date() },
+						}),
+					]);
+
+					return {
+						success: true,
+						targetEntityId: input.targetEntityId,
+						targetTitle: target.title,
+						sourceTitle: source.title,
+						threadsMoved: threadIds.length,
+						timelineMoved: timelineIds.length,
+						tagsMoved: newTagIds.length,
+					};
+				} catch (err) {
+					return {
+						error: "合并失败",
+						message: err instanceof Error ? err.message : String(err),
+					};
+				}
+			},
+		}),
+
 		batch_enrich: tool({
 			description:
 				"批量对未经 AI 分析的事项执行 AI 分类和摘要。先用 list_entities(unanalyzed=true) 获取待分析列表，再调用本工具传入 entityId 数组。每次最多处理 10 个。",

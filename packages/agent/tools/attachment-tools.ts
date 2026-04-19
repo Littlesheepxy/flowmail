@@ -10,7 +10,17 @@ function isStorageEnabled() {
 	return !!(process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY_ID);
 }
 
-export function createAttachmentTools() {
+export interface AttachmentToolDeps {
+	/**
+	 * PDF 文本极少时调用此函数走 OCR。由 web 层注入避免循环依赖。
+	 * 返回结构需含 text 与可选 successCount/pageCount。
+	 */
+	ocrPdfBuffer?: (
+		buffer: Buffer,
+	) => Promise<{ text: string; successCount?: number; pageCount?: number }>;
+}
+
+export function createAttachmentTools(deps?: AttachmentToolDeps) {
 	return {
 		list_attachments: tool({
 			description:
@@ -169,8 +179,39 @@ export function createAttachmentTools() {
 					if (isText) {
 						content = buf.toString("utf-8");
 					} else if (isPdf) {
-						const parsed = await pdfParse(buf);
-						content = parsed.text || "[PDF 解析成功但无文字内容]";
+						let pdfText = "";
+						try {
+							const parsed = await pdfParse(buf);
+							pdfText = parsed.text ?? "";
+						} catch (parseErr) {
+							console.warn(
+								`[read_attachment] pdf-parse failed for ${filename}:`,
+								parseErr instanceof Error ? parseErr.message : String(parseErr),
+							);
+						}
+						const looksImageBased = pdfText.trim().length < 50;
+						if (looksImageBased && deps?.ocrPdfBuffer) {
+							try {
+								const ocr = await deps.ocrPdfBuffer(buf);
+								if (ocr.text) {
+									const meta =
+										ocr.successCount !== undefined && ocr.pageCount !== undefined
+											? `[OCR 识别 ${ocr.successCount}/${ocr.pageCount} 页]\n\n`
+											: "[OCR 识别]\n\n";
+									content = `${meta}${ocr.text}`;
+								} else {
+									content = pdfText || "[PDF 为图片型且 OCR 未能识别出文字]";
+								}
+							} catch (ocrErr) {
+								console.warn(
+									`[read_attachment] OCR failed for ${filename}:`,
+									ocrErr instanceof Error ? ocrErr.message : String(ocrErr),
+								);
+								content = pdfText || "[PDF 解析失败]";
+							}
+						} else {
+							content = pdfText || "[PDF 解析成功但无文字内容；可配置 ZHIPU_API_KEY 启用 OCR]";
+						}
 					} else if (isWord) {
 						const result = await mammoth.extractRawText({ buffer: buf });
 						content = result.value || "[Word 文档解析成功但无文字内容]";

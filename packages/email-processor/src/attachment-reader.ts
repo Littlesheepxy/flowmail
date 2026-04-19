@@ -3,6 +3,10 @@ import { getSignedUrl } from "@repo/storage";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
+import { isZhipuOcrConfigured, ocrPdfBuffer } from "./ocr";
+
+/** PDF 文本字数低于该阈值则视为图片型 PDF，触发 OCR 回退 */
+const PDF_OCR_FALLBACK_MIN_CHARS = 50;
 
 function isStorageEnabled() {
 	return !!(process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY_ID);
@@ -114,8 +118,46 @@ async function extractFileText(
 	}
 
 	if (mime === "application/pdf" || lower.endsWith(".pdf")) {
-		const parsed = await pdfParse(buf);
-		return parsed.text || null;
+		let parsedText = "";
+		try {
+			const parsed = await pdfParse(buf);
+			parsedText = parsed.text ?? "";
+		} catch (err) {
+			console.warn(
+				`[AttachmentReader] pdf-parse failed for ${filename}, will try OCR:`,
+				err instanceof Error ? err.message : String(err),
+			);
+		}
+
+		if (parsedText.trim().length >= PDF_OCR_FALLBACK_MIN_CHARS) {
+			return parsedText;
+		}
+
+		// 文本极少 → 大概率是扫描件/图片型 PDF，走 OCR
+		if (isZhipuOcrConfigured()) {
+			try {
+				const ocr = await ocrPdfBuffer(buf, { maxPages: 10, viewportScale: 2 });
+				if (ocr.text) {
+					console.log(
+						`[AttachmentReader] OCR success for ${filename}: ${ocr.successCount}/${ocr.pageCount} pages, ${ocr.text.length} chars`,
+					);
+					return ocr.text;
+				}
+				if (ocr.errors.length > 0) {
+					console.warn(
+						`[AttachmentReader] OCR failed for ${filename}:`,
+						ocr.errors.slice(0, 3),
+					);
+				}
+			} catch (err) {
+				console.warn(
+					`[AttachmentReader] OCR threw for ${filename}:`,
+					err instanceof Error ? err.message : String(err),
+				);
+			}
+		}
+
+		return parsedText || null;
 	}
 
 	if (mime.includes("wordprocessingml") || mime.includes("msword") || lower.endsWith(".docx") || lower.endsWith(".doc")) {

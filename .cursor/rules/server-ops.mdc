@@ -74,3 +74,16 @@ cat /opt/flowmail/docker-compose.yml
 - `AI_TEXT_MODEL` — 主力模型（抽取、摘要等）
 
 **注意**：代理不支持 tool calling，代码中所有结构化输出必须使用 `safeGenerateObject` 而非直接 `Output.object`，以确保 prompt-based JSON 降级可用。
+
+## 附件 OCR（智谱 AI）
+
+图片型 PDF（扫描件、投资报告等）会自动走「PDF→PNG→智谱 OCR」管线，需要：
+
+- `ZHIPU_API_KEY` — 智谱 API Key（[控制台](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)）
+
+未配置时只走 `pdf-parse`，图片型 PDF 会读到空字符串。配置后入库时 `attachment-reader` 与 Agent `read_attachment` 工具会自动回退到 OCR。
+
+```bash
+# 临时验证
+docker exec flowmail-web env | grep ZHIPU_API_KEY
+```

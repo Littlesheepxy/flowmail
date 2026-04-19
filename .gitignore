@@ -61,3 +61,6 @@ dist/
 # Data
 *.db
 *.sqlite3
+
+# Local-only email analysis dumps (contains private attachments)
+docs/email-analysis/
