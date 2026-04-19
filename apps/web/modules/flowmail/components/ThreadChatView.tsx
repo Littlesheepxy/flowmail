@@ -56,6 +56,9 @@ import {
 	TagIcon,
 	ScissorsIcon,
 	SearchIcon,
+	SparklesIcon,
+	RefreshCwIcon,
+	BotIcon,
 	Trash2Icon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -204,6 +207,44 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 		onError: () => toast.error("删除失败，请重试"),
 	});
 
+	// 项目级 AI 重新分析（重跑分类、字段提取、ai_summary）
+	const enrichMutation = useMutation(
+		orpc.flowEntities.enrich.mutationOptions({
+			onSuccess: () => {
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId: entityId ?? "", includeBodies: true },
+					}),
+				});
+				toast.success("AI 重新分析完成");
+			},
+			onError: (err) => toast.error(`AI 分析失败：${err.message}`),
+		}),
+	);
+
+	// 每封邮件 AI 提炼（含与上一封 delta 对比） + 可选刷新整体叙事
+	const analyzeEmailsMutation = useMutation(
+		orpc.flowEntities.analyzeEmails.mutationOptions({
+			onSuccess: (result) => {
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({
+						input: { entityId: entityId ?? "", includeBodies: true },
+					}),
+				});
+				if (typeof result?.analyzed === "number") {
+					toast.success(
+						`已分析 ${result.analyzed} 封邮件${
+							result.failures ? `（${result.failures} 封失败）` : ""
+						}`,
+					);
+				} else {
+					toast.success("AI 摘要已刷新");
+				}
+			},
+			onError: (err) => toast.error(`AI 分析失败：${err.message}`),
+		}),
+	);
+
 	if (!entityId) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full text-muted-foreground/40">
@@ -312,6 +353,31 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 				</div>
 				<EntityHeaderMenu
 					canSplit={threads.length > 1}
+					hasAiSummary={Boolean(entity.aiSummary)}
+					aiBusy={enrichMutation.isPending || analyzeEmailsMutation.isPending}
+					onReanalyzeEntity={() =>
+						enrichMutation.mutate({ entityId: entity.id })
+					}
+					onAnalyzePendingEmails={() =>
+						analyzeEmailsMutation.mutate({
+							entityId: entity.id,
+							mode: "pending_only",
+							alsoRefreshNarrative: true,
+						})
+					}
+					onForceReanalyzeAllEmails={() =>
+						analyzeEmailsMutation.mutate({
+							entityId: entity.id,
+							mode: "all",
+							alsoRefreshNarrative: true,
+						})
+					}
+					onRefreshNarrative={() =>
+						analyzeEmailsMutation.mutate({
+							entityId: entity.id,
+							mode: "narrative",
+						})
+					}
 					onMerge={() => setShowMergeDialog(true)}
 					onSplit={() => setSplitModeActive(true)}
 					onReclassify={() => setShowReclassifyDialog(true)}
@@ -1541,12 +1607,24 @@ function EntityTagSection({
 
 function EntityHeaderMenu({
 	canSplit,
+	hasAiSummary,
+	aiBusy,
+	onReanalyzeEntity,
+	onAnalyzePendingEmails,
+	onForceReanalyzeAllEmails,
+	onRefreshNarrative,
 	onMerge,
 	onSplit,
 	onReclassify,
 	onDelete,
 }: {
 	canSplit: boolean;
+	hasAiSummary: boolean;
+	aiBusy: boolean;
+	onReanalyzeEntity: () => void;
+	onAnalyzePendingEmails: () => void;
+	onForceReanalyzeAllEmails: () => void;
+	onRefreshNarrative: () => void;
 	onMerge: () => void;
 	onSplit: () => void;
 	onReclassify: () => void;
@@ -1555,11 +1633,44 @@ function EntityHeaderMenu({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0">
-					<MoreHorizontalIcon className="size-4" />
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-7 w-7 p-0 shrink-0"
+					title="更多操作"
+				>
+					{aiBusy ? (
+						<Spinner className="size-4" />
+					) : (
+						<MoreHorizontalIcon className="size-4" />
+					)}
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-44">
+			<DropdownMenuContent align="end" className="w-56">
+				{/* ── AI 重新分析（最常用，放最上面） ── */}
+				<DropdownMenuItem onClick={onReanalyzeEntity} disabled={aiBusy}>
+					<SparklesIcon className="size-3.5 mr-2 text-primary" />
+					{hasAiSummary ? "重新分析事项" : "AI 分析事项"}
+				</DropdownMenuItem>
+				<DropdownMenuItem onClick={onAnalyzePendingEmails} disabled={aiBusy}>
+					<BotIcon className="size-3.5 mr-2 text-primary" />
+					AI 提炼缺失邮件
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onClick={onForceReanalyzeAllEmails}
+					disabled={aiBusy}
+				>
+					<RefreshCwIcon className="size-3.5 mr-2 text-primary" />
+					强制重跑全部邮件
+				</DropdownMenuItem>
+				{hasAiSummary && (
+					<DropdownMenuItem onClick={onRefreshNarrative} disabled={aiBusy}>
+						<RefreshCwIcon className="size-3.5 mr-2" />
+						仅刷新整体摘要
+					</DropdownMenuItem>
+				)}
+
+				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={onMerge}>
 					<MergeIcon className="size-3.5 mr-2" />
 					合并到其他事项
@@ -1570,7 +1681,6 @@ function EntityHeaderMenu({
 						拆分邮件
 					</DropdownMenuItem>
 				)}
-				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={onReclassify}>
 					<TagIcon className="size-3.5 mr-2" />
 					重新分类
