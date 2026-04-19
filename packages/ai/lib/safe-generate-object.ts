@@ -138,9 +138,16 @@ function defType(def: ZodDef): string {
 	return def.type ?? def.typeName?.replace("Zod", "").toLowerCase() ?? "";
 }
 
-// 剥离修饰符（transform/pipe/optional/nullable/default/effects/refinement）拿到底层 schema。
-// z.array(...).transform(...) 的外层 _def.type 是 "pipe" 而不是 "array"，
-// 不剥的话 coerce 会把 array<string> 字段当陌生类型跳过 → LLM 给单字符串就修不了。
+// 剥离修饰符（pipe/transform/optional/nullable/default/readonly/catch/effects）
+// 拿到底层 schema 用于类型识别。
+//
+// zod 4 行为（2026-04 实测）：
+//   z.array(z.string()).transform(...) → _def.type="pipe", _def.in=ZodArray, _def.out=ZodTransform
+//   z.string().optional()              → _def.type="optional", _def.innerType=ZodString
+//   z.string().default("x")            → _def.type="default", _def.innerType=ZodString
+//
+// 关键：pipe 必须取 _def.in（用户暴露的"输入"类型，array），不能取 _def.out
+// （那是 transform 包裹层，再剥就变成 _def.transform=function 了）。
 function unwrapSchema(t: z.ZodType): z.ZodType {
 	let current: z.ZodType = t;
 	for (let i = 0; i < 10; i++) {
@@ -149,29 +156,38 @@ function unwrapSchema(t: z.ZodType): z.ZodType {
 			return current;
 		}
 		const ft = defType(d);
-		// pipe: { in, out } —— 取 out 才是用户暴露的最终类型
-		// transform/effects/default/optional/nullable/readonly: 内层是 innerType / type / schema
 		const any = d as Record<string, unknown>;
-		const inner =
-			(any.out as z.ZodType | undefined) ??
-			(any.innerType as z.ZodType | undefined) ??
-			(any.schema as z.ZodType | undefined) ??
-			(any.type as z.ZodType | undefined);
-		if (
-			(ft === "pipe" ||
-				ft === "transform" ||
-				ft === "effects" ||
-				ft === "default" ||
-				ft === "optional" ||
-				ft === "nullable" ||
-				ft === "readonly" ||
-				ft === "catch") &&
-			inner &&
-			typeof (inner as z.ZodType).safeParse === "function"
-		) {
-			current = inner;
-			continue;
+
+		// pipe: { in, out } —— 取 in（输入侧的 schema 才是 array/object/enum 等）
+		if (ft === "pipe") {
+			const inner = any.in as z.ZodType | undefined;
+			if (inner && typeof inner.safeParse === "function") {
+				current = inner;
+				continue;
+			}
+			return current;
 		}
+
+		// 其他修饰符：内层在 innerType
+		if (
+			ft === "optional" ||
+			ft === "nullable" ||
+			ft === "default" ||
+			ft === "readonly" ||
+			ft === "catch" ||
+			ft === "transform" ||
+			ft === "effects"
+		) {
+			const inner =
+				(any.innerType as z.ZodType | undefined) ??
+				(any.schema as z.ZodType | undefined);
+			if (inner && typeof inner.safeParse === "function") {
+				current = inner;
+				continue;
+			}
+			return current;
+		}
+
 		return current;
 	}
 	return current;
@@ -199,6 +215,58 @@ function getArrayItemSchema(t: z.ZodType): z.ZodType | undefined {
 }
 
 // ── Coercion ──
+
+// 把 LLM 拍扁的字符串 "a; b; c" / "a, b, c" / "1. x\n2. y" 拆成数组。
+// 关键约束：不能误拆千分位逗号（"Revenue 1,234,567 USD" 必须保持一条）。
+function splitFlattenedArray(input: string): string[] {
+	const trimmed = input.trim();
+	if (trimmed === "") {
+		return [];
+	}
+
+	// 第 1 步：按"强分隔符"拆（分号、换行）
+	const strongParts = trimmed
+		.split(/[;；\n]+/)
+		.map((s) => s.trim())
+		.filter(Boolean);
+
+	// 第 2 步：每段如果含"安全的"逗号（不是千分位），再拆一次
+	const out: string[] = [];
+	for (const seg of strongParts) {
+		// 千分位特征：纯数字加 , 加 3 位数字（"1,234" / "1,234,567"）
+		// 简单办法：看每个 , 两侧字符——如果两侧都是数字就当千分位
+		if (/[,，]/.test(seg) && !/^[0-9,，.\s]+$/.test(seg)) {
+			// 用回调避免分割数字内逗号：把所有"数字,数字"形式的逗号替换为占位符。
+			// 用循环替换处理 "1,234,567" 这种多组千分位（一次 replace 不够，
+			// 因为相邻 group 的字符会被消费）。
+			// 用极不可能在文本中出现的占位符（私有使用区码点）替代千分位逗号
+			const PLACEHOLDER = "\uE000COMMA\uE000";
+			let protectedSeg = seg;
+			let prev: string;
+			do {
+				prev = protectedSeg;
+				protectedSeg = protectedSeg.replace(
+					/(\d)[,，](\d)/g,
+					`$1${PLACEHOLDER}$2`,
+				);
+			} while (protectedSeg !== prev);
+			const subParts = protectedSeg
+				.split(/[,，]+/)
+				.map((s) => s.split(PLACEHOLDER).join(",").trim())
+				.filter(Boolean);
+			out.push(...subParts);
+		} else {
+			out.push(seg);
+		}
+	}
+
+	// 第 3 步：去 bullet 前缀（"1. " / "- " / "• " 等）
+	const cleaned = out
+		.map((s) => s.replace(/^[\s\-•·*]+|^\d+[.)]\s*/g, "").trim())
+		.filter(Boolean);
+
+	return cleaned.length > 0 ? cleaned : [trimmed];
+}
 
 function coerceToSchema(data: Record<string, unknown>, schema: z.ZodType): Record<string, unknown> {
 	const unwrappedRoot = unwrapSchema(schema);
@@ -240,17 +308,7 @@ function coerceToSchema(data: Record<string, unknown>, schema: z.ZodType): Recor
 			if (value === null || value === undefined) {
 				result[key] = [];
 			} else if (typeof value === "string") {
-				const trimmed = value.trim();
-				if (trimmed === "") {
-					result[key] = [];
-				} else {
-					// 优先按常见分隔符拆；都没有就当成单条
-					const parts = trimmed
-						.split(/[;；\n]|(?:^|[^0-9])[,，](?!\d{3}\b)/)
-						.map((s) => s.replace(/^[\s\-•·*\d.)]+/, "").trim())
-						.filter(Boolean);
-					result[key] = parts.length > 0 ? parts : [trimmed];
-				}
+				result[key] = splitFlattenedArray(value);
 			} else if (!Array.isArray(value)) {
 				// LLM 偶尔返回 { "0": "x", "1": "y" } 这种 object-as-array
 				if (typeof value === "object") {
@@ -294,6 +352,10 @@ function buildDefaultObject(schema: z.ZodType, hint?: string): Record<string, un
 				break;
 			case "array":
 				obj[key] = [];
+				break;
+			case "object":
+				// 嵌套对象递归 build（reporter: { name, email } 等）
+				obj[key] = buildDefaultObject(fieldSchema);
 				break;
 			case "optional":
 				obj[key] = undefined;
@@ -361,3 +423,9 @@ function fieldExample(t: z.ZodType, depth: number): string {
 			return `"..."`;
 	}
 }
+
+// Test-only exports
+export const __test_unwrapSchema = unwrapSchema;
+export const __test_coerceToSchema = coerceToSchema;
+export const __test_buildDefaultObject = buildDefaultObject;
+

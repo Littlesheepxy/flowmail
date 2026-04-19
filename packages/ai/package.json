@@ -12,12 +12,15 @@
 		"@biomejs/biome": "2.3.13",
 		"@repo/tsconfig": "workspace:*",
 		"@types/react": "19.2.3",
-		"typescript": "5.9.3"
+		"typescript": "5.9.3",
+		"vitest": "^4.1.4"
 	},
 	"main": "./index.ts",
 	"name": "@repo/ai",
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"type-check": "tsc --noEmit"
 	},
 	"types": "./index.ts",
