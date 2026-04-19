@@ -97,7 +97,7 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 	const queryClient = useQueryClient();
 	const { data: entity, isLoading } = useQuery({
 		...orpc.flowEntities.get.queryOptions({
-			input: { entityId: entityId ?? "" },
+			input: { entityId: entityId ?? "", includeBodies: true },
 		}),
 		enabled: !!entityId,
 		staleTime: 30_000,

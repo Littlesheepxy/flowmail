@@ -46,8 +46,11 @@ export const getEntity = protectedProcedure
 					toRecipients: true,
 					ccRecipients: true,
 					snippet: true,
-					bodyHtml: true,
-					bodyText: true,
+					// bodyHtml/bodyText 按需加载——首屏（EntityDetail 时间线）不需要，
+					// 只有 ThreadChatView 阅读原文时才传 includeBodies=true。
+					...(input.includeBodies
+						? { bodyHtml: true, bodyText: true }
+						: {}),
 					receivedAt: true,
 					attachments: {
 						select: {
@@ -70,20 +73,35 @@ export const getEntity = protectedProcedure
 
 		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
-		// Cap per-thread body size to keep first-paint payload small.
+		// Cap per-thread body size when bodies are included (ThreadChatView path).
 		// Forwarded marketing emails frequently embed inline base64 images that
-		// blow up bodyHtml to several MB and slow the detail view dramatically.
-		// Clients can fetch full bodies on demand via emailThreads.getBody.
-		const BODY_SOFT_LIMIT = 80_000; // ~80KB per body field
+		// blow up bodyHtml to several MB; clients can fetch full bodies on demand
+		// via emailThreads.getBody.
+		const BODY_SOFT_LIMIT = 80_000;
 		const trimmedThreads = threads.map((t) => {
-			const htmlLen = t.bodyHtml?.length ?? 0;
-			const textLen = t.bodyText?.length ?? 0;
+			const tt = t as typeof t & {
+				bodyHtml?: string | null;
+				bodyText?: string | null;
+			};
+			if (!input.includeBodies) {
+				return {
+					...t,
+					bodyHtml: null,
+					bodyText: null,
+					bodyHtmlTruncated: false,
+					bodyTextTruncated: false,
+					bodyHtmlLength: 0,
+					bodyTextLength: 0,
+				};
+			}
+			const htmlLen = tt.bodyHtml?.length ?? 0;
+			const textLen = tt.bodyText?.length ?? 0;
 			const htmlTruncated = htmlLen > BODY_SOFT_LIMIT;
 			const textTruncated = textLen > BODY_SOFT_LIMIT;
 			return {
 				...t,
-				bodyHtml: htmlTruncated && t.bodyHtml ? t.bodyHtml.slice(0, BODY_SOFT_LIMIT) : t.bodyHtml,
-				bodyText: textTruncated && t.bodyText ? t.bodyText.slice(0, BODY_SOFT_LIMIT) : t.bodyText,
+				bodyHtml: htmlTruncated && tt.bodyHtml ? tt.bodyHtml.slice(0, BODY_SOFT_LIMIT) : tt.bodyHtml ?? null,
+				bodyText: textTruncated && tt.bodyText ? tt.bodyText.slice(0, BODY_SOFT_LIMIT) : tt.bodyText ?? null,
 				bodyHtmlTruncated: htmlTruncated,
 				bodyTextTruncated: textTruncated,
 				bodyHtmlLength: htmlLen,

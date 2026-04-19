@@ -15,6 +15,9 @@ export const listEntitiesSchema = z.object({
 
 export const getEntitySchema = z.object({
 	entityId: z.string(),
+	// 默认 false：首屏不返回 bodyHtml/bodyText（一封邮件可能含 base64 图片，9 封 = 1.7MB），
+	// 只用 snippet/sender/subject。需要原文时（ThreadChatView）传 true 走完整 payload。
+	includeBodies: z.boolean().optional().default(false),
 });
 
 export const updateEntityStatusSchema = z.object({
