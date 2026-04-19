@@ -1,4 +1,5 @@
 import { getEntity } from "./procedures/get";
+import { getThreadBody } from "./procedures/get-thread-body";
 import { listEntities } from "./procedures/list";
 import { updateEntityStatus } from "./procedures/update-status";
 import { addTimelineEvent } from "./procedures/add-timeline-event";
@@ -20,6 +21,7 @@ import { deleteBatch } from "./procedures/delete-batch";
 export const flowEntitiesRouter = {
 	list: listEntities,
 	get: getEntity,
+	getThreadBody,
 	updateStatus: updateEntityStatus,
 	addTimelineEvent,
 	getTimelineDiff,

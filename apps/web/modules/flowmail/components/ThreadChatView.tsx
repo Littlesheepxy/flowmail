@@ -98,9 +98,11 @@ interface ThreadChatViewProps {
 
 export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 	const queryClient = useQueryClient();
+	// 首屏不拉 body（一封 Spencer 邮件 450KB+，9 封会卡死浏览器主线程）。
+	// body 通过 EmailBody 组件展开时调用 flowEntities.getThreadBody 按需拉取。
 	const { data: entity, isLoading } = useQuery({
 		...orpc.flowEntities.get.queryOptions({
-			input: { entityId: entityId ?? "", includeBodies: true },
+			input: { entityId: entityId ?? "" },
 		}),
 		enabled: !!entityId,
 		staleTime: 30_000,
@@ -869,8 +871,28 @@ function decodeEmailContent(str: string): string {
 function EmailBody({ thread }: { thread: ThreadItem }) {
 	const [showQuoted, setShowQuoted] = useState(false);
 
-	if (thread.bodyHtml) {
-		const decoded = decodeEmailContent(thread.bodyHtml);
+	// 按需拉单封 body：thread 列表只带 snippet，展开第一次访问 EmailBody 才拉。
+	// 父组件负责只在邮件 expanded 时挂载 EmailBody，所以这里直接 enable。
+	const { data: body, isLoading: bodyLoading } = useQuery({
+		...orpc.flowEntities.getThreadBody.queryOptions({
+			input: { threadId: thread.id },
+		}),
+		// 一封邮件 body 不会变，缓存到下次硬刷
+		staleTime: Number.POSITIVE_INFINITY,
+		gcTime: 10 * 60 * 1000,
+	});
+
+	if (bodyLoading) {
+		return (
+			<div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+				<Spinner className="size-3" />
+				加载邮件原文...
+			</div>
+		);
+	}
+
+	if (body?.bodyHtml) {
+		const decoded = decodeEmailContent(body.bodyHtml);
 		const sanitizedHtml = DOMPurify.sanitize(decoded);
 		return (
 			<div className="email-body-wrapper">
@@ -886,12 +908,17 @@ function EmailBody({ thread }: { thread: ThreadItem }) {
 						··· 显示引用内容
 					</button>
 				)}
+				{body.bodyHtmlTruncated && (
+					<p className="mt-2 text-[10px] text-muted-foreground">
+						原文超长（{Math.round(body.bodyHtmlLength / 1024)} KB），已截断显示
+					</p>
+				)}
 			</div>
 		);
 	}
 
-	if (thread.bodyText) {
-		const decoded = decodeEmailContent(thread.bodyText);
+	if (body?.bodyText) {
+		const decoded = decodeEmailContent(body.bodyText);
 		return (
 			<pre className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap font-sans">
 				{decoded}
