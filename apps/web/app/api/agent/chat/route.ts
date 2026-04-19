@@ -18,6 +18,9 @@ import {
 	summarizeThread,
 	enrichEntityById,
 	classifyEntityOnly,
+	analyzeAllPendingEmails,
+	analyzeIndividualEmail,
+	regenerateEntityNarrative,
 } from "@repo/email-processor";
 import {
 	ToolRegistry,
@@ -60,6 +63,9 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 		createEntityTools({
 			triggerNotification: notify,
 			enrichEntityById,
+			analyzeAllPendingEmails,
+			analyzeIndividualEmail,
+			regenerateEntityNarrative,
 			reEnrich: async (entityId: string) => {
 				try {
 					const entity = await db.flowEntity.findUnique({

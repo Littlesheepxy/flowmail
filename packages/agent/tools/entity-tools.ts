@@ -25,6 +25,22 @@ export function createEntityTools(deps: {
 		confidence: number;
 		summary: string;
 	}>;
+	analyzeAllPendingEmails?: (entityId: string) => Promise<{
+		total: number;
+		analyzed: number;
+		skipped: number;
+		failures: number;
+	}>;
+	analyzeIndividualEmail?: (input: {
+		entityId: string;
+		threadId: string;
+		force?: boolean;
+	}) => Promise<{ created: boolean; threadId: string; skipped?: string }>;
+	regenerateEntityNarrative?: (entityId: string) => Promise<{
+		updated: boolean;
+		noteCount: number;
+		summary?: string;
+	}>;
 }) {
 	return {
 		get_entity: tool({
@@ -1008,6 +1024,79 @@ ${lines.join("\n\n")}
 						filtered.length === 0
 							? "没找到明显相关的事项"
 							: `找到 ${filtered.length} 个候选。展示给用户后用 ask_user 确认要合并谁，再调 merge_entities(target=锚点 id, source=确认的 id)。`,
+				};
+			},
+		}),
+
+		analyze_each_email: tool({
+			description:
+				"对一个事项的【每一封】邮件分别生成 AI 提炼笔记（写入 timeline event=email_ai_note），用于按时间序追踪每封邮件的要点、与上封邮件的差异、建议动作。适合用户问「这个事儿每封邮件都说了什么」「最近一封邮件相比上次有什么变化」时调用。已经有 ai_note 的邮件默认跳过；mode='all' 强制全部重跑。可选 alsoRefreshNarrative=true 跑完后自动刷新整体叙事 ai_summary。",
+			inputSchema: z.object({
+				entityId: z.string(),
+				mode: z
+					.enum(["pending_only", "all"])
+					.default("pending_only")
+					.describe("pending_only 只补缺；all 强制全部重跑（删除已有再跑）"),
+				alsoRefreshNarrative: z
+					.boolean()
+					.default(false)
+					.describe("跑完后是否顺便重新合成整体 aiSummary"),
+			}),
+			execute: async (input: {
+				entityId: string;
+				mode: "pending_only" | "all";
+				alsoRefreshNarrative: boolean;
+			}) => {
+				if (!deps.analyzeAllPendingEmails) {
+					return { error: "analyzeAllPendingEmails not available" };
+				}
+				if (input.mode === "all") {
+					await db.timelineEvent.deleteMany({
+						where: { entityId: input.entityId, type: "email_ai_note" },
+					});
+				}
+				const r = await deps.analyzeAllPendingEmails(input.entityId);
+				let narrativeNoteCount: number | undefined;
+				let narrativeUpdated = false;
+				if (input.alsoRefreshNarrative && deps.regenerateEntityNarrative) {
+					try {
+						const nr = await deps.regenerateEntityNarrative(input.entityId);
+						narrativeNoteCount = nr.noteCount;
+						narrativeUpdated = nr.updated;
+					} catch (err) {
+						console.warn(
+							"[analyze_each_email] narrative refresh failed:",
+							err instanceof Error ? err.message : String(err),
+						);
+					}
+				}
+				return {
+					...r,
+					narrativeUpdated,
+					narrativeNoteCount,
+					message: r.analyzed === 0
+						? `共 ${r.total} 封邮件，已全部分析过。${input.mode === "all" ? "" : " 想强制重跑请用 mode='all'。"}`
+						: `本次新增 ${r.analyzed} 条 ai_note（共 ${r.total} 封；跳过 ${r.skipped} 封；失败 ${r.failures} 条）。${narrativeUpdated ? "整体叙事已刷新。" : ""}`,
+				};
+			},
+		}),
+
+		regenerate_entity_narrative: tool({
+			description:
+				"基于该事项已有的所有 email_ai_note，重新合成项目级叙事 aiSummary（200-400 字，含进展/里程碑/决策点/风险），写入 entity 并打一条 timeline event=narrative_refreshed。适合在合并/分类变更/补齐 ai_note 之后用户说「整体摘要好像没更新」时调用。",
+			inputSchema: z.object({
+				entityId: z.string(),
+			}),
+			execute: async (input: { entityId: string }) => {
+				if (!deps.regenerateEntityNarrative) {
+					return { error: "regenerateEntityNarrative not available" };
+				}
+				const r = await deps.regenerateEntityNarrative(input.entityId);
+				return {
+					...r,
+					message: r.updated
+						? `叙事已基于 ${r.noteCount} 条邮件提炼重新合成。`
+						: "没有 email_ai_note 可用——先调 analyze_each_email 给每封邮件做提炼，再回头叫这个工具。",
 				};
 			},
 		}),

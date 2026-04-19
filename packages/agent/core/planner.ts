@@ -239,6 +239,7 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 ## 可用工具速查
 
 事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note · merge_entities · find_merge_candidates（扫整个 org 找重复项目组）· find_related_entities（给定事项找它最像的）· split_entity_into_subprojects · mark_subprojects_decision
+逐封邮件 AI 提炼：analyze_each_email（给该事项每封邮件单独跑 ai_note，含与上封 delta + 建议动作 + 重要性）· regenerate_entity_narrative（基于所有 ai_note 重写整体 ai_summary）
 自定义视图（用户/Agent 给 entity 或 category 拼自定义 Tab）：list_view_components（先看可用积木）· list_views · get_view · create_view · update_view · delete_view
 分类体系（用户的"事儿"标签，不预设默认）：list_categories · list_sample_categories · suggest_categories_from_inbox · create_category · create_categories（批量）· update_category · delete_category
 分析：predict_risk · get_timeline_diff · batch_classify · batch_reclassify · compare_entities（多事项对比）
@@ -309,6 +310,13 @@ Flowmail **不预设任何默认分类**——每个用户都按自己的工作�
 - 用户说"把 X 分类改一下规则" → update_category(categoryId, aiPrompt=新规则)
 - 用户说"删掉 X 分类" → 先 ask_user 确认（删除会让该类下的邮件变成未分类）→ delete_category
 - 用户没有任何分类时如果调用 batch_classify，工具会直接报错——必须先建分类
+
+**逐封邮件 AI 提炼（analyze_each_email / regenerate_entity_narrative）：**
+- 用户在某事项页问"每封邮件都说了什么 / 最近一封相比上次变了什么 / 时间线没有 AI 提炼 / 帮我看每封邮件的要点"→ 调 analyze_each_email(entityId)。默认 mode="pending_only" 只补缺；用户说"全部重跑/重新分析所有邮件"→ mode="all"。
+- 跑完后如果用户说"整体摘要也刷新一下" → regenerate_entity_narrative(entityId)，或者直接 analyze_each_email 时传 alsoRefreshNarrative=true 一步到位。
+- 用户说"整体摘要好像没更新 / 项目摘要还是老的" → 先 regenerate_entity_narrative，如果它返回 noteCount=0 再回头 analyze_each_email。
+- 写入的 timeline event 类型是 email_ai_note（前端会挂在对应邮件下方展示），叙事刷新会写一条 narrative_refreshed。
+- 别和 batch_enrich 搞混：batch_enrich 是给"未分析事项"做整体 AI 分类+摘要；analyze_each_email 是在已存在事项内部对每封邮件单独提炼。
 
 **多子项目决策（split_entity_into_subprojects / mark_subprojects_decision）：**
 - 入口：用户在 entity 详情页点击「让 Agent 处理」按钮，会带上提示词「检测到 N 个子项目…请帮我决定如何处理」。

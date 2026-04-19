@@ -87,6 +87,8 @@ const EVENT_LAYER: Record<string, "email" | "action" | "system"> = {
 	note: "action",
 	attachment_parsed: "system",
 	needs_user_decision: "system",
+	email_ai_note: "email",
+	narrative_refreshed: "system",
 };
 
 const EVENT_ICONS: Record<string, typeof MailIcon> = {
@@ -98,6 +100,8 @@ const EVENT_ICONS: Record<string, typeof MailIcon> = {
 	note: StickyNoteIcon,
 	attachment_parsed: PaperclipIcon,
 	needs_user_decision: AlertTriangleIcon,
+	email_ai_note: SparklesIcon,
+	narrative_refreshed: BotIcon,
 };
 
 const LAYER_COLORS = {
@@ -639,6 +643,259 @@ function AddNoteForm({ entityId, onAdded }: { entityId: string; onAdded: () => v
 	);
 }
 
+// ── EmailAiNoteCard ──────────────────────────────────────
+// 单封邮件 AI 提炼卡片：要点 / delta / 建议动作 / 重要性
+
+interface EmailAiNoteData {
+	threadId?: string;
+	headline?: string;
+	keyPoints?: string[];
+	namedEntities?: {
+		people?: string[];
+		orgs?: string[];
+		money?: string[];
+		dates?: string[];
+	};
+	delta?: {
+		kind?: string;
+		vsPrev?: string;
+		newFacts?: string[];
+		changedFacts?: { fact: string; from: string; to: string }[];
+	};
+	actionability?: {
+		hasDecisionPoint?: boolean;
+		suggestedActions?: { label: string; why: string }[];
+		mentionsDeadline?: string | null;
+	};
+	importance?: number;
+	sentiment?: "positive" | "neutral" | "concern" | "blocker";
+}
+
+const DELTA_KIND_LABEL: Record<string, string> = {
+	first_email: "首封邮件",
+	follow_up: "跟进",
+	new_topic: "新话题",
+	decision: "决策",
+	blocker_added: "新增阻塞",
+	blocker_resolved: "阻塞解除",
+	status_update: "状态更新",
+	clarification: "澄清说明",
+};
+
+const SENTIMENT_COLOR: Record<string, string> = {
+	positive: "border-l-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/15",
+	neutral: "border-l-zinc-300 bg-muted/30 dark:bg-muted/10",
+	concern: "border-l-amber-400 bg-amber-50/40 dark:bg-amber-950/15",
+	blocker: "border-l-red-400 bg-red-50/40 dark:bg-red-950/15",
+};
+
+function ImportanceStars({ importance }: { importance?: number }) {
+	if (!importance) {
+		return null;
+	}
+	return (
+		<span className="inline-flex items-center gap-0.5 text-[10px] font-medium leading-none">
+			{Array.from({ length: 5 }).map((_, i) => (
+				<span
+					key={i}
+					className={cn(
+						i < importance
+							? "text-amber-500"
+							: "text-muted-foreground/30",
+					)}
+				>
+					★
+				</span>
+			))}
+		</span>
+	);
+}
+
+function EmailAiNoteCard({
+	noteEvent,
+	expanded,
+	onToggle,
+	entityId,
+}: {
+	noteEvent: TimelineEvent;
+	expanded: boolean;
+	onToggle: () => void;
+	entityId: string;
+}) {
+	const { triggerAgentPrompt } = useAgent();
+	const data = parseMeta(noteEvent.metadata) as EmailAiNoteData;
+	const sentiment = data.sentiment ?? "neutral";
+	const sentimentClass = SENTIMENT_COLOR[sentiment] ?? SENTIMENT_COLOR.neutral;
+	const importance = data.importance ?? 3;
+	const deltaKindLabel = data.delta?.kind
+		? DELTA_KIND_LABEL[data.delta.kind] ?? data.delta.kind
+		: null;
+
+	return (
+		<div className={cn("mt-2 border-l-[3px] rounded-r-md", sentimentClass)}>
+			<button
+				type="button"
+				onClick={onToggle}
+				className="w-full text-left px-2.5 py-2 hover:bg-foreground/5 transition-colors rounded-r-md"
+			>
+				<div className="flex items-center gap-2 flex-wrap">
+					<span className="inline-flex items-center gap-1 text-[11px] font-semibold text-foreground/80">
+						<SparklesIcon className="size-3 shrink-0" />
+						AI 提炼
+					</span>
+					<ImportanceStars importance={importance} />
+					{deltaKindLabel && (
+						<span className="inline-flex items-center rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-muted text-muted-foreground border">
+							{deltaKindLabel}
+						</span>
+					)}
+					{data.actionability?.hasDecisionPoint && (
+						<span className="inline-flex items-center gap-0.5 rounded-sm px-1 py-px text-[10px] font-medium leading-none bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900">
+							<AlertTriangleIcon className="size-2.5" />
+							待决策
+						</span>
+					)}
+					<span className="ml-auto">
+						{expanded
+							? <ChevronUpIcon className="size-3.5 text-muted-foreground" />
+							: <ChevronDownIcon className="size-3.5 text-muted-foreground" />}
+					</span>
+				</div>
+				{data.headline && (
+					<p className="mt-1 text-xs leading-relaxed text-foreground/85">
+						{data.headline}
+					</p>
+				)}
+			</button>
+
+			{expanded && (
+				<div className="px-2.5 pb-2.5 space-y-2 border-t border-border/40">
+					{data.keyPoints && data.keyPoints.length > 0 && (
+						<div>
+							<p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mt-2 mb-1">
+								本封要点
+							</p>
+							<ul className="space-y-0.5">
+								{data.keyPoints.map((p, i) => (
+									<li
+										key={i}
+										className="text-xs text-foreground/85 leading-relaxed flex gap-1.5"
+									>
+										<span className="text-muted-foreground/60 select-none">•</span>
+										<span>{p}</span>
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
+
+					{data.delta && (data.delta.vsPrev || (data.delta.newFacts?.length ?? 0) > 0 || (data.delta.changedFacts?.length ?? 0) > 0) && (
+						<div>
+							<p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mt-2 mb-1">
+								相比上封邮件
+							</p>
+							{data.delta.vsPrev && (
+								<p className="text-xs text-foreground/80 leading-relaxed mb-1">
+									{data.delta.vsPrev}
+								</p>
+							)}
+							{data.delta.newFacts && data.delta.newFacts.length > 0 && (
+								<ul className="space-y-0.5">
+									{data.delta.newFacts.map((f, i) => (
+										<li key={i} className="text-xs text-emerald-700 dark:text-emerald-400 flex gap-1.5">
+											<span>🆕</span>
+											<span>{f}</span>
+										</li>
+									))}
+								</ul>
+							)}
+							{data.delta.changedFacts && data.delta.changedFacts.length > 0 && (
+								<ul className="space-y-0.5 mt-1">
+									{data.delta.changedFacts.map((c, i) => (
+										<li key={i} className="text-xs text-foreground/80 flex gap-1.5">
+											<span>🔄</span>
+											<span>
+												{c.fact}：<span className="line-through text-muted-foreground">{c.from}</span> → <span className="font-semibold">{c.to}</span>
+											</span>
+										</li>
+									))}
+								</ul>
+							)}
+						</div>
+					)}
+
+					{data.actionability?.suggestedActions && data.actionability.suggestedActions.length > 0 && (
+						<div>
+							<p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mt-2 mb-1">
+								建议动作
+							</p>
+							<div className="flex flex-col gap-1.5">
+								{data.actionability.suggestedActions.map((a, i) => (
+									<button
+										key={i}
+										type="button"
+										className="text-left rounded-md border bg-background hover:bg-muted/50 transition-colors px-2 py-1.5"
+										onClick={() =>
+											triggerAgentPrompt({
+												text: `针对事项 ${entityId}，请帮我执行：${a.label}。理由：${a.why}`,
+											})
+										}
+									>
+										<p className="text-xs font-medium text-foreground">→ {a.label}</p>
+										<p className="text-[11px] text-muted-foreground mt-0.5">{a.why}</p>
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+
+					{data.actionability?.mentionsDeadline && (
+						<div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 px-2 py-1 text-xs text-amber-800 dark:text-amber-400">
+							<ClockIcon className="size-3 inline mr-1" />
+							截止：{data.actionability.mentionsDeadline}
+						</div>
+					)}
+
+					{data.namedEntities && (
+						(() => {
+							const ne = data.namedEntities;
+							const has = (arr?: string[]) => arr && arr.length > 0;
+							if (!has(ne.people) && !has(ne.orgs) && !has(ne.money) && !has(ne.dates)) {
+								return null;
+							}
+							return (
+								<div className="flex flex-wrap gap-1 pt-1">
+									{ne.people?.map((p) => (
+										<span key={`p-${p}`} className="inline-flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-[10px] bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-100 dark:border-blue-900">
+											<UserIcon className="size-2.5" />
+											{p}
+										</span>
+									))}
+									{ne.orgs?.map((o) => (
+										<span key={`o-${o}`} className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-[10px] bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400 border border-purple-100 dark:border-purple-900">
+											{o}
+										</span>
+									))}
+									{ne.money?.map((m) => (
+										<span key={`m-${m}`} className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900">
+											{m}
+										</span>
+									))}
+									{ne.dates?.map((d) => (
+										<span key={`d-${d}`} className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-[10px] bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-100 dark:border-amber-900">
+											{d}
+										</span>
+									))}
+								</div>
+							);
+						})()
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
 // ── Main ──────────────────────────────────────────────────
 
 export function EntityTimeline({
@@ -651,25 +908,62 @@ export function EntityTimeline({
 }: EntityTimelineProps) {
 	const [filter, setFilter] = useState<"all" | "email" | "action" | "system">("all");
 	const [expandedAi, setExpandedAi] = useState<Set<string>>(new Set());
+	const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
-	const { emailAiMap, primaryEvents } = useMemo(() => {
-		const map = new Map<string, TimelineEvent>();
-		let lastEmailId: string | null = null;
+	const { emailAiMap, emailNoteMap, primaryEvents } = useMemo(() => {
+		// 老数据 ai_summary 没有 threadId 锚点 → 维持"上一条 email_received"匹配作为 fallback
+		const aiMap = new Map<string, TimelineEvent>();
+		const noteMap = new Map<string, TimelineEvent>(); // emailEventId -> ai_note event
 
 		const chronological = [...events].sort(
 			(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
 		);
+
+		// 第一遍：建立 threadId → emailEventId 映射
+		const threadIdToEmailEventId = new Map<string, string>();
+		let lastEmailId: string | null = null;
 		for (const ev of chronological) {
 			if (ev.type === "email_received") {
 				lastEmailId = ev.id;
-			} else if (ev.type === "ai_summary" && lastEmailId) {
-				map.set(lastEmailId, ev);
+				const meta = parseMeta(ev.metadata);
+				const tid = meta.threadId as string | undefined;
+				if (tid) {
+					threadIdToEmailEventId.set(tid, ev.id);
+				}
+			} else if (ev.type === "ai_summary" && lastEmailId && !aiMap.has(lastEmailId)) {
+				aiMap.set(lastEmailId, ev);
 			}
 		}
 
+		// 第二遍：用 threadId 把 ai_note 锚到对应 email
+		for (const ev of chronological) {
+			if (ev.type !== "email_ai_note") {
+				continue;
+			}
+			const meta = parseMeta(ev.metadata);
+			const tid = meta.threadId as string | undefined;
+			if (!tid) {
+				continue;
+			}
+			const emailEventId = threadIdToEmailEventId.get(tid);
+			if (emailEventId) {
+				noteMap.set(emailEventId, ev);
+			}
+		}
+
+		// 主事件流：去掉单独的 ai_summary / email_ai_note / narrative_refreshed
+		// （narrative_refreshed 也藏掉，太频繁影响阅读；想看的话改 filter 加上）
+		const primary = events.filter(
+			(e) =>
+				e.type !== "ai_summary" &&
+				e.type !== "email_ai_note" &&
+				e.type !== "narrative_refreshed",
+		);
+
 		return {
-			emailAiMap: map,
-			primaryEvents: events.filter((e) => e.type !== "ai_summary"),
+			emailAiMap: aiMap,
+			emailNoteMap: noteMap,
+			primaryEvents: primary,
 		};
 	}, [events]);
 
@@ -698,6 +992,30 @@ export function EntityTimeline({
 			return next;
 		});
 	}
+
+	function toggleNoteDetail(emailEventId: string) {
+		setExpandedNotes((prev) => {
+			const next = new Set(prev);
+			if (next.has(emailEventId)) {
+				next.delete(emailEventId);
+			} else {
+				next.add(emailEventId);
+			}
+			return next;
+		});
+	}
+
+	// 重要性 ≥ 4 的 ai_note 默认展开
+	const autoExpandedNotes = useMemo(() => {
+		const set = new Set<string>();
+		for (const [emailEventId, noteEvent] of emailNoteMap.entries()) {
+			const meta = parseMeta(noteEvent.metadata) as EmailAiNoteData;
+			if ((meta.importance ?? 0) >= 4) {
+				set.add(emailEventId);
+			}
+		}
+		return set;
+	}, [emailNoteMap]);
 
 	return (
 		<div className="space-y-3">
@@ -845,6 +1163,21 @@ export function EntityTimeline({
 											{isAiExpanded && <AiDetailPanel aiEvent={aiSummary} />}
 										</div>
 									)}
+
+									{/* Per-email AI 提炼（独立卡片，按 threadId 锚定） */}
+									{event.type === "email_received" && emailNoteMap.get(event.id) && (() => {
+										const noteEvent = emailNoteMap.get(event.id) as TimelineEvent;
+										const isExpanded =
+											expandedNotes.has(event.id) || autoExpandedNotes.has(event.id);
+										return (
+											<EmailAiNoteCard
+												noteEvent={noteEvent}
+												expanded={isExpanded}
+												onToggle={() => toggleNoteDetail(event.id)}
+												entityId={entityId}
+											/>
+										);
+									})()}
 
 									{/* Suggestions */}
 									{suggestions && suggestions.length > 0 && suggestions.map((s) => (

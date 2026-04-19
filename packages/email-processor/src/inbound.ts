@@ -1,5 +1,6 @@
 import { db } from "@repo/database";
 import { createHash } from "node:crypto";
+import { triggerEmailAiNoteIfNeeded } from "./email-ai-note";
 import { unwrapForwardedEmail } from "./unwrap-forward";
 
 export interface InboundAttachment {
@@ -155,6 +156,8 @@ export async function processInboundEmail(
 					content: `追加邮件 from ${effectiveFrom}: ${effectiveSubject}`,
 					metadata: JSON.stringify({
 						source: "inbound_merged",
+						threadId: thread.id,
+						inboundEmailId: inboundEmail.id,
 						fromEmail: effectiveFrom,
 						subject: effectiveSubject,
 						isForwarded: unwrapped.isForwarded || undefined,
@@ -162,6 +165,18 @@ export async function processInboundEmail(
 					}),
 				},
 			});
+
+			// 异步触发 per-email AI 提炼（fire-and-forget，不阻塞响应）
+			void triggerEmailAiNoteIfNeeded({
+				entityId: existingByThread.entityId,
+				threadId: thread.id,
+				reason: "inbound_merged",
+			}).catch((err) =>
+				console.warn(
+					"[inbound] auto email-ai-note failed (non-critical):",
+					err instanceof Error ? err.message : String(err),
+				),
+			);
 
 			await db.flowEntity.update({
 				where: { id: existingByThread.entityId },
@@ -273,6 +288,8 @@ export async function processInboundEmail(
 				content: `Inbound email from ${effectiveFrom}: ${effectiveSubject}`,
 				metadata: JSON.stringify({
 					source: "inbound",
+					threadId: thread.id,
+					inboundEmailId: inboundEmail.id,
 					fromEmail: effectiveFrom,
 					subject: effectiveSubject,
 					isForwarded: unwrapped.isForwarded || undefined,
@@ -280,6 +297,18 @@ export async function processInboundEmail(
 				}),
 			},
 		});
+
+		// 异步触发 per-email AI 提炼（fire-and-forget，不阻塞响应）
+		void triggerEmailAiNoteIfNeeded({
+			entityId: entity.id,
+			threadId: thread.id,
+			reason: "inbound_first",
+		}).catch((err) =>
+			console.warn(
+				"[inbound] auto email-ai-note failed (non-critical):",
+				err instanceof Error ? err.message : String(err),
+			),
+		);
 
 		return {
 			success: true,

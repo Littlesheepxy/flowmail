@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getEntityTypeBadgeStatus, getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
 import { EntityTimeline } from "./EntityTimeline";
@@ -268,6 +268,40 @@ export function EntityDetail() {
 			},
 		}),
 	);
+
+	// 详情页打开时懒加载补齐"每封邮件 AI 提炼"——只补缺，不强制重跑。
+	// fire-and-forget，跑完静默刷新时间线，不打扰用户。
+	const backfillMutation = useMutation(
+		orpc.flowEntities.analyzeEmails.mutationOptions({
+			onSuccess: (result) => {
+				if (result?.analyzed && result.analyzed > 0) {
+					queryClient.invalidateQueries({
+						queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+					});
+					toast.success(
+						`已补齐 ${result.analyzed} 封邮件的 AI 提炼${result.failures ? `（${result.failures} 封失败）` : ""}`,
+					);
+				}
+			},
+		}),
+	);
+	const triggeredBackfillRef = useRef(false);
+	useEffect(() => {
+		if (!entity || triggeredBackfillRef.current) {
+			return;
+		}
+		const threadCount = entity.threads?.length ?? 0;
+		const noteCount =
+			entity.timeline?.filter((e) => e.type === "email_ai_note").length ?? 0;
+		if (threadCount > noteCount) {
+			triggeredBackfillRef.current = true;
+			backfillMutation.mutate({
+				entityId,
+				mode: "pending_only",
+				alsoRefreshNarrative: false,
+			});
+		}
+	}, [entity, entityId, backfillMutation]);
 
 	const deleteMutation = useMutation(
 		orpc.flowEntities.delete.mutationOptions({
@@ -626,6 +660,27 @@ function EntityTabs(props: EntityTabsProps) {
 		}),
 	);
 
+	const analyzeEmailsMutation = useMutation(
+		orpc.flowEntities.analyzeEmails.mutationOptions({
+			onSuccess: (result) => {
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+				});
+				const parts = [];
+				if (result?.analyzed) {
+					parts.push(`新增 ${result.analyzed} 条邮件提炼`);
+				}
+				if (result?.narrativeRefreshed) {
+					parts.push("叙事已刷新");
+				}
+				toast.success(parts.length > 0 ? parts.join("；") : "已完成");
+			},
+			onError: (err) => {
+				toast.error(`AI 提炼失败：${err.message}`);
+			},
+		}),
+	);
+
 	const todoCount = useMemo(() => {
 		const items = aggregateAutoTodos({
 			id: entity.id,
@@ -689,13 +744,33 @@ function EntityTabs(props: EntityTabsProps) {
 			<TabsContent value="timeline" className="mt-4">
 				<div className="grid gap-6 lg:grid-cols-3">
 					<div className="space-y-6 lg:col-span-2">
+						<KeyChangesCard entity={entity} entityId={entityId} />
+
 						{entity.aiSummary && (
 							<Card className="p-4">
-								<div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-									<BotIcon className="size-4" />
-									AI 摘要
+								<div className="mb-2 flex items-center justify-between text-sm font-medium text-muted-foreground">
+									<div className="flex items-center gap-2">
+										<BotIcon className="size-4" />
+										项目叙事（AI 综合所有邮件）
+									</div>
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-7 text-xs"
+										onClick={() =>
+											analyzeEmailsMutation.mutate({
+												entityId,
+												mode: "pending_only",
+												alsoRefreshNarrative: true,
+											})
+										}
+										disabled={analyzeEmailsMutation.isPending}
+									>
+										<SparklesIcon className="size-3 mr-1" />
+										{analyzeEmailsMutation.isPending ? "刷新中..." : "刷新叙事"}
+									</Button>
 								</div>
-								<p className="text-sm leading-relaxed">{entity.aiSummary}</p>
+								<p className="text-sm leading-relaxed whitespace-pre-line">{entity.aiSummary}</p>
 							</Card>
 						)}
 
@@ -904,5 +979,100 @@ function CustomViewTabContent({
 				entity={entityForTodos}
 			/>
 		</div>
+	);
+}
+
+// ── KeyChangesCard ──────────────────────────────────────
+// 顶部展示最近 importance ≥ 4 的 ai_note，按时间倒序，最多 3 条
+// 让用户秒看"这事最近有啥关键变化"，无需翻完整时间线
+
+interface KeyChangesEntity {
+	timeline?: { id: string; type: string; metadata: string | null; createdAt: string | Date; content: string }[];
+	threads?: { id: string; subject?: string | null; senderName?: string | null; sender?: string | null; receivedAt?: string | Date | null }[];
+}
+
+function KeyChangesCard({ entity, entityId: _entityId }: { entity: KeyChangesEntity; entityId: string }) {
+	const items = useMemo(() => {
+		const notes = (entity.timeline ?? []).filter((e) => e.type === "email_ai_note");
+		const parsed = notes
+			.map((n) => {
+				let meta: Record<string, unknown> = {};
+				try {
+					meta = n.metadata ? JSON.parse(n.metadata) : {};
+				} catch {
+					meta = {};
+				}
+				return {
+					id: n.id,
+					createdAt: new Date(n.createdAt).getTime(),
+					threadId: meta.threadId as string | undefined,
+					headline: meta.headline as string | undefined,
+					importance: (meta.importance as number | undefined) ?? 0,
+					sentiment: meta.sentiment as string | undefined,
+					vsPrev: (meta.delta as { vsPrev?: string } | undefined)?.vsPrev,
+				};
+			})
+			.filter((p) => p.importance >= 4)
+			.sort((a, b) => b.createdAt - a.createdAt)
+			.slice(0, 3);
+
+		const threadMap = new Map(
+			(entity.threads ?? []).map((t) => [t.id, t]),
+		);
+
+		return parsed.map((p) => ({
+			...p,
+			thread: p.threadId ? threadMap.get(p.threadId) : undefined,
+		}));
+	}, [entity]);
+
+	if (items.length === 0) {
+		return null;
+	}
+
+	return (
+		<Card className="p-4 border-amber-200 dark:border-amber-900 bg-amber-50/40 dark:bg-amber-950/15">
+			<div className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+				<AlertTriangleIcon className="size-4" />
+				近期关键变化（{items.length}）
+			</div>
+			<div className="space-y-2">
+				{items.map((it) => (
+					<div key={it.id} className="rounded-md border bg-background/80 dark:bg-background/40 p-2.5">
+						<div className="flex items-center gap-2 flex-wrap mb-1">
+							<span className="text-[11px] text-muted-foreground tabular-nums">
+								{new Date(it.createdAt).toLocaleString("zh-CN", {
+									month: "short",
+									day: "numeric",
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</span>
+							{it.thread?.subject && (
+								<span className="text-[11px] text-muted-foreground truncate max-w-[40%]">
+									{it.thread.subject}
+								</span>
+							)}
+							<span className="ml-auto text-amber-500 text-[10px]">
+								{Array.from({ length: it.importance }).map((_, i) => (
+									<span key={i}>★</span>
+								))}
+							</span>
+						</div>
+						{it.headline && (
+							<p className="text-sm text-foreground font-medium leading-snug mb-1">
+								{it.headline}
+							</p>
+						)}
+						{it.vsPrev && (
+							<p className="text-xs text-muted-foreground leading-relaxed">
+								<span className="font-semibold">变化：</span>
+								{it.vsPrev}
+							</p>
+						)}
+					</div>
+				))}
+			</div>
+		</Card>
 	);
 }

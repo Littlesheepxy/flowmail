@@ -10,6 +10,7 @@ import { splitEntity } from "./procedures/split";
 import { reclassifyEntity } from "./procedures/reclassify";
 import { enrichEntity } from "./procedures/enrich";
 import { enrichBatch } from "./procedures/enrich-batch";
+import { analyzeEmails } from "./procedures/analyze-emails";
 import { seedDemo } from "./procedures/seed-demo";
 import { clearDemo } from "./procedures/clear-demo";
 import { getAttachmentUrl } from "./procedures/get-attachment-url";
@@ -29,6 +30,7 @@ export const flowEntitiesRouter = {
 	reclassify: reclassifyEntity,
 	enrich: enrichEntity,
 	enrichBatch,
+	analyzeEmails,
 	seedDemo,
 	clearDemo,
 	getAttachmentUrl,
