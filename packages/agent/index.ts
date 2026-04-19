@@ -18,6 +18,17 @@ export { createSandboxTools } from "./tools/sandbox-tools";
 export { createReplyTools } from "./tools/reply-tools";
 export { createMemoryTools } from "./tools/memory-tools";
 export { createViewTools } from "./tools/view-tools";
+export { createCategoryTools } from "./tools/category-tools";
+
+export {
+	suggestCategoriesFromInbox,
+	SAMPLE_CATEGORIES,
+	SuggestedCategorySchema,
+	CategorySuggestionSchema,
+	type SuggestedCategory,
+	type CategorySuggestion,
+	type InboxSampleEmail,
+} from "./lib/category-suggester";
 
 export {
 	ViewSpecSchema,

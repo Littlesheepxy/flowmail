@@ -1,6 +1,5 @@
 import { db } from "@repo/database";
 import {
-	classifyEmail,
 	classifyEmailDynamic,
 	extractApprovalFields,
 	extractReportFields,
@@ -71,13 +70,25 @@ export const enrichBatch = protectedProcedure
 			orderBy: { sortOrder: "asc" },
 		});
 
-		const useDynamic = orgCategories.length > 0;
-		const cats = useDynamic
-			? orgCategories.map((c) => ({ ...c, aiPrompt: c.aiPrompt ?? "" }))
-			: [];
+		const cats = orgCategories.map((c) => ({ ...c, aiPrompt: c.aiPrompt ?? "" }));
 
 		const LOG_TAG = "[EnrichBatch]";
-		console.info(`${LOG_TAG} Starting org=${input.organizationId} count=${entities.length}`);
+		console.info(`${LOG_TAG} Starting org=${input.organizationId} count=${entities.length} categories=${cats.length}`);
+
+		if (cats.length === 0) {
+			console.warn(`${LOG_TAG} Org=${input.organizationId} has no categories — refusing to classify with hardcoded defaults.`);
+			return {
+				total: entities.length,
+				succeeded: 0,
+				failed: entities.length,
+				results: entities.map((e) => ({
+					entityId: e.id,
+					status: "error" as const,
+					error: "no_categories",
+				})),
+				message: "该 organization 还没有创建任何分类。请在 AgentPanel 让 Agent 帮你建议分类，或前往「分类管理」手动添加。",
+			};
+		}
 
 		const results: { entityId: string; status: "ok" | "error"; categorySlug?: string; error?: string }[] = [];
 
@@ -94,28 +105,15 @@ export const enrichBatch = protectedProcedure
 				const subject = primaryThread.subject ?? entity.title;
 				const sender = primaryThread.senderName ?? primaryThread.sender ?? "";
 
-				let categoryId: string | undefined;
-				let categorySlug: string | undefined;
-				let entityType = "FEEDBACK";
-				let confidence = 0;
-				let reasoning = "";
 				let extractedFields: Record<string, unknown> = {};
 
-				if (useDynamic) {
-					const result = await classifyEmailDynamic({ subject, sender, content }, cats);
-					categorySlug = result.categorySlug;
-					confidence = result.confidence;
-					reasoning = result.reasoning;
-					const matched = orgCategories.find((c) => c.slug === categorySlug);
-					categoryId = matched?.id;
-					entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
-				} else {
-					const result = await classifyEmail({ subject, sender, content });
-					entityType = result.type;
-					confidence = result.confidence;
-					reasoning = result.reasoning;
-					categorySlug = result.type.toLowerCase();
-				}
+				const result = await classifyEmailDynamic({ subject, sender, content }, cats);
+				const categorySlug = result.categorySlug;
+				const confidence = result.confidence;
+				const reasoning = result.reasoning;
+				const matched = orgCategories.find((c) => c.slug === categorySlug);
+				const categoryId = matched?.id;
+				const entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
 
 				if (entityType === "APPROVAL" || categorySlug === "approval") {
 					extractedFields = await extractApprovalFields(content);

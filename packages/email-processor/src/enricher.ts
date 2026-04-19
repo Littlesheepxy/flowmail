@@ -1,9 +1,9 @@
 import { db } from "@repo/database";
 import { readEntityAttachments } from "./attachment-reader";
-import { classifyEmail, classifyEmailDynamic } from "./classifier";
+import { classifyEmailDynamic } from "./classifier";
 import { extractApprovalFields, extractReportFields } from "./extractor";
 import { detectMultipleProjects } from "./multi-project-detector";
-import { ensureDefaultCategories } from "./seed-categories";
+import { getOrgCategories } from "./seed-categories";
 import { summarizeThread } from "./summarizer";
 import { generateTags } from "./tagger";
 
@@ -101,7 +101,7 @@ export async function enrichEntityById(entityId: string): Promise<{
 
 	console.info(`${LOG_TAG} Starting entity=${entityId} subject="${subject.slice(0, 60)}" sender="${sender}" contentLen=${content.length} attachments=${attachmentFilenames.length}`);
 
-	const orgCategories = await ensureDefaultCategories(entity.organizationId);
+	const orgCategories = await getOrgCategories(entity.organizationId);
 
 	let categoryId: string | undefined;
 	let categorySlug: string | undefined;
@@ -110,10 +110,15 @@ export async function enrichEntityById(entityId: string): Promise<{
 	let reasoning = "";
 	let extractedFields: Record<string, unknown> = {};
 
-	const useDynamic = orgCategories.length > 0;
-
-	try {
-		if (useDynamic) {
+	if (orgCategories.length === 0) {
+		console.info(`${LOG_TAG} Skip classification: org=${entity.organizationId} has no categories yet`);
+		reasoning = "该 organization 尚未创建任何分类。请在 AgentPanel 让 Agent 帮你建议分类，或前往「分类管理」手动添加。";
+		categorySlug = undefined;
+		categoryId = undefined;
+		confidence = 0;
+		entityType = "FEEDBACK";
+	} else {
+		try {
 			const cats = orgCategories.map((c) => ({
 				...c,
 				aiPrompt: c.aiPrompt ?? "",
@@ -125,22 +130,15 @@ export async function enrichEntityById(entityId: string): Promise<{
 			const matched = orgCategories.find((c) => c.slug === categorySlug);
 			categoryId = matched?.id;
 			entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
-		} else {
-			const result = await classifyEmail({ subject, sender, content });
-			entityType = result.type;
-			confidence = result.confidence;
-			reasoning = result.reasoning;
-			categorySlug = result.type.toLowerCase();
+			console.info(`${LOG_TAG} Classified entity=${entityId} → ${categorySlug} (${Math.round(confidence * 100)}%)`);
+		} catch (err) {
+			console.error(`${LOG_TAG} Classification FAILED entity=${entityId}`, {
+				error: err instanceof Error ? err.message : String(err),
+				stack: err instanceof Error ? err.stack : undefined,
+				contentLength: content.length,
+			});
+			throw err;
 		}
-		console.info(`${LOG_TAG} Classified entity=${entityId} → ${categorySlug} (${Math.round(confidence * 100)}%)`);
-	} catch (err) {
-		console.error(`${LOG_TAG} Classification FAILED entity=${entityId}`, {
-			error: err instanceof Error ? err.message : String(err),
-			stack: err instanceof Error ? err.stack : undefined,
-			useDynamic,
-			contentLength: content.length,
-		});
-		throw err;
 	}
 
 	try {
@@ -388,7 +386,7 @@ export async function classifyEntityOnly(entityId: string): Promise<{
 
 	console.info(`${LOG_TAG} entity=${entityId} subject="${subject.slice(0, 60)}" contentLen=${content.length}`);
 
-	const orgCategories = await ensureDefaultCategories(entity.organizationId);
+	const orgCategories = await getOrgCategories(entity.organizationId);
 
 	let categoryId: string | undefined;
 	let categorySlug = "unknown";
@@ -396,7 +394,10 @@ export async function classifyEntityOnly(entityId: string): Promise<{
 	let confidence = 0;
 	let reasoning = "";
 
-	if (orgCategories.length > 0) {
+	if (orgCategories.length === 0) {
+		reasoning = "尚未创建任何分类。请让 Agent 帮你建议分类，或前往「分类管理」手动添加。";
+		categorySlug = "uncategorized";
+	} else {
 		const cats = orgCategories.map((c) => ({ ...c, aiPrompt: c.aiPrompt ?? "" }));
 		const result = await classifyEmailDynamic({ subject, sender, content }, cats);
 		categorySlug = result.categorySlug;
@@ -404,12 +405,6 @@ export async function classifyEntityOnly(entityId: string): Promise<{
 		reasoning = result.reasoning;
 		categoryId = orgCategories.find((c) => c.slug === categorySlug)?.id;
 		entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
-	} else {
-		const result = await classifyEmail({ subject, sender, content });
-		entityType = result.type;
-		confidence = result.confidence;
-		reasoning = result.reasoning;
-		categorySlug = result.type.toLowerCase();
 	}
 
 	console.info(`${LOG_TAG} Result entity=${entityId} → ${categorySlug} (${Math.round(confidence * 100)}%)`);

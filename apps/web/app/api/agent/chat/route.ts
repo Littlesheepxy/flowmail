@@ -36,6 +36,7 @@ import {
 	createReplyTools,
 	createMemoryTools,
 	createViewTools,
+	createCategoryTools,
 	type PageContext,
 } from "@repo/agent";
 
@@ -155,6 +156,7 @@ function createAgentToolRegistry(options?: { webSearchEnabled?: boolean }) {
 	registry.registerBuiltin(createReplyTools());
 	registry.registerBuiltin(createMemoryTools());
 	registry.registerBuiltin(createViewTools());
+	registry.registerBuiltin(createCategoryTools());
 
 	if (options?.webSearchEnabled) {
 		registry.registerBuiltin(createWebSearchTool());

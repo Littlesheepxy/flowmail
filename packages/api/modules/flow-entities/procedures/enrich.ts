@@ -1,7 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
 import {
-	classifyEmail,
 	classifyEmailDynamic,
 	extractApprovalFields,
 	extractReportFields,
@@ -86,41 +85,34 @@ export const enrichEntity = protectedProcedure
 		let reasoning = "";
 		let extractedFields: Record<string, unknown> = {};
 
-		const useDynamic = orgCategories.length > 0;
+		if (orgCategories.length === 0) {
+			throw new ORPCError("BAD_REQUEST", {
+				message:
+					"该 organization 还没有任何分类。请在 AgentPanel 让 Agent 帮你建议分类，或前往「分类管理」手动添加后再分析。",
+			});
+		}
 
 		try {
-			if (useDynamic) {
-				const cats = orgCategories.map((c) => ({
-					...c,
-					aiPrompt: c.aiPrompt ?? "",
-				}));
-				const result = await classifyEmailDynamic(
-					{ subject, sender, content },
-					cats,
-				);
-				categorySlug = result.categorySlug;
-				confidence = result.confidence;
-				reasoning = result.reasoning;
+			const cats = orgCategories.map((c) => ({
+				...c,
+				aiPrompt: c.aiPrompt ?? "",
+			}));
+			const result = await classifyEmailDynamic(
+				{ subject, sender, content },
+				cats,
+			);
+			categorySlug = result.categorySlug;
+			confidence = result.confidence;
+			reasoning = result.reasoning;
 
-				const matched = orgCategories.find((c) => c.slug === categorySlug);
-				categoryId = matched?.id;
-				entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
-			} else {
-				const result = await classifyEmail(
-					{ subject, sender, content },
-				);
-
-				entityType = result.type;
-				confidence = result.confidence;
-				reasoning = result.reasoning;
-				categorySlug = result.type.toLowerCase();
-			}
+			const matched = orgCategories.find((c) => c.slug === categorySlug);
+			categoryId = matched?.id;
+			entityType = SLUG_TO_ENTITY_TYPE[categorySlug] ?? "FEEDBACK";
 			console.info(`${LOG_TAG} Classified entity=${input.entityId} → ${categorySlug} (${Math.round(confidence * 100)}%)`);
 		} catch (err) {
 			console.error(`${LOG_TAG} Classification FAILED entity=${input.entityId}`, {
 				error: err instanceof Error ? err.message : String(err),
 				stack: err instanceof Error ? err.stack : undefined,
-				useDynamic,
 				contentLength: content.length,
 			});
 			throw new ORPCError("INTERNAL_SERVER_ERROR", {

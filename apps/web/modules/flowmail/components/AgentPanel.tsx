@@ -603,6 +603,19 @@ export function AgentPanel({
 		enabled: !!effectiveEntityId,
 	});
 
+	const { data: orgCategories } = useQuery({
+		...orpc.categories.list.queryOptions({
+			input: { organizationId: organizationId ?? "" },
+		}),
+		enabled: !!organizationId,
+	});
+
+	const hasNoCategories = !!organizationId && (orgCategories?.length ?? 0) === 0;
+	const allDefaultCategories =
+		!!organizationId &&
+		(orgCategories?.length ?? 0) > 0 &&
+		(orgCategories ?? []).every((c) => c.isDefault);
+
 	const entityCtx = entity
 		? {
 				id: entity.id,
@@ -1333,6 +1346,113 @@ export function AgentPanel({
 							</div>
 						)}
 					</div>
+
+					{/* 高亮快捷动作：按事儿合并 + 分类（仅在收件箱级展示，无消息时） */}
+					{!hasMessages && scope === "all" && (
+						<div className="px-3 pb-2 space-y-3 shrink-0">
+							{/* 块 1：按事儿合并相似邮件（永久高亮，最核心能力） */}
+							<div className="space-y-1.5">
+								<div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-0.5">
+									把多封邮件聚成一件事
+								</div>
+								<button
+									type="button"
+									onClick={() =>
+										handleSuggestionClick(
+											"帮我看看收件箱里有没有「本来是同一件事但被拆成多个事项」的情况。请用 find_merge_candidates 扫一遍最近 60 天的事项，找出可能重复的项目组。每发现一组先告诉我理由，让我用 ask_user 逐组确认是否合并；确认后用 merge_entities 真正合并。",
+										)
+									}
+									className="w-full text-left rounded-lg border-2 border-primary bg-primary text-primary-foreground px-3 py-2 hover:opacity-90 transition-opacity"
+								>
+									<div className="flex items-center gap-2">
+										<SparklesIcon className="size-3.5" />
+										<span className="text-xs font-semibold">按事儿合并相似邮件</span>
+									</div>
+									<div className="text-[10px] text-primary-foreground/80 mt-0.5 ml-5.5">
+										扫所有事项 → AI 找出重复 → 你逐组确认合并
+									</div>
+								</button>
+								<div className="grid grid-cols-2 gap-1.5">
+									<button
+										type="button"
+										onClick={() =>
+											handleSuggestionClick(
+												"我心里有个项目想检查一下有没有相关邮件被拆开。先 ask_user 问我项目关键词，然后用 find_merge_candidates(hint=关键词) 找出可能本是同一件事的事项组让我确认。",
+											)
+										}
+										className="text-[11px] px-2.5 py-1.5 rounded-lg border bg-muted/40 hover:bg-muted transition-colors text-left"
+									>
+										查特定项目重复
+									</button>
+									<button
+										type="button"
+										onClick={() =>
+											handleSuggestionClick(
+												"用 get_inbox_summary 给我一份收件箱概览：总数、按类型分布、最近活跃事项。",
+											)
+										}
+										className="text-[11px] px-2.5 py-1.5 rounded-lg border bg-muted/40 hover:bg-muted transition-colors text-left"
+									>
+										看收件箱概览
+									</button>
+								</div>
+							</div>
+
+							{/* 块 2：分类体系（仅在没有分类 / 全是默认分类时显示） */}
+							{(hasNoCategories || allDefaultCategories) && (
+								<div className="space-y-1.5">
+									<div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-0.5">
+										{hasNoCategories ? "先建一套属于你的分类" : "升级你的分类体系"}
+									</div>
+									<button
+										type="button"
+										onClick={() =>
+											handleSuggestionClick(
+												hasNoCategories
+													? "我还没建任何分类。请用 suggest_categories_from_inbox 看一下我最近的邮件，建议 3-6 个合适的分类。给我看建议清单，我确认后用 create_categories 批量写入。"
+													: "目前的分类全是 Flowmail 早期的默认分类，我想换成更贴合我工作的分类。请用 suggest_categories_from_inbox 看一下我最近的邮件，建议 3-6 个合适的新分类，给我看清单后我确认。",
+											)
+										}
+										className="w-full text-left rounded-lg border-2 border-amber-500/60 bg-amber-500/10 text-foreground px-3 py-2 hover:bg-amber-500/20 transition-colors"
+									>
+										<div className="flex items-center gap-2">
+											<SparklesIcon className="size-3.5 text-amber-600" />
+											<span className="text-xs font-semibold">
+												让 AI 看一遍我的邮件，建议分类
+											</span>
+										</div>
+										<div className="text-[10px] text-muted-foreground mt-0.5 ml-5.5">
+											扫描最近 50 封 → 给出 3-6 个推荐 → 你确认后写入
+										</div>
+									</button>
+									<div className="grid grid-cols-2 gap-1.5">
+										<button
+											type="button"
+											onClick={() =>
+												handleSuggestionClick(
+													"列出我现有的所有分类，告诉我每个类下有多少邮件、规则是什么。",
+												)
+											}
+											className="text-[11px] px-2.5 py-1.5 rounded-lg border bg-muted/40 hover:bg-muted transition-colors text-left"
+										>
+											查看现有分类
+										</button>
+										<button
+											type="button"
+											onClick={() =>
+												handleSuggestionClick(
+													"帮我新加一个分类。问我这个分类叫什么、什么样的邮件该归到这一类，然后用 create_category 创建。",
+												)
+											}
+											className="text-[11px] px-2.5 py-1.5 rounded-lg border bg-muted/40 hover:bg-muted transition-colors text-left"
+										>
+											添加一个分类
+										</button>
+									</div>
+								</div>
+							)}
+						</div>
+					)}
 
 					{/* 初始快捷建议 */}
 					{suggestions.length > 0 && !hasMessages && (

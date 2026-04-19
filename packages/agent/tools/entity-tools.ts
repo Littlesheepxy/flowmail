@@ -1,4 +1,4 @@
-import { tool } from "@repo/ai";
+import { fastModel, safeGenerateObject, tool } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
 
@@ -666,6 +666,349 @@ export function createEntityTools(deps: {
 					},
 				});
 				return { success: true, decision: input.decision };
+			},
+		}),
+
+		find_merge_candidates: tool({
+			description:
+				"扫描组织内最近活跃的事项，让 AI 找出「可能本来就是同一件事」的事项组（跨发件人 / 不同主题但同一项目）。用于发现历史遗漏合并。返回候选清单，每组带 entityIds、reason、confidence。⚠️ 本工具只「发现」，不会动数据；要真的合并必须用户确认后再调 merge_entities。典型触发：用户说「帮我看看有没有重复的项目」「按事儿整理一下」「这些项目有没有本来是一个的」。",
+			inputSchema: z.object({
+				organizationId: z.string(),
+				lookbackDays: z
+					.number()
+					.optional()
+					.default(60)
+					.describe("回看多少天的活跃事项，默认 60 天"),
+				maxEntities: z
+					.number()
+					.optional()
+					.default(40)
+					.describe("最多扫描多少条事项，默认 40。事项越多 AI 判断越慢"),
+				hint: z
+					.string()
+					.optional()
+					.describe(
+						"用户给的额外提示，比如「关注 Blue Sky」「找投资项目相关的」",
+					),
+			}),
+			execute: async (input: {
+				organizationId: string;
+				lookbackDays?: number;
+				maxEntities?: number;
+				hint?: string;
+			}) => {
+				const lookbackDays = input.lookbackDays ?? 60;
+				const maxEntities = input.maxEntities ?? 40;
+				const cutoff = new Date(
+					Date.now() - lookbackDays * 24 * 60 * 60 * 1000,
+				);
+
+				const entities = await db.flowEntity.findMany({
+					where: {
+						organizationId: input.organizationId,
+						isFiltered: false,
+						updatedAt: { gte: cutoff },
+					},
+					select: {
+						id: true,
+						title: true,
+						aiSummary: true,
+						category: { select: { name: true } },
+						threads: {
+							select: { subject: true, sender: true },
+							orderBy: { receivedAt: "desc" },
+							take: 2,
+						},
+					},
+					orderBy: { updatedAt: "desc" },
+					take: maxEntities,
+				});
+
+				if (entities.length < 2) {
+					return {
+						scanned: entities.length,
+						groups: [],
+						note:
+							entities.length === 0
+								? "近期没有事项可扫描"
+								: "只有 1 个事项，没有可合并对象",
+					};
+				}
+
+				const lines = entities.map((e, idx) => {
+					const subjects = e.threads
+						.map((t) => t.subject)
+						.filter(Boolean)
+						.join(" | ");
+					const senders = Array.from(
+						new Set(e.threads.map((t) => t.sender).filter(Boolean)),
+					).join(", ");
+					const summary = e.aiSummary?.slice(0, 100) ?? "";
+					const cat = e.category?.name ?? "未分类";
+					return `[${idx + 1}] id=${e.id}\n  类别: ${cat}\n  标题: ${e.title}${summary ? `\n  摘要: ${summary}` : ""}${subjects ? `\n  近期主题: ${subjects}` : ""}${senders ? `\n  发件人: ${senders}` : ""}`;
+				});
+
+				const ResultSchema = z.object({
+					groups: z
+						.array(
+							z.object({
+								entityIds: z
+									.array(z.string())
+									.min(2)
+									.describe(
+										"应该被合并到一起的事项 id 列表（必须都在输入清单里）",
+									),
+								primaryEntityId: z
+									.string()
+									.describe(
+										"建议的目标事项（保留下来的那个），通常选最近活跃 / 信息最完整的",
+									),
+								reason: z
+									.string()
+									.transform((s) => s.slice(0, 250))
+									.describe("为什么觉得这几个是同一件事（业务理由）"),
+								confidence: z.number().min(0).max(1),
+							}),
+						)
+						.transform((arr) => arr.slice(0, 10))
+						.describe(
+							"候选合并组列表。如果都不像，返回空数组。最多返回 10 组",
+						),
+					notes: z
+						.string()
+						.optional()
+						.transform((s) => (s ? s.slice(0, 200) : undefined))
+						.describe("额外说明，比如哪些看起来相关但拿不准的"),
+				});
+
+				const result = await safeGenerateObject({
+					model: fastModel,
+					schema: ResultSchema,
+					prompt: `你是邮件项目合并发现器。下面是用户最近 ${lookbackDays} 天活跃的 ${entities.length} 个独立事项。请找出「其实本来就是同一件事，应该合并」的组。${input.hint ? `\n\n用户提示：${input.hint}` : ""}
+
+【判断维度】
+1. 同一公司 / 同一产品 / 同一合同号 / 同一客户
+2. 同一份月报的不同期次（"4 月报告" 和 "5 月报告" → 都属于「XX 月报」事项）—— 这种 should merge
+3. 同一审批 / 同一项目跟进的延续邮件
+4. 注意：跨发件人也可能是同一项目（比如同一个项目的不同子公司汇报）
+
+【千万不要合并】
+- 不同公司的同类事务（"A 公司月报"和"B 公司月报"）
+- 同一公司的不同业务线（"A 公司投资"和"A 公司法务"）
+- 不确定的，宁可不合并
+
+【事项清单】
+${lines.join("\n\n")}
+
+【输出要求】
+- 每组至少 2 个 id，必须都来自上面清单
+- primaryEntityId 选最具代表性的那个
+- reason 说清楚为什么是同一件事
+- confidence ≥ 0.7 才会被采纳
+- 如果都不像，返回 groups: []`,
+				});
+
+				const validIds = new Set(entities.map((e) => e.id));
+				const cleanGroups = (result.groups ?? [])
+					.map((g) => ({
+						...g,
+						entityIds: g.entityIds.filter((id) => validIds.has(id)),
+					}))
+					.filter(
+						(g) =>
+							g.entityIds.length >= 2 &&
+							validIds.has(g.primaryEntityId) &&
+							g.confidence >= 0.7,
+					)
+					.map((g) => {
+						const enriched = g.entityIds.map((id) => {
+							const e = entities.find((x) => x.id === id);
+							return {
+								id,
+								title: e?.title ?? "(unknown)",
+								category: e?.category?.name ?? "未分类",
+							};
+						});
+						return {
+							primaryEntityId: g.primaryEntityId,
+							primaryTitle:
+								entities.find((e) => e.id === g.primaryEntityId)?.title ??
+								"(unknown)",
+							entities: enriched,
+							reason: g.reason,
+							confidence: g.confidence,
+						};
+					});
+
+				return {
+					scanned: entities.length,
+					lookbackDays,
+					groups: cleanGroups,
+					notes: result.notes,
+					hint:
+						cleanGroups.length === 0
+							? "AI 没找到明显的合并候选；如果你心里有具体目标，可以告诉我（比如「检查 Blue Sky 相关」）"
+							: `找到 ${cleanGroups.length} 组建议合并。请向用户展示后调用 ask_user 让其逐组确认，确认后用 merge_entities 一次只合一对（target=primaryEntityId, source=其他每个 id）。`,
+				};
+			},
+		}),
+
+		find_related_entities: tool({
+			description:
+				"给定一个事项 id，从同组织其他事项里找出「跟它最像、可能本来是同一件事」的候选。用于针对单个事项做「找相关」，比 find_merge_candidates 更聚焦。返回带 confidence 的候选清单。⚠️ 只发现，不动数据；合并必须用户确认后再调 merge_entities。",
+			inputSchema: z.object({
+				entityId: z.string().describe("以这个事项为锚点找相关"),
+				maxCandidates: z
+					.number()
+					.optional()
+					.default(30)
+					.describe("候选池大小，默认 30"),
+				lookbackDays: z.number().optional().default(90),
+			}),
+			execute: async (input: {
+				entityId: string;
+				maxCandidates?: number;
+				lookbackDays?: number;
+			}) => {
+				const anchor = await db.flowEntity.findUnique({
+					where: { id: input.entityId },
+					select: {
+						id: true,
+						title: true,
+						aiSummary: true,
+						organizationId: true,
+						category: { select: { name: true } },
+						threads: {
+							select: { subject: true, sender: true, bodyText: true },
+							orderBy: { receivedAt: "desc" },
+							take: 2,
+						},
+					},
+				});
+				if (!anchor) {
+					return { error: "Entity not found" };
+				}
+
+				const cutoff = new Date(
+					Date.now() - (input.lookbackDays ?? 90) * 24 * 60 * 60 * 1000,
+				);
+
+				const candidates = await db.flowEntity.findMany({
+					where: {
+						organizationId: anchor.organizationId,
+						isFiltered: false,
+						id: { not: anchor.id },
+						updatedAt: { gte: cutoff },
+					},
+					select: {
+						id: true,
+						title: true,
+						aiSummary: true,
+						category: { select: { name: true } },
+						threads: {
+							select: { subject: true, sender: true },
+							orderBy: { receivedAt: "desc" },
+							take: 2,
+						},
+					},
+					orderBy: { updatedAt: "desc" },
+					take: input.maxCandidates ?? 30,
+				});
+
+				if (candidates.length === 0) {
+					return {
+						anchor: { id: anchor.id, title: anchor.title },
+						candidates: [],
+						note: "组织内没有其他事项",
+					};
+				}
+
+				const anchorBody =
+					anchor.threads
+						.map((t) => t.bodyText ?? "")
+						.join(" ")
+						.slice(0, 600) || "";
+				const anchorSubjects = anchor.threads
+					.map((t) => t.subject)
+					.filter(Boolean)
+					.join(" | ");
+				const anchorSenders = Array.from(
+					new Set(anchor.threads.map((t) => t.sender).filter(Boolean)),
+				).join(", ");
+
+				const lines = candidates.map((c, idx) => {
+					const subjects = c.threads
+						.map((t) => t.subject)
+						.filter(Boolean)
+						.join(" | ");
+					const senders = Array.from(
+						new Set(c.threads.map((t) => t.sender).filter(Boolean)),
+					).join(", ");
+					const summary = c.aiSummary?.slice(0, 100) ?? "";
+					const cat = c.category?.name ?? "未分类";
+					return `[${idx + 1}] id=${c.id}\n  类别: ${cat}\n  标题: ${c.title}${summary ? `\n  摘要: ${summary}` : ""}${subjects ? `\n  近期主题: ${subjects}` : ""}${senders ? `\n  发件人: ${senders}` : ""}`;
+				});
+
+				const ResultSchema = z.object({
+					matches: z
+						.array(
+							z.object({
+								entityId: z.string(),
+								confidence: z.number().min(0).max(1),
+								reason: z.string().transform((s) => s.slice(0, 200)),
+							}),
+						)
+						.transform((arr) => arr.slice(0, 8)),
+				});
+
+				const result = await safeGenerateObject({
+					model: fastModel,
+					schema: ResultSchema,
+					prompt: `你要判断哪些已存在的事项跟「锚点事项」其实是同一件事。
+
+【锚点事项】
+id: ${anchor.id}
+类别: ${anchor.category?.name ?? "未分类"}
+标题: ${anchor.title}
+摘要: ${anchor.aiSummary?.slice(0, 200) ?? ""}
+近期主题: ${anchorSubjects}
+发件人: ${anchorSenders}
+正文片段: ${anchorBody}
+
+【候选事项清单】（同组织其他事项）
+${lines.join("\n\n")}
+
+【判断标准】
+1. 同公司/同项目/同合同/同月报系列 → 可能是同一件事
+2. 不同公司、不同业务线 → 不要合并
+3. 不确定的不要返回（confidence < 0.7 别返回）
+
+返回最多 8 个匹配，按 confidence 降序。如果没有像的，返回 matches: []`,
+				});
+
+				const validIds = new Set(candidates.map((c) => c.id));
+				const filtered = (result.matches ?? [])
+					.filter((m) => validIds.has(m.entityId) && m.confidence >= 0.7)
+					.map((m) => {
+						const c = candidates.find((x) => x.id === m.entityId);
+						return {
+							entityId: m.entityId,
+							title: c?.title ?? "(unknown)",
+							category: c?.category?.name ?? "未分类",
+							confidence: m.confidence,
+							reason: m.reason,
+						};
+					});
+
+				return {
+					anchor: { id: anchor.id, title: anchor.title },
+					scanned: candidates.length,
+					candidates: filtered,
+					hint:
+						filtered.length === 0
+							? "没找到明显相关的事项"
+							: `找到 ${filtered.length} 个候选。展示给用户后用 ask_user 确认要合并谁，再调 merge_entities(target=锚点 id, source=确认的 id)。`,
+				};
 			},
 		}),
 

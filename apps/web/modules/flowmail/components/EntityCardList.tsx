@@ -69,8 +69,15 @@ export function EntityCardList({
 	search = "",
 }: EntityCardListProps) {
 	const { activeOrganization } = useActiveOrganization();
-	const { executeSuggestion } = useAgent();
+	const { executeSuggestion, triggerAgentPrompt } = useAgent();
 	const prevCountRef = useRef<number | null>(null);
+
+	const { data: categoriesData } = useQuery({
+		...orpc.categories.list.queryOptions({
+			input: { organizationId: activeOrganization?.id ?? "" },
+		}),
+		enabled: !!activeOrganization?.id,
+	});
 
 	const { data, isLoading } = useQuery({
 		...orpc.flowEntities.list.queryOptions({
@@ -314,6 +321,52 @@ export function EntityCardList({
 					)}
 				</div>
 			)}
+			{categoriesData && categoriesData.length === 0 ? (
+				<div className="px-3 py-3 border-b bg-linear-to-b from-primary/5 to-transparent">
+					<div className="flex items-start gap-2.5">
+						<div className="rounded-md bg-primary/10 p-1.5 shrink-0">
+							<SparklesIcon className="size-3.5 text-primary" />
+						</div>
+						<div className="flex-1 min-w-0 space-y-1.5">
+							<p className="text-xs font-medium">
+								还没有分类——AI 不知道按什么标准帮你归类
+							</p>
+							<p className="text-[11px] text-muted-foreground">
+								Flowmail 不预设默认分类，每个人的工作场景都不一样。让 AI 看一遍你的邮件，给你建议合适的分类体系。
+							</p>
+							<div className="flex flex-wrap gap-1.5 pt-0.5">
+								<Button
+									size="sm"
+									className="h-7 gap-1 text-xs"
+									onClick={() =>
+										triggerAgentPrompt({
+											text: "我还没建任何分类。请用 suggest_categories_from_inbox 看一下我最近的邮件，建议 3-6 个合适的分类。给我看建议清单，我确认后用 create_categories 批量写入。",
+										})
+									}
+								>
+									<SparklesIcon className="size-3" />
+									让 AI 看一遍我的邮件给我建议
+								</Button>
+								<Button
+									size="sm"
+									variant="outline"
+									className="h-7 text-xs"
+									onClick={() => {
+										if (typeof window !== "undefined") {
+											const orgSlug = window.location.pathname.split("/")[2];
+											if (orgSlug) {
+												window.location.href = `/app/${orgSlug}/categories`;
+											}
+										}
+									}}
+								>
+									自己建
+								</Button>
+							</div>
+						</div>
+					</div>
+				</div>
+			) : null}
 			{unanalyzedCount > 0 ? (
 				<div className="flex items-center justify-between px-3 py-2.5 md:py-2 border-b bg-amber-50/50 dark:bg-amber-950/20">
 					<span className="text-xs text-amber-700 dark:text-amber-400">
