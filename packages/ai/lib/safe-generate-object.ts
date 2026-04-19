@@ -72,7 +72,32 @@ ${schemaExample}`;
 
 		console.warn("[AI] Strict parse failed, attempting coercion:", result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
 		const coerced = coerceToSchema(parsed as Record<string, unknown>, options.schema);
-		return options.schema.parse(coerced);
+		const coercedResult = options.schema.safeParse(coerced);
+		if (coercedResult.success) {
+			return coercedResult.data;
+		}
+
+		// Coercion 仍失败：用 schema 默认骨架填充缺失字段，最后再尝试 parse。
+		// 宁可拿到字段为空的结果，也比让整个 enrich 流程 500 强。
+		console.warn(
+			"[AI] Coercion still failed, attempting default-skeleton fill:",
+			coercedResult.error.issues
+				.map((i) => `${i.path.join(".")}: ${i.message}`)
+				.join("; "),
+		);
+		const skeleton = buildDefaultObject(options.schema);
+		const merged = { ...skeleton, ...(coerced as Record<string, unknown>) };
+		// 把 skeleton 里缺的字段（coerce 后 array 是 string 之类）再 coerce 一遍
+		const finalCoerced = coerceToSchema(merged, options.schema);
+		const finalResult = options.schema.safeParse(finalCoerced);
+		if (finalResult.success) {
+			return finalResult.data;
+		}
+		throw new Error(
+			`AI output parse failed after coercion + skeleton fill: ${finalResult.error.issues
+				.map((i) => `${i.path.join(".")}: ${i.message}`)
+				.join("; ")}`,
+		);
 	}
 }
 
@@ -113,6 +138,45 @@ function defType(def: ZodDef): string {
 	return def.type ?? def.typeName?.replace("Zod", "").toLowerCase() ?? "";
 }
 
+// 剥离修饰符（transform/pipe/optional/nullable/default/effects/refinement）拿到底层 schema。
+// z.array(...).transform(...) 的外层 _def.type 是 "pipe" 而不是 "array"，
+// 不剥的话 coerce 会把 array<string> 字段当陌生类型跳过 → LLM 给单字符串就修不了。
+function unwrapSchema(t: z.ZodType): z.ZodType {
+	let current: z.ZodType = t;
+	for (let i = 0; i < 10; i++) {
+		const d = getDef(current);
+		if (!d) {
+			return current;
+		}
+		const ft = defType(d);
+		// pipe: { in, out } —— 取 out 才是用户暴露的最终类型
+		// transform/effects/default/optional/nullable/readonly: 内层是 innerType / type / schema
+		const any = d as Record<string, unknown>;
+		const inner =
+			(any.out as z.ZodType | undefined) ??
+			(any.innerType as z.ZodType | undefined) ??
+			(any.schema as z.ZodType | undefined) ??
+			(any.type as z.ZodType | undefined);
+		if (
+			(ft === "pipe" ||
+				ft === "transform" ||
+				ft === "effects" ||
+				ft === "default" ||
+				ft === "optional" ||
+				ft === "nullable" ||
+				ft === "readonly" ||
+				ft === "catch") &&
+			inner &&
+			typeof (inner as z.ZodType).safeParse === "function"
+		) {
+			current = inner;
+			continue;
+		}
+		return current;
+	}
+	return current;
+}
+
 function getEnumValues(def: ZodDef): string[] {
 	if (def.entries) {
 		return Object.values(def.entries);
@@ -124,7 +188,8 @@ function getEnumValues(def: ZodDef): string[] {
 }
 
 function getArrayItemSchema(t: z.ZodType): z.ZodType | undefined {
-	const d = getDef(t);
+	const u = unwrapSchema(t);
+	const d = getDef(u);
 	if (!d) {
 		return undefined;
 	}
@@ -136,15 +201,18 @@ function getArrayItemSchema(t: z.ZodType): z.ZodType | undefined {
 // ── Coercion ──
 
 function coerceToSchema(data: Record<string, unknown>, schema: z.ZodType): Record<string, unknown> {
-	const def = getDef(schema);
-	if (!def || defType(def) !== "object" || !("shape" in schema)) {
+	const unwrappedRoot = unwrapSchema(schema);
+	const def = getDef(unwrappedRoot);
+	if (!def || defType(def) !== "object" || !("shape" in unwrappedRoot)) {
 		return data;
 	}
 
-	const shape = schema.shape as Record<string, z.ZodType>;
+	const shape = unwrappedRoot.shape as Record<string, z.ZodType>;
 	const result = { ...data };
 
-	for (const [key, fieldSchema] of Object.entries(shape)) {
+	for (const [key, rawFieldSchema] of Object.entries(shape)) {
+		// 剥掉 .transform()/.optional()/.default() 等，否则 array/enum/object 都识别不出
+		const fieldSchema = unwrapSchema(rawFieldSchema);
 		const fd = getDef(fieldSchema);
 		if (!fd) {
 			continue;
@@ -198,12 +266,14 @@ function coerceToSchema(data: Record<string, unknown>, schema: z.ZodType): Recor
 }
 
 function buildDefaultObject(schema: z.ZodType, hint?: string): Record<string, unknown> {
-	if (!("shape" in schema)) {
+	const unwrapped = unwrapSchema(schema);
+	if (!("shape" in unwrapped)) {
 		return {};
 	}
-	const shape = schema.shape as Record<string, z.ZodType>;
+	const shape = unwrapped.shape as Record<string, z.ZodType>;
 	const obj: Record<string, unknown> = {};
-	for (const [key, fieldSchema] of Object.entries(shape)) {
+	for (const [key, rawFieldSchema] of Object.entries(shape)) {
+		const fieldSchema = unwrapSchema(rawFieldSchema);
 		const fd = getDef(fieldSchema);
 		if (!fd) {
 			continue;
@@ -240,14 +310,15 @@ function buildDefaultObject(schema: z.ZodType, hint?: string): Record<string, un
 function schemaToExample(schema: z.ZodType, depth = 0): string {
 	const indent = "  ".repeat(depth);
 	const inner = "  ".repeat(depth + 1);
-	const def = getDef(schema);
+	const unwrapped = unwrapSchema(schema);
+	const def = getDef(unwrapped);
 
 	if (!def) {
 		return "{}";
 	}
 
-	if (defType(def) === "object" && "shape" in schema) {
-		const shape = schema.shape as Record<string, z.ZodType>;
+	if (defType(def) === "object" && "shape" in unwrapped) {
+		const shape = unwrapped.shape as Record<string, z.ZodType>;
 		const entries = Object.entries(shape).map(([key, val]) => {
 			const example = fieldExample(val, depth + 1);
 			return `${inner}"${key}": ${example}`;
@@ -259,7 +330,8 @@ function schemaToExample(schema: z.ZodType, depth = 0): string {
 }
 
 function fieldExample(t: z.ZodType, depth: number): string {
-	const def = getDef(t);
+	const u = unwrapSchema(t);
+	const def = getDef(u);
 	if (!def) {
 		return `"..."`;
 	}
