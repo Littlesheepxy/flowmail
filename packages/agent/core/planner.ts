@@ -207,8 +207,10 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 1. get_entity — 拿完整数据（含 needsAttachmentRead 信号）
 2. 若 needsAttachmentRead=true，或现有内容不足以回答问题：
    - list_attachments（找 hasContent=true 的可读附件）
-   - read_attachment（对 PDF/Word 逐一提取文字）
+   - **2 个及以上附件用 read_attachments_batch 一次读完**（节省 step；
+     图片型 PDF 走智谱 OCR，单次最多 20 个）；只有 1 个时才用 read_attachment。
 3. 综合邮件正文 + 附件内容作答，告知用户"已读取 X 个附件"。
+4. 投资人月报、财务报告、合同等多份 PDF 必读全部，否则结论不可信。
 
 图片附件无法提取文字，返回下载链接，无需单独提示。` : `当前未选中具体事项（全局模式）。
 需要操作特定事项时，先用 list_entities 或 search_emails 找到目标。`}
@@ -221,7 +223,8 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 
 **sync_emails 必须先拿 connectionId：** list_connections → sync_emails。
 
-**read_attachment 必须先拿 attachmentId：** list_attachments → read_attachment。
+**read_attachment(s) 必须先拿 attachmentId：** list_attachments → read_attachment / read_attachments_batch。
+**多个附件优先用 read_attachments_batch**：8 个 PDF 调一次工具，逐个调会爆 step 上限。
 
 **search_emails 和 list_entities 可以并行执行**，如果同时需要两类数据。
 
@@ -243,7 +246,7 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 自定义视图（用户/Agent 给 entity 或 category 拼自定义 Tab）：list_view_components（先看可用积木）· list_views · get_view · create_view · update_view · delete_view
 分类体系（用户的"事儿"标签，不预设默认）：list_categories · list_sample_categories · suggest_categories_from_inbox · create_category · create_categories（批量）· update_category · delete_category
 分析：predict_risk · get_timeline_diff · batch_classify · batch_reclassify · compare_entities（多事项对比）
-附件：list_attachments · read_attachment
+附件：list_attachments · read_attachment（单个）· read_attachments_batch（批量，**多 PDF 场景必用**）
 邮件正文：read_email_body（当 aiSummary 为空时先读正文）
 AI 分析：re_enrich_entity（单个事项 AI 分类+摘要）· batch_classify（批量快速分类，最多 20 个/次，只分类不深度分析）· batch_enrich（批量深度分析，最多 10 个/次）
 邮件：search_emails · list_connections · sync_emails · send_email
@@ -373,7 +376,9 @@ export function buildAgentConfig(
 ): AgentConfig {
 	const hasEntity = !!(input.pageContext.entity || input.pageContext.entityId);
 
-	const maxSteps = hasEntity ? 8 : 10;
+	// 涉及附件深读（PDF OCR）时常需要 5+ 步：get_entity → list_attachments
+	// → read_attachments_batch → 可能再补查邮件 → 总结。给 12 步留冗余。
+	const maxSteps = hasEntity ? 12 : 14;
 
 	return {
 		systemPrompt: buildSystemPrompt(

@@ -256,5 +256,230 @@ export function createAttachmentTools(deps?: AttachmentToolDeps) {
 				}
 			},
 		}),
+
+		read_attachments_batch: tool({
+			description:
+				"批量读取多个附件的文字内容（PDF/Word/Excel/文本）。当用户问【分析所有附件】【读取这个事项的全部 PDF】【对比多份报告】时使用，避免逐个调用 read_attachment 浪费 step。最多一次读 20 个；每个超大附件内容会被截断到 10000 字以节省上下文。",
+			inputSchema: z.object({
+				attachmentIds: z
+					.array(z.string())
+					.min(1)
+					.max(20)
+					.describe("从 list_attachments 拿到的附件 ID 列表，最多 20 个"),
+				perItemCharLimit: z
+					.number()
+					.int()
+					.min(500)
+					.max(50_000)
+					.optional()
+					.default(10_000)
+					.describe("每个附件返回的最大字符数，默认 10000，多附件场景建议保持默认"),
+			}),
+			execute: async (input: {
+				attachmentIds: string[];
+				perItemCharLimit?: number;
+			}) => {
+				const limit = input.perItemCharLimit ?? 10_000;
+				if (!isStorageEnabled()) {
+					return {
+						status: "storage_not_configured",
+						message: "存储服务未配置",
+					};
+				}
+
+				const attachments = await db.emailAttachment.findMany({
+					where: { id: { in: input.attachmentIds } },
+					include: {
+						thread: {
+							select: {
+								subject: true,
+								entityId: true,
+								organizationId: true,
+							},
+						},
+					},
+				});
+
+				const byId = new Map(attachments.map((a) => [a.id, a]));
+
+				const results = await Promise.all(
+					input.attachmentIds.map(async (attId) => {
+						const attachment = byId.get(attId);
+						if (!attachment) {
+							return { attachmentId: attId, error: "附件不存在" };
+						}
+						if (!attachment.storageKey) {
+							return {
+								attachmentId: attId,
+								filename: attachment.filename,
+								status: "not_stored",
+								message:
+									"此附件在存储功能上线前接收，文件内容不可读取",
+							};
+						}
+
+						let downloadUrl: string;
+						try {
+							downloadUrl = await getSignedUrl(attachment.storageKey, {
+								bucket: "attachments",
+								expiresIn: 600,
+							});
+						} catch {
+							return {
+								attachmentId: attId,
+								filename: attachment.filename,
+								error: "无法生成下载链接",
+							};
+						}
+
+						const mime = attachment.mimeType ?? "";
+						const filename = attachment.filename ?? "";
+						const lower = filename.toLowerCase();
+						const isImage = mime.startsWith("image/");
+						const isPdf =
+							mime === "application/pdf" || lower.endsWith(".pdf");
+						const isText =
+							mime.startsWith("text/") || mime === "application/json";
+						const isWord =
+							mime.includes("wordprocessingml") ||
+							mime.includes("msword") ||
+							mime.includes("word") ||
+							lower.endsWith(".docx") ||
+							lower.endsWith(".doc");
+						const isExcel =
+							mime.includes("spreadsheetml") ||
+							mime.includes("ms-excel") ||
+							mime === "text/csv" ||
+							lower.endsWith(".xlsx") ||
+							lower.endsWith(".xls") ||
+							lower.endsWith(".csv");
+
+						if (isImage) {
+							return {
+								attachmentId: attId,
+								filename,
+								type: "image",
+								message: "图片附件，未读取文字",
+								downloadUrl,
+							};
+						}
+
+						try {
+							const fileRes = await fetch(downloadUrl);
+							if (!fileRes.ok) {
+								throw new Error(`HTTP ${fileRes.status}`);
+							}
+							const buf = Buffer.from(await fileRes.arrayBuffer());
+
+							let content: string;
+							let extractor: string;
+
+							if (isText) {
+								content = buf.toString("utf-8");
+								extractor = "text";
+							} else if (isPdf) {
+								let pdfText = "";
+								try {
+									const parsed = await pdfParse(buf);
+									pdfText = parsed.text ?? "";
+								} catch {
+									// fall through
+								}
+								const looksImageBased = pdfText.trim().length < 50;
+								if (looksImageBased && deps?.ocrPdfBuffer) {
+									try {
+										const ocr = await deps.ocrPdfBuffer(buf);
+										if (ocr.text) {
+											const meta =
+												ocr.successCount !== undefined &&
+												ocr.pageCount !== undefined
+													? `[OCR ${ocr.successCount}/${ocr.pageCount} 页]\n\n`
+													: "[OCR]\n\n";
+											content = `${meta}${ocr.text}`;
+											extractor = "pdf+ocr";
+										} else {
+											content =
+												pdfText || "[PDF 为图片型且 OCR 未识别出文字]";
+											extractor = "pdf+ocr_empty";
+										}
+									} catch (ocrErr) {
+										content = pdfText || "[PDF 解析失败]";
+										extractor = "pdf+ocr_error";
+										console.warn(
+											`[read_attachments_batch] OCR failed for ${filename}:`,
+											ocrErr instanceof Error
+												? ocrErr.message
+												: String(ocrErr),
+										);
+									}
+								} else {
+									content =
+										pdfText ||
+										"[PDF 解析成功但无文字；可配置 ZHIPU_API_KEY 启用 OCR]";
+									extractor = "pdf";
+								}
+							} else if (isWord) {
+								const result = await mammoth.extractRawText({ buffer: buf });
+								content = result.value || "[Word 无文字内容]";
+								extractor = "word";
+							} else if (isExcel) {
+								const workbook = XLSX.read(buf, { type: "buffer" });
+								const parts: string[] = [];
+								for (const sheetName of workbook.SheetNames) {
+									const sheet = workbook.Sheets[sheetName];
+									if (!sheet) {
+										continue;
+									}
+									const csv = XLSX.utils.sheet_to_csv(sheet);
+									parts.push(`## Sheet: ${sheetName}\n${csv}`);
+								}
+								content = parts.join("\n\n") || "[Excel 无数据]";
+								extractor = "excel";
+							} else {
+								return {
+									attachmentId: attId,
+									filename,
+									mimeType: mime,
+									type: "unsupported",
+									downloadUrl,
+									message: `不支持解析 ${mime} 格式`,
+								};
+							}
+
+							const truncated = content.length > limit;
+							return {
+								attachmentId: attId,
+								filename,
+								mimeType: mime,
+								threadSubject: attachment.thread.subject,
+								extractor,
+								contentLength: content.length,
+								truncated,
+								content: content.slice(0, limit),
+							};
+						} catch (err) {
+							return {
+								attachmentId: attId,
+								filename,
+								error: "文件读取失败",
+								message: err instanceof Error ? err.message : String(err),
+								downloadUrl,
+							};
+						}
+					}),
+				);
+
+				const okCount = results.filter(
+					(r) => "content" in r && typeof r.content === "string",
+				).length;
+
+				return {
+					requested: input.attachmentIds.length,
+					readSuccess: okCount,
+					perItemCharLimit: limit,
+					results,
+				};
+			},
+		}),
 	};
 }
