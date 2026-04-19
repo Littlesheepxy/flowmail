@@ -64,6 +64,16 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
 	output: "standalone",
 	outputFileTracingRoot: monorepoRoot,
+	// pdfjs-dist 5.x 在 Node 环境会 dynamic import pdf.worker.mjs 作为 fake worker；
+	// nft 静态分析追不到这个动态路径，需要显式包进 standalone 输出，否则 OCR 时报
+	// "Setting up fake worker failed: Cannot find module 'pdf.worker.mjs'"。
+	outputFileTracingIncludes: {
+		"/api/**/*": [
+			"../../node_modules/.pnpm/pdfjs-dist@*/node_modules/pdfjs-dist/legacy/build/**",
+			"../../node_modules/.pnpm/pdf-to-png-converter@*/node_modules/pdf-to-png-converter/**",
+			"../../node_modules/pdfjs-dist/legacy/build/**",
+		],
+	},
 	typescript: {
 		ignoreBuildErrors: true,
 	},
@@ -72,6 +82,7 @@ const nextConfig: NextConfig = {
 		"@napi-rs/canvas",
 		"pdf-to-png-converter",
 		"pdf-parse",
+		"pdfjs-dist",
 	],
 	transpilePackages: [
 		"@repo/api",

@@ -33,6 +33,17 @@ ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 RUN pnpm turbo build --filter=${APP_NAME}
 RUN mkdir -p /app/apps/${APP_NAME}/public
 
+# 提取 pdfjs worker 到固定路径，方便 runner stage 单 COPY 而无需 wildcard
+RUN set -e; \
+    mkdir -p /app/extras/pdfjs-worker; \
+    find /app/node_modules/.pnpm -path '*pdfjs-dist*/legacy/build/pdf.worker.mjs' 2>/dev/null | while read src; do \
+        rel="${src#/app/}"; \
+        dest="/app/extras/$rel"; \
+        mkdir -p "$(dirname "$dest")"; \
+        cp "$src" "$dest"; \
+    done; \
+    echo "Extracted pdfjs workers:" && find /app/extras -name '*.mjs'
+
 # ── Stage 5: Runner ──
 FROM node:${NODE_VERSION} AS runner
 WORKDIR /app
@@ -49,7 +60,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 
-USER nextjs
+# pdfjs-dist 5.x 在 Node 环境通过 dynamic import 加载 pdf.worker.mjs；
+# nft 静态分析漏掉这个文件，导致 OCR 时报 "Cannot find module 'pdf.worker.mjs'"。
+# outputFileTracingIncludes 是首选修法；这里作为 Docker 层兜底。
+# /app/extras 里的目录结构与原 .pnpm 完全一致，可以直接合并到 /app。
+COPY --from=builder --chown=nextjs:nodejs /app/extras/ ./
 
 ARG PORT=3000
 ENV PORT=${PORT}
