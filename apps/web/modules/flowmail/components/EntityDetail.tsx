@@ -883,6 +883,12 @@ function EntityTabs(props: EntityTabsProps) {
 								entityType={entity.type}
 								status={entity.status}
 								extractedFields={entity.extractedFields as string | null}
+								threads={entity.threads?.map((t) => ({
+									id: t.id,
+									subject: t.subject ?? null,
+									sender: t.sender ?? null,
+									receivedAt: t.receivedAt ?? undefined,
+								}))}
 							/>
 						</Card>
 					</div>

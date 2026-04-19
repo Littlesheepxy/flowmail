@@ -15,7 +15,9 @@
 import { fastModel, generateText, safeGenerateObject, textModel } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
-import { readEntityAttachments } from "./attachment-reader";
+// 注意：本模块走"per-email 关键路径"，附件只读已落库的 extractedText，
+// 完全不在此触发 OCR。OCR 必须由 agent 显式调用独立的 ocr_pending_attachments 工具，
+// 让用户全程看见"OCR 中... N/M"，避免黑箱 4 分钟 spinner。
 
 const LOG_TAG = "[EmailAiNote]";
 
@@ -307,8 +309,7 @@ export async function analyzeIndividualEmail(input: AnalyzeInput): Promise<{
 		prevContext = "[本封是该事项的第一封邮件，没有前次参考]";
 	}
 
-	// 拉本邮件附件内容（如果有）。注意 readEntityAttachments 拉的是该 entity
-	// 全部附件，这里我们手动只取本 thread 的附件文本。
+	// 只读本 thread 的附件，且只用 extractedText 缓存（OCR 由别处跑+落库）
 	const attachmentText = await readSingleThreadAttachments(threadId);
 
 	const prompt = `你是企业邮件深度分析助手。请基于以下信息，给"本封"邮件生成结构化提炼。
@@ -382,26 +383,51 @@ ${attachmentText.slice(0, 3000)}`
  * @param entityId
  * @param maxConcurrent 并发数，默认 2（控制 LLM 速率）
  */
+/**
+ * 扫描该 entity 所有邮件，给"还没有 email_ai_note"的邮件补跑分析。
+ *
+ * 设计要点：
+ * - 分批返回（默认每批 3 封）——agent chat 可以多次调用拿进度，避免单次 stream 4 分钟无心跳被 Cloudflare 截断
+ * - 同批内 LLM 并发 3 跱（prev 只看「已落库的 ai_note」，对本批新结果没依赖，并发安全）
+ * - 调用前先扫一遍本批邮件的 PDF 附件，没缓存的 OCR 落库（避免 ai_note 拿不到 PDF 内容）
+ *   OCR 部分走 deps.preheatAttachmentsForThreads（由 agent / inbound 路径注入）
+ */
 export async function analyzeAllPendingEmails(
 	entityId: string,
-	maxConcurrent = 2,
+	options?: {
+		batchSize?: number;
+		concurrency?: number;
+	},
 ): Promise<{
 	total: number;
 	analyzed: number;
 	skipped: number;
 	failures: number;
+	processedThisCall: number;
+	remaining: number;
+	done: boolean;
 }> {
+	const batchSize = options?.batchSize ?? 3;
+	const concurrency = options?.concurrency ?? 3;
+
 	const threads = await db.emailThread.findMany({
 		where: { entityId },
-		orderBy: { receivedAt: "asc" }, // 顺序跑，delta 才有意义
+		orderBy: { receivedAt: "asc" },
 		select: { id: true },
 	});
 
 	if (threads.length === 0) {
-		return { total: 0, analyzed: 0, skipped: 0, failures: 0 };
+		return {
+			total: 0,
+			analyzed: 0,
+			skipped: 0,
+			failures: 0,
+			processedThisCall: 0,
+			remaining: 0,
+			done: true,
+		};
 	}
 
-	// 一次性查出已有 ai_note 的 threadId 集合
 	const existingNotes = await db.timelineEvent.findMany({
 		where: { entityId, type: "email_ai_note" },
 		select: { metadata: true },
@@ -420,35 +446,63 @@ export async function analyzeAllPendingEmails(
 			analyzed: 0,
 			skipped: threads.length,
 			failures: 0,
+			processedThisCall: 0,
+			remaining: 0,
+			done: true,
 		};
 	}
+
+	// 只跑当前 batch
+	const currentBatch = pending.slice(0, batchSize);
+
+	// 关键：不在此处现场跑 OCR。附件 OCR 由 agent 显式调 ocr_pending_attachments 完成，
+	// 用户在 chat 里能看到"OCR N/M"。这里只读已落库的 extractedText（毫秒级）。
 
 	let analyzed = 0;
 	let failures = 0;
 
-	// 顺序跑（保证 delta 有正确前置参考）
-	// maxConcurrent 当前未使用，保留为未来优化空间（小批量并发）
-	void maxConcurrent;
-	for (const t of pending) {
-		try {
-			const r = await analyzeIndividualEmail({ entityId, threadId: t.id });
-			if (r.created) {
-				analyzed += 1;
+	// 同 batch 内并发跑（concurrency=3）
+	let cursor = 0;
+	async function worker() {
+		while (true) {
+			const idx = cursor++;
+			if (idx >= currentBatch.length) {
+				return;
 			}
-		} catch (err) {
-			failures += 1;
-			console.warn(
-				`${LOG_TAG} batch failure entity=${entityId} thread=${t.id}:`,
-				err instanceof Error ? err.message : String(err),
-			);
+			const t = currentBatch[idx];
+			try {
+				const r = await analyzeIndividualEmail({
+					entityId,
+					threadId: t.id,
+				});
+				if (r.created) {
+					analyzed += 1;
+				}
+			} catch (err) {
+				failures += 1;
+				console.warn(
+					`${LOG_TAG} batch failure entity=${entityId} thread=${t.id}:`,
+					err instanceof Error ? err.message : String(err),
+				);
+			}
 		}
 	}
+	await Promise.all(
+		Array.from(
+			{ length: Math.min(concurrency, currentBatch.length) },
+			worker,
+		),
+	);
 
+	const remaining = pending.length - currentBatch.length;
 	return {
 		total: threads.length,
 		analyzed,
 		skipped: threads.length - pending.length,
 		failures,
+		processedThisCall: currentBatch.length,
+		remaining,
+		done: remaining === 0,
 	};
 }
 
@@ -538,22 +592,46 @@ ${noteSummaries}`,
 // ── helpers ────────────────────────────────────────────────────────────
 
 async function readSingleThreadAttachments(threadId: string): Promise<string> {
-	const thread = await db.emailThread.findUnique({
-		where: { id: threadId },
-		select: { entityId: true },
+	// 只读本 thread 的附件，且优先用 extractedText 缓存（避免重跑 OCR）
+	const attachments = await db.emailAttachment.findMany({
+		where: { threadId },
+		orderBy: { createdAt: "asc" },
+		select: {
+			id: true,
+			filename: true,
+			mimeType: true,
+			storageKey: true,
+			extractedText: true,
+			extractError: true,
+		},
 	});
-	if (!thread?.entityId) {
+
+	if (attachments.length === 0) {
 		return "";
 	}
 
-	// MVP：直接复用 entity 级附件读取（含全部 thread 附件）。
-	// 后续可拆分成 per-thread 版本节省读取。
-	try {
-		const result = await readEntityAttachments(thread.entityId, 6000);
-		return result.text;
-	} catch {
-		return "";
+	const parts: string[] = [];
+	const MAX_TOTAL = 6000;
+	let totalLen = 0;
+
+	for (const att of attachments) {
+		if (totalLen >= MAX_TOTAL) {
+			break;
+		}
+		// 只用缓存——本函数走在 per-email 分析的关键路径上，
+		// 不能因为 OCR 慢就让 ai_note 生成超时。OCR 由入站 / agent batch 工具触发并落库。
+		if (att.extractedText && att.extractedText.length > 0) {
+			const remaining = MAX_TOTAL - totalLen;
+			const chunk =
+				att.extractedText.length > remaining
+					? att.extractedText.slice(0, remaining)
+					: att.extractedText;
+			parts.push(`[附件: ${att.filename}]\n${chunk}`);
+			totalLen += chunk.length;
+		}
 	}
+
+	return parts.join("\n\n");
 }
 
 interface ParsedNote {

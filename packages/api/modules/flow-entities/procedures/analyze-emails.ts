@@ -87,7 +87,17 @@ export const analyzeEmails = protectedProcedure
 							where: { entityId, type: "email_ai_note" },
 						});
 					}
-					await analyzeAllPendingEmails(entityId);
+					// 后台任务：循环调用直到 done=true（每批 3 封并发跑）
+					let safetyGuard = 50; // 最多 150 封邮件
+					while (safetyGuard-- > 0) {
+						const r = await analyzeAllPendingEmails(entityId, {
+							batchSize: 3,
+							concurrency: 3,
+						});
+						if (r.done) {
+							break;
+						}
+					}
 				}
 
 				if (alsoRefreshNarrative) {

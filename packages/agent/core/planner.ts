@@ -208,8 +208,9 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 2. 若 needsAttachmentRead=true，或现有内容不足以回答问题：
    - list_attachments（找 hasContent=true 的可读附件）
    - **2 个及以上附件用 read_attachments_batch 一次读完**（节省 step；
-     图片型 PDF 走智谱 OCR，单次最多 20 个）；只有 1 个时才用 read_attachment。
-3. 综合邮件正文 + 附件内容作答，告知用户"已读取 X 个附件"。
+     该工具已带 OCR 结果缓存，重复读同一附件几乎是 ms 级，
+     首次解析图片型 PDF 一般 20-60s；单次最多 20 个）；只有 1 个时才用 read_attachment。
+3. 综合邮件正文 + 附件内容作答，告知用户"已读取 X 个附件（其中 N 个命中缓存）"。
 4. 投资人月报、财务报告、合同等多份 PDF 必读全部，否则结论不可信。
 
 图片附件无法提取文字，返回下载链接，无需单独提示。` : `当前未选中具体事项（全局模式）。
@@ -242,7 +243,7 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 ## 可用工具速查
 
 事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note · merge_entities · find_merge_candidates（扫整个 org 找重复项目组）· find_related_entities（给定事项找它最像的）· split_entity_into_subprojects · mark_subprojects_decision
-逐封邮件 AI 提炼：analyze_each_email（给该事项每封邮件单独跑 ai_note，含与上封 delta + 建议动作 + 重要性）· regenerate_entity_narrative（基于所有 ai_note 重写整体 ai_summary）
+逐封邮件 AI 提炼：check_attachment_ocr_status（看附件解析进度，必做前置）· ocr_pending_attachments（显式 OCR 一批 PDF，用户能看见进度）· analyze_each_email（给该事项每封邮件单独跑 ai_note，含与上封 delta + 建议动作 + 重要性）· regenerate_entity_narrative（基于所有 ai_note 重写整体 ai_summary）
 自定义视图（用户/Agent 给 entity 或 category 拼自定义 Tab）：list_view_components（先看可用积木）· list_views · get_view · create_view · update_view · delete_view
 分类体系（用户的"事儿"标签，不预设默认）：list_categories · list_sample_categories · suggest_categories_from_inbox · create_category · create_categories（批量）· update_category · delete_category
 分析：predict_risk · get_timeline_diff · batch_classify · batch_reclassify · compare_entities（多事项对比）
@@ -314,12 +315,34 @@ Flowmail **不预设任何默认分类**——每个用户都按自己的工作�
 - 用户说"删掉 X 分类" → 先 ask_user 确认（删除会让该类下的邮件变成未分类）→ delete_category
 - 用户没有任何分类时如果调用 batch_classify，工具会直接报错——必须先建分类
 
-**逐封邮件 AI 提炼（analyze_each_email / regenerate_entity_narrative）：**
-- 用户在某事项页问"每封邮件都说了什么 / 最近一封相比上次变了什么 / 时间线没有 AI 提炼 / 帮我看每封邮件的要点"→ 调 analyze_each_email(entityId)。默认 mode="pending_only" 只补缺；用户说"全部重跑/重新分析所有邮件"→ mode="all"。
-- 跑完后如果用户说"整体摘要也刷新一下" → regenerate_entity_narrative(entityId)，或者直接 analyze_each_email 时传 alsoRefreshNarrative=true 一步到位。
-- 用户说"整体摘要好像没更新 / 项目摘要还是老的" → 先 regenerate_entity_narrative，如果它返回 noteCount=0 再回头 analyze_each_email。
-- 写入的 timeline event 类型是 email_ai_note（前端会挂在对应邮件下方展示），叙事刷新会写一条 narrative_refreshed。
-- 别和 batch_enrich 搞混：batch_enrich 是给"未分析事项"做整体 AI 分类+摘要；analyze_each_email 是在已存在事项内部对每封邮件单独提炼。
+**逐封邮件 AI 提炼（标准三步：check → ocr → analyze）：**
+
+**第一步：check_attachment_ocr_status(entityId)** —— **必做的预检**
+- 工具返回 { totalAttachments, cached, needsOcr, failed, summary }。
+- 如果 needsOcr === 0 → 跳过第二步直接进第三步。
+- 如果 needsOcr > 0 → **不要静默跑 OCR**！把 summary 原话告诉用户，举个例子：
+  > 「这个事项有 8 个 PDF 附件，其中 6 个是图片型扫描件需要 OCR 才能识别（约 3-4 分钟）。要现在 OCR 还是先用邮件正文分析？」
+  然后 ask_user 二选一：A) 先 OCR 再分析 / B) 跳过 OCR 直接分析正文
+  用户选 B → 直接进第三步（附件就当读不到）。
+  用户选 A → 进第二步。
+
+**第二步：ocr_pending_attachments(entityId, maxBatch=5)** —— 显式 OCR
+- 单次最多 5 个，返回 { processed, ok, failed, remaining, message }。
+- 如果 remaining > 0 → 必须**用同样参数继续调**（每批之间给用户一句"已 OCR 5/12，剩 7 个继续…"），直到 remaining=0。
+- OCR 完才进第三步。如果 ok=0 全失败，告诉用户"PDF 扫描质量太差识别不出来"，再问要不要继续分析正文。
+
+**第三步：analyze_each_email(entityId, mode, batchSize=3)** —— 逐封提炼
+- 默认 mode="pending_only" 只补缺；用户说"全部重跑/重新分析所有邮件"→ mode="all"。
+- 【分批协议】每次跑 batchSize（默认 3）封，返回 { remaining, done, message }：
+  · done=true → 把 message 给用户结束。
+  · done=false（remaining>0）→ **必须用相同参数继续调用**直到 done=true。每批之间一句进度（"已分析 3/9 封，继续提炼中…"）。
+  · mode="all" 只在第一次调用生效，后续按 pending 跑。
+- 跑完后用户说"整体摘要也刷一下" → regenerate_entity_narrative(entityId)；首轮可传 alsoRefreshNarrative=true 自动在 done=true 时刷。
+- 用户说"整体摘要还是老的" → 先 regenerate_entity_narrative，noteCount=0 再回头从第一步开始。
+
+**为什么三步走？** 因为 OCR 一个 PDF 30s+，如果在 analyze_each_email 里偷偷跑会黑屏 5 分钟用户看不到任何进度。拆成三步后用户能看到：「检查中... → 8 个 PDF 要 OCR，要跑吗？→ OCR 进度 3/8 → 5/8 → 8/8 → 开始分析邮件 1/10 → 4/10...」每一步都有反馈。
+
+写入的 timeline event 类型是 email_ai_note（前端挂在对应邮件下方展示），叙事刷新会写一条 narrative_refreshed。别和 batch_enrich 搞混：batch_enrich 是给"未分析事项"做整体 AI 分类+摘要；analyze_each_email 是在已存在事项内部对每封邮件单独提炼。
 
 **多子项目决策（split_entity_into_subprojects / mark_subprojects_decision）：**
 - 入口：用户在 entity 详情页点击「让 Agent 处理」按钮，会带上提示词「检测到 N 个子项目…请帮我决定如何处理」。
@@ -376,9 +399,10 @@ export function buildAgentConfig(
 ): AgentConfig {
 	const hasEntity = !!(input.pageContext.entity || input.pageContext.entityId);
 
-	// 涉及附件深读（PDF OCR）时常需要 5+ 步：get_entity → list_attachments
-	// → read_attachments_batch → 可能再补查邮件 → 总结。给 12 步留冗余。
-	const maxSteps = hasEntity ? 12 : 14;
+	// 三步走（check → ocr 多批 → analyze 多批）+ 边缘工具调用，需要充足步数：
+	// check_attachment_ocr_status 1 + ocr_pending_attachments × ceil(N/5) + analyze_each_email × ceil(M/3) + 几次 ask_user / 总结。
+	// 例如 8 PDF + 10 邮件：1 + 2 + 4 + 3(ask_user/总结) ≈ 10 步。给 24 步留冗余。
+	const maxSteps = hasEntity ? 24 : 26;
 
 	return {
 		systemPrompt: buildSystemPrompt(

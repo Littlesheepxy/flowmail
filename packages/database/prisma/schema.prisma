@@ -323,16 +323,21 @@ model EmailThread {
 // ─── Flowmail: Email Attachment ───
 
 model EmailAttachment {
-  id         String      @id @default(cuid())
-  threadId   String
-  thread     EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  filename   String
-  mimeType   String?
-  size       Int?
-  externalId String
-  contentId  String?
-  storageKey String?     // S3/storage object key for the uploaded file
-  createdAt  DateTime    @default(now())
+  id              String      @id @default(cuid())
+  threadId        String
+  thread          EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  filename        String
+  mimeType        String?
+  size            Int?
+  externalId      String
+  contentId       String?
+  storageKey      String?     // S3/storage object key for the uploaded file
+  // OCR/解析结果缓存：避免 agent 每次都重跑（OCR 单文件可达几十秒）
+  extractedText   String?     @db.Text
+  extractedBy     String?     // "pdf-parse" | "pdf+ocr" | "word" | "excel" | "text"
+  extractedAt     DateTime?
+  extractError    String?     // 失败时记原因，避免反复重试
+  createdAt       DateTime    @default(now())
 
   @@index([threadId])
   @@map("email_attachment")

@@ -207,6 +207,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				...(input.ccRecipients?.map((r) => r.address) ?? []),
 			].filter(Boolean);
 
+			let createdThreadId: string | null = null;
 			try {
 				const thread = await db.emailThread.create({
 					data: {
@@ -228,6 +229,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 						processedAt: new Date(),
 					},
 				});
+				createdThreadId = thread.id;
 
 				if (input.attachments && input.attachments.length > 0) {
 					await db.emailAttachment.createMany({
@@ -252,6 +254,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					type: "email_received",
 					content: `Follow-up email from ${input.sender}: ${input.subject}${mergedByAi ? `（AI 识别为同一项目：${mergedByAi.reasoning}）` : ""}`,
 					metadata: JSON.stringify({
+						threadId: createdThreadId,
 						sender: input.senderEmail,
 						subject: input.subject,
 						...(mergedByAi
@@ -390,6 +393,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 			...(input.ccRecipients?.map((r) => r.address) ?? []),
 		].filter(Boolean);
 
+		let createdThreadIdNew: string | null = null;
 		try {
 			const thread = await db.emailThread.create({
 				data: {
@@ -411,6 +415,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 					processedAt: new Date(),
 				},
 			});
+			createdThreadIdNew = thread.id;
 
 			if (input.attachments && input.attachments.length > 0) {
 				await db.emailAttachment.createMany({
@@ -435,6 +440,7 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				type: "email_received",
 				content: `Email received from ${input.sender}: ${input.subject}`,
 				metadata: JSON.stringify({
+					threadId: createdThreadIdNew,
 					sender: input.senderEmail,
 					subject: input.subject,
 				}),
@@ -699,6 +705,7 @@ export async function processEmailRaw(input: EmailInput): Promise<ProcessResult>
 					type: "email_received",
 					content: `Follow-up email from ${input.sender}: ${input.subject}${mergedByAi ? `（AI 识别为同一项目：${mergedByAi.reasoning}）` : ""}`,
 					metadata: JSON.stringify({
+						threadId: thread.id,
 						sender: input.senderEmail,
 						subject: input.subject,
 						...(mergedByAi
@@ -782,6 +789,7 @@ export async function processEmailRaw(input: EmailInput): Promise<ProcessResult>
 				type: "email_received",
 				content: `Email received from ${input.sender}: ${input.subject}`,
 				metadata: JSON.stringify({
+					threadId: thread.id,
 					sender: input.senderEmail,
 					subject: input.subject,
 				}),

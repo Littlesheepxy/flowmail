@@ -109,6 +109,10 @@ export const POST = async (request: NextRequest) => {
 			process.env.S3_SECRET_ACCESS_KEY
 		);
 
+		// Resend 入站附件的二进制内容不在 webhook payload，也不在 detail 接口里——
+		// 必须先调 /emails/receiving/{emailId}/attachments/{attachmentId} 拿到带签名的
+		// download_url（CloudFront，1 小时内有效），再去 fetch 实际二进制。参考：
+		// https://www.resend.com/docs/api-reference/emails/retrieve-received-email-attachment
 		for (const att of rawAttachments) {
 			if (!att.filename) { continue; }
 
@@ -120,7 +124,79 @@ export const POST = async (request: NextRequest) => {
 				contentId: att.content_id,
 			};
 
-			if (storageEnabled && att.content) {
+			if (storageEnabled && att.id) {
+				console.log(
+					`[email-inbound] start fetch attachment ${att.filename} (id=${att.id}, email_id=${data.email_id})`,
+				);
+				try {
+					// 1. 拿 download_url
+					const metaRes = await fetch(
+						`https://api.resend.com/emails/receiving/${data.email_id}/attachments/${att.id}`,
+						{
+							headers: {
+								Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+							},
+						},
+					);
+					if (!metaRes.ok) {
+						const body = await metaRes.text().catch(() => "");
+						throw new Error(
+							`metadata API HTTP ${metaRes.status}: ${body.slice(0, 200)}`,
+						);
+					}
+					const meta = (await metaRes.json()) as {
+						download_url?: string;
+						content_type?: string;
+					};
+					if (!meta.download_url) {
+						throw new Error("no download_url in attachment metadata");
+					}
+					console.log(
+						`[email-inbound] got download_url for ${att.filename}, downloading...`,
+					);
+
+					// 2. 下载二进制
+					const fileRes = await fetch(meta.download_url);
+					if (!fileRes.ok) {
+						throw new Error(`download HTTP ${fileRes.status}`);
+					}
+					const buf = Buffer.from(await fileRes.arrayBuffer());
+					console.log(
+						`[email-inbound] downloaded ${att.filename}: ${buf.length} bytes, uploading to S3...`,
+					);
+
+					// 3. 上传到我们自己的对象存储
+					const storageKey = `attachments/${organizationId}/${data.email_id}/${att.filename}`;
+					await uploadObject(storageKey, buf, {
+						bucket: "attachments",
+						contentType:
+							meta.content_type ?? att.content_type ?? "application/octet-stream",
+					});
+					attachment.storageKey = storageKey;
+					attachment.size = buf.length;
+					console.log(
+						`[email-inbound] ✓ uploaded ${att.filename} → ${storageKey}`,
+					);
+				} catch (uploadErr) {
+					const msg =
+						uploadErr instanceof Error
+							? `${uploadErr.message}\n${uploadErr.stack ?? ""}`
+							: String(uploadErr);
+					console.error(
+						`[email-inbound] ✗ failed attachment ${att.filename} (id=${att.id}, email_id=${data.email_id}): ${msg}`,
+					);
+					logger.warn("Failed to retrieve+upload Resend inbound attachment", {
+						emailId: data.email_id,
+						attachmentId: att.id,
+						filename: att.filename,
+						error:
+							uploadErr instanceof Error
+								? uploadErr.message
+								: String(uploadErr),
+					});
+				}
+			} else if (storageEnabled && att.content) {
+				// 兼容旧 payload 形态（万一有发件方直接给 base64 的）
 				try {
 					const buf = Buffer.from(att.content, "base64");
 					const storageKey = `attachments/${organizationId}/${data.email_id}/${att.filename}`;
@@ -131,7 +207,7 @@ export const POST = async (request: NextRequest) => {
 					attachment.storageKey = storageKey;
 					attachment.size = buf.length;
 				} catch (uploadErr) {
-					logger.warn("Failed to upload attachment to storage", {
+					logger.warn("Failed to upload attachment to storage (legacy base64)", {
 						filename: att.filename,
 						error: uploadErr instanceof Error ? uploadErr.message : String(uploadErr),
 					});

@@ -11,6 +11,7 @@ export { generateSuggestions } from "./src/suggester";
 export type { AISuggestion } from "./src/suggester";
 export { generateTags } from "./src/tagger";
 export { enrichEntityById, classifyEntityOnly } from "./src/enricher";
+export { preheatAttachmentsForThreads } from "./src/attachment-reader";
 export {
 	analyzeIndividualEmail,
 	analyzeAllPendingEmails,

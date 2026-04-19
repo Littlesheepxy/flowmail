@@ -62,7 +62,7 @@ import {
 	Trash2Icon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { ContactMemoryCard } from "./ContactMemoryCard";
 import { EntityTimeline } from "./EntityTimeline";
@@ -550,6 +550,43 @@ function EmailListView({
 		return new Set();
 	});
 
+	// 响应"查看原始邮件"事件：展开目标邮件 + 滚动到位
+	useEffect(() => {
+		function handler(ev: Event) {
+			const detail = (ev as CustomEvent<{ threadId?: string }>).detail;
+			const tid = detail?.threadId;
+			if (!tid) {
+				return;
+			}
+			if (!threads.some((t) => t.id === tid)) {
+				return;
+			}
+			setExpandedIds((prev) => {
+				if (prev.has(tid)) {
+					return prev;
+				}
+				const next = new Set(prev);
+				next.add(tid);
+				return next;
+			});
+			// 等下一次绘制后再滚到节点（展开会增加高度，否则定位偏）
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					const el = document.getElementById(`thread-${tid}`);
+					if (el) {
+						el.scrollIntoView({ behavior: "smooth", block: "start" });
+						el.classList.add("ring-2", "ring-primary/60");
+						setTimeout(() => {
+							el.classList.remove("ring-2", "ring-primary/60");
+						}, 1800);
+					}
+				});
+			});
+		}
+		window.addEventListener("flowmail:open-thread", handler);
+		return () => window.removeEventListener("flowmail:open-thread", handler);
+	}, [threads]);
+
 	if (threads.length === 0) {
 		return (
 			<div className="flex flex-col items-center justify-center py-20 text-muted-foreground/40">
@@ -656,7 +693,13 @@ function EmailMessage({
 	const ccRecipients = useMemo(() => parseRecipients(thread.ccRecipients), [thread.ccRecipients]);
 
 	return (
-		<div className={cn("transition-colors", isExpanded ? "bg-background" : "hover:bg-muted/30")}>
+		<div
+			id={`thread-${thread.id}`}
+			className={cn(
+				"transition-all rounded-md scroll-mt-4",
+				isExpanded ? "bg-background" : "hover:bg-muted/30",
+			)}
+		>
 			{/* biome-ignore lint/a11y/useSemanticElements: cannot use <button> here because it would nest inside other buttons */}
 			<div
 				role="button"
@@ -1187,8 +1230,27 @@ function EntityTabs({
 	const todoCount = nextActions.length + blockers.length + inProgressItems.length + pendingSuggestions.length;
 	const hasTodos = todoCount > 0 || completedItems.length > 0;
 
+	const [activeTab, setActiveTab] = useState<string>("emails");
+
+	// 监听 EntityTimeline 里"查看原始邮件"按钮发出的事件，自动切回邮件 tab
+	// EmailMessage 自己监听同名事件来展开 + scroll，所以这里只切 tab。
+	useEffect(() => {
+		function handler(ev: Event) {
+			const detail = (ev as CustomEvent<{ entityId?: string; threadId?: string }>).detail;
+			if (!detail?.threadId) {
+				return;
+			}
+			if (detail.entityId && detail.entityId !== entity.id) {
+				return;
+			}
+			setActiveTab("emails");
+		}
+		window.addEventListener("flowmail:open-thread", handler);
+		return () => window.removeEventListener("flowmail:open-thread", handler);
+	}, [entity.id]);
+
 	return (
-		<Tabs defaultValue="emails" className="flex flex-col flex-1 min-h-0">
+		<Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
 			<div className="px-3 md:px-5 shrink-0">
 				<TabsList className="w-full justify-start gap-0 border-b-0 bg-transparent">
 					<TabsTrigger value="emails" className="gap-1.5 text-xs">
@@ -1270,6 +1332,12 @@ function EntityTabs({
 					entityType={entity.type}
 					status={entity.status}
 					extractedFields={entity.extractedFields as string | null}
+					threads={threads.map((t) => ({
+						id: t.id,
+						subject: t.subject,
+						sender: t.sender,
+						receivedAt: t.receivedAt,
+					}))}
 				/>
 			</TabsContent>
 
@@ -1945,10 +2013,8 @@ function EntityActionBar({
 	const actionPending =
 		approveMutation.isPending || rejectMutation.isPending;
 
-	const nextActions = (fields.nextActions ?? []) as string[];
-	const blockers = (fields.blockers ?? []) as string[];
-	const hasActions = nextActions.length > 0 || blockers.length > 0;
-
+	// 待办 / blockers 的卡片在「待办」tab 里有完整版，顶部 ActionBar 不再重复展示，
+	// 只留 keyFields 和 APPROVAL 的批准/拒绝按钮（这些是真正"需要顶上看见"的东西）。
 	const keyFields: Array<{ label: string; value: string }> = [];
 	if (fields.applicant) {
 		keyFields.push({ label: "申请人", value: String(fields.applicant) });
@@ -1972,8 +2038,7 @@ function EntityActionBar({
 		keyFields.push({ label: "优先级", value: String(fields.priority) });
 	}
 
-	const showBar =
-		(isApproval && isPending) || keyFields.length > 0 || hasActions;
+	const showBar = (isApproval && isPending) || keyFields.length > 0;
 
 	if (!showBar) {
 		return null;
@@ -2023,37 +2088,6 @@ function EntityActionBar({
 				</div>
 			)}
 
-			{blockers.length > 0 && (
-				<div className="space-y-1">
-					{blockers.map((b) => (
-						<div
-							key={b}
-							className="flex items-start gap-1.5 text-xs text-red-600 dark:text-red-400"
-						>
-							<AlertTriangleIcon className="size-3 mt-0.5 shrink-0" />
-							<span>{b}</span>
-						</div>
-					))}
-				</div>
-			)}
-
-			{nextActions.length > 0 && (
-				<div className="space-y-1">
-					<div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-						<ListTodoIcon className="size-3" />
-						待办
-					</div>
-					{nextActions.map((a) => (
-						<div
-							key={a}
-							className="flex items-start gap-1.5 text-xs text-foreground/80"
-						>
-							<span className="text-muted-foreground mt-px">•</span>
-							<span>{a}</span>
-						</div>
-					))}
-				</div>
-			)}
 		</div>
 	);
 }

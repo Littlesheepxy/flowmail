@@ -25,11 +25,17 @@ export function createEntityTools(deps: {
 		confidence: number;
 		summary: string;
 	}>;
-	analyzeAllPendingEmails?: (entityId: string) => Promise<{
+	analyzeAllPendingEmails?: (
+		entityId: string,
+		options?: { batchSize?: number; concurrency?: number },
+	) => Promise<{
 		total: number;
 		analyzed: number;
 		skipped: number;
 		failures: number;
+		processedThisCall: number;
+		remaining: number;
+		done: boolean;
 	}>;
 	analyzeIndividualEmail?: (input: {
 		entityId: string;
@@ -1030,35 +1036,59 @@ ${lines.join("\n\n")}
 
 		analyze_each_email: tool({
 			description:
-				"对一个事项的【每一封】邮件分别生成 AI 提炼笔记（写入 timeline event=email_ai_note），用于按时间序追踪每封邮件的要点、与上封邮件的差异、建议动作。适合用户问「这个事儿每封邮件都说了什么」「最近一封邮件相比上次有什么变化」时调用。已经有 ai_note 的邮件默认跳过；mode='all' 强制全部重跑。可选 alsoRefreshNarrative=true 跑完后自动刷新整体叙事 ai_summary。",
+				"对一个事项的邮件分批生成 AI 提炼笔记（写入 timeline event=email_ai_note）。【⚠️ 调用前必做】先调 check_attachment_ocr_status——如有 needsOcr>0 的附件，先告诉用户「有 N 个 PDF 需 OCR 才能识别，约 N×30s」，得到用户确认后调 ocr_pending_attachments 把 PDF 跑完，再回来调本工具。否则附件内容拿不到、分析结果残缺。【分批策略】每次调用最多处理 batchSize 封（默认 3，并发 3），返回 remaining；如果 remaining>0 必须继续调用直到 done=true。本工具只读已落库的 extractedText，不会现场跑 OCR（毫秒级附件读取）。已有 ai_note 的邮件默认跳过；mode='all' 删除已有再跑。alsoRefreshNarrative=true 在 done=true 时刷新整体叙事。",
 			inputSchema: z.object({
 				entityId: z.string(),
 				mode: z
 					.enum(["pending_only", "all"])
 					.default("pending_only")
-					.describe("pending_only 只补缺；all 强制全部重跑（删除已有再跑）"),
+					.describe("pending_only 只补缺；all 强制全部重跑（仅第一次调用时生效，会删除已有 ai_note）"),
+				batchSize: z
+					.number()
+					.int()
+					.min(1)
+					.max(10)
+					.optional()
+					.default(3)
+					.describe("本次调用最多分析多少封，默认 3"),
 				alsoRefreshNarrative: z
 					.boolean()
 					.default(false)
-					.describe("跑完后是否顺便重新合成整体 aiSummary"),
+					.describe("done=true 时是否顺便重新合成整体 aiSummary"),
 			}),
 			execute: async (input: {
 				entityId: string;
 				mode: "pending_only" | "all";
+				batchSize: number;
 				alsoRefreshNarrative: boolean;
 			}) => {
 				if (!deps.analyzeAllPendingEmails) {
 					return { error: "analyzeAllPendingEmails not available" };
 				}
 				if (input.mode === "all") {
-					await db.timelineEvent.deleteMany({
+					// mode=all 只在第一次调用时生效（删除完后续 batch 自然按 pending 跑）
+					const existingCount = await db.timelineEvent.count({
 						where: { entityId: input.entityId, type: "email_ai_note" },
 					});
+					if (existingCount > 0) {
+						await db.timelineEvent.deleteMany({
+							where: {
+								entityId: input.entityId,
+								type: "email_ai_note",
+							},
+						});
+					}
 				}
-				const r = await deps.analyzeAllPendingEmails(input.entityId);
+				const r = await deps.analyzeAllPendingEmails(input.entityId, {
+					batchSize: input.batchSize,
+				});
 				let narrativeNoteCount: number | undefined;
 				let narrativeUpdated = false;
-				if (input.alsoRefreshNarrative && deps.regenerateEntityNarrative) {
+				if (
+					input.alsoRefreshNarrative &&
+					r.done &&
+					deps.regenerateEntityNarrative
+				) {
 					try {
 						const nr = await deps.regenerateEntityNarrative(input.entityId);
 						narrativeNoteCount = nr.noteCount;
@@ -1070,13 +1100,16 @@ ${lines.join("\n\n")}
 						);
 					}
 				}
+				const message = r.done
+					? r.analyzed === 0 && r.processedThisCall === 0
+						? `共 ${r.total} 封邮件，已全部分析过。${input.mode === "all" ? "" : " 想强制重跑请用 mode='all'。"}`
+						: `✅ 全部完成。共 ${r.total} 封邮件已生成 AI 提炼。${narrativeUpdated ? "整体叙事已刷新。" : ""}`
+					: `已分析本批 ${r.processedThisCall} 封（新增 ${r.analyzed}，失败 ${r.failures}）。还剩 ${r.remaining} 封待分析——请用相同参数继续调用本工具一直到 done=true。`;
 				return {
 					...r,
 					narrativeUpdated,
 					narrativeNoteCount,
-					message: r.analyzed === 0
-						? `共 ${r.total} 封邮件，已全部分析过。${input.mode === "all" ? "" : " 想强制重跑请用 mode='all'。"}`
-						: `本次新增 ${r.analyzed} 条 ai_note（共 ${r.total} 封；跳过 ${r.skipped} 封；失败 ${r.failures} 条）。${narrativeUpdated ? "整体叙事已刷新。" : ""}`,
+					message,
 				};
 			},
 		}),

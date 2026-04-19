@@ -15,6 +15,7 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useAgent } from "./AgentProvider";
 import {
 	MailIcon,
@@ -39,6 +40,8 @@ import {
 	ZapIcon,
 	SendIcon,
 	PaperclipIcon,
+	ExternalLinkIcon,
+	WandSparklesIcon,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 
@@ -60,6 +63,24 @@ interface EntityTimelineProps {
 	entityType: string;
 	status: string;
 	extractedFields?: string | null;
+	/** 可选：传入则用于「查看原始邮件」按钮；老 timeline 没 metadata.threadId 时按时间序对齐 */
+	threads?: Array<{
+		id: string;
+		subject?: string | null;
+		sender?: string | null;
+		receivedAt?: string | Date;
+	}>;
+}
+
+function openOriginalThread(entityId: string, threadId: string) {
+	if (typeof window === "undefined") {
+		return;
+	}
+	window.dispatchEvent(
+		new CustomEvent("flowmail:open-thread", {
+			detail: { entityId, threadId },
+		}),
+	);
 }
 
 interface AISuggestion {
@@ -905,10 +926,35 @@ export function EntityTimeline({
 	entityType: _entityType,
 	status: _status,
 	extractedFields,
+	threads,
 }: EntityTimelineProps) {
 	const [filter, setFilter] = useState<"all" | "email" | "action" | "system">("all");
 	const [expandedAi, setExpandedAi] = useState<Set<string>>(new Set());
 	const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+
+	// 老 timeline 事件没 metadata.threadId，按"时间正序"对齐 threads（也是按时间正序），
+	// 第 N 封邮件事件 ↔ 第 N 个 thread。新数据直接用 metadata.threadId。
+	const emailEventToThreadIdFallback = useMemo(() => {
+		const map = new Map<string, string>();
+		if (!threads || threads.length === 0) {
+			return map;
+		}
+		const sortedThreads = [...threads].sort(
+			(a, b) =>
+				new Date(a.receivedAt ?? 0).getTime() -
+				new Date(b.receivedAt ?? 0).getTime(),
+		);
+		const sortedEmailEvents = events
+			.filter((e) => e.type === "email_received" || e.type === "email_sent")
+			.sort(
+				(a, b) =>
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+			);
+		for (let i = 0; i < sortedEmailEvents.length && i < sortedThreads.length; i++) {
+			map.set(sortedEmailEvents[i].id, sortedThreads[i].id);
+		}
+		return map;
+	}, [events, threads]);
 
 	const { emailAiMap, emailNoteMap, primaryEvents } = useMemo(() => {
 		// 老数据 ai_summary 没有 threadId 锚点 → 维持"上一条 email_received"匹配作为 fallback
@@ -1005,6 +1051,42 @@ export function EntityTimeline({
 		});
 	}
 
+	// 「时间线只是邮件标题」诊断：≥2 封邮件，但完全没 ai_note → 显示横幅引导用户跑 AI 提炼
+	const emailEventCount = useMemo(
+		() =>
+			events.filter(
+				(e) => e.type === "email_received" || e.type === "email_sent",
+			).length,
+		[events],
+	);
+	const aiNoteCount = emailNoteMap.size;
+	const showAiPromptBanner = emailEventCount >= 2 && aiNoteCount === 0;
+	// 部分覆盖：有些 ai_note 但还差很多 → 展示「补齐缺失邮件」按钮
+	const showFillMissingBanner =
+		emailEventCount >= 2 &&
+		aiNoteCount > 0 &&
+		aiNoteCount < emailEventCount;
+
+	const queryClient = useQueryClient();
+	const analyzeAllMutation = useMutation(
+		orpc.flowEntities.analyzeEmails.mutationOptions({
+			onSuccess: (data) => {
+				const started = (data as { started?: boolean })?.started;
+				if (started) {
+					toast.success("AI 提炼已启动，30~60 秒后时间线自动刷新");
+				} else {
+					toast.success("AI 提炼完成");
+				}
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+				});
+			},
+			onError: (err) => {
+				toast.error(`AI 提炼失败：${err.message}`);
+			},
+		}),
+	);
+
 	// 重要性 ≥ 4 的 ai_note 默认展开
 	const autoExpandedNotes = useMemo(() => {
 		const set = new Set<string>();
@@ -1046,6 +1128,61 @@ export function EntityTimeline({
 
 			<DeadlineWarning extractedFields={extractedFields} />
 
+			{(showAiPromptBanner || showFillMissingBanner) && (
+				<div className="rounded-md border border-violet-200 bg-violet-50/60 dark:border-violet-900 dark:bg-violet-950/20 p-3">
+					<div className="flex items-start gap-2.5">
+						<WandSparklesIcon className="size-4 mt-0.5 shrink-0 text-violet-500" />
+						<div className="flex-1 min-w-0">
+							<p className="text-xs font-medium text-violet-900 dark:text-violet-200">
+								{showAiPromptBanner
+									? "时间线只显示了邮件标题"
+									: `已分析 ${aiNoteCount} / ${emailEventCount} 封，还有未提炼的邮件`}
+							</p>
+							<p className="text-[11px] text-violet-700/80 dark:text-violet-300/80 mt-0.5 leading-relaxed">
+								让 AI 逐封提炼"这封邮件做了什么、相比上一封新增哪些事实"，并写回到时间线（耗时约 30 秒~1 分钟，运行后自动刷新）。
+							</p>
+						</div>
+					</div>
+					<div className="flex gap-2 mt-2.5">
+						<Button
+							size="sm"
+							className="h-7 text-[11px] gap-1.5 bg-violet-600 hover:bg-violet-700 text-white"
+							disabled={analyzeAllMutation.isPending}
+							onClick={() =>
+								analyzeAllMutation.mutate({
+									entityId,
+									mode: showAiPromptBanner ? "all" : "pending_only",
+									alsoRefreshNarrative: true,
+								})
+							}
+						>
+							<SparklesIcon className="size-3" />
+							{analyzeAllMutation.isPending
+								? "AI 提炼中..."
+								: showAiPromptBanner
+									? "AI 提炼全部邮件"
+									: `AI 补齐剩余 ${emailEventCount - aiNoteCount} 封`}
+						</Button>
+						{showAiPromptBanner && aiNoteCount === 0 && emailEventCount > 0 && (
+							<Button
+								size="sm"
+								variant="ghost"
+								className="h-7 text-[11px] text-violet-700 dark:text-violet-300"
+								disabled={analyzeAllMutation.isPending}
+								onClick={() =>
+									analyzeAllMutation.mutate({
+										entityId,
+										mode: "narrative",
+									})
+								}
+							>
+								只刷新整体摘要
+							</Button>
+						)}
+					</div>
+				</div>
+			)}
+
 			{/* Timeline body */}
 			<div>
 				{visible.length === 0 && (
@@ -1067,6 +1204,28 @@ export function EntityTimeline({
 					const suggestions = aiMeta?.suggestions as AISuggestion[] | undefined;
 
 					const meta = parseMeta(event.metadata);
+
+					// ── 邮件事件主标题策略：优先用 AI 提炼的 headline（说了什么事），降级用机械文案 ──
+					const noteEvent = event.type === "email_received"
+						? emailNoteMap.get(event.id)
+						: undefined;
+					const noteData = noteEvent
+						? (parseMeta(noteEvent.metadata) as EmailAiNoteData)
+						: undefined;
+					const aiHeadline = noteData?.headline?.trim();
+					const subjectFromMeta = (meta.subject as string | undefined) || "";
+					const senderFromMeta = (meta.sender as string | undefined) || "";
+
+					// 主标题：AI 总结（事项做了什么）；副标题：发件人 · 主题
+					const isEmailEvent = event.type === "email_received" || event.type === "email_sent";
+					const primaryText = isEmailEvent && aiHeadline ? aiHeadline : event.content;
+					const showSecondaryLine = isEmailEvent && aiHeadline && (subjectFromMeta || senderFromMeta);
+
+					// 「查看原始邮件」按钮的 threadId
+					const threadIdForJump = isEmailEvent
+						? ((meta.threadId as string | undefined) ||
+							emailEventToThreadIdFallback.get(event.id))
+						: undefined;
 
 					return (
 						<div key={event.id} className="flex gap-3">
@@ -1111,8 +1270,32 @@ export function EntityTimeline({
 
 									{/* Row 2: main content */}
 									<p className="text-sm text-foreground leading-snug font-medium">
-										{event.content}
+										{primaryText}
 									</p>
+									{showSecondaryLine && (
+										<p className="mt-0.5 text-[11px] text-muted-foreground/80 leading-snug truncate">
+											{senderFromMeta && (
+												<>
+													<span className="font-medium">{senderFromMeta}</span>
+													{subjectFromMeta && <span className="mx-1">·</span>}
+												</>
+											)}
+											{subjectFromMeta}
+										</p>
+									)}
+									{threadIdForJump && (
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												openOriginalThread(entityId, threadIdForJump);
+											}}
+											className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 transition-colors hover:underline"
+										>
+											<ExternalLinkIcon className="size-3" />
+											查看原始邮件
+										</button>
+									)}
 
 									{/* Row 3: badges (below content, not overlapping) */}
 									{(event.type === "milestone" || event.type === "action_taken") && (
