@@ -11,7 +11,7 @@ export const ApprovalExtractionSchema = z.object({
 	requestContent: z.string().describe("Request content summary, max 100 chars"),
 	amount: z.number().optional().describe("Amount if applicable"),
 	currency: z.string().optional().describe("Currency code, e.g. CNY/USD"),
-	deadline: z.string().optional().describe("Approval deadline, ISO 8601"),
+	deadline: z.string().nullish().transform((v) => v ?? undefined).describe("Approval deadline, ISO 8601"),
 	urgency: z.enum(["low", "normal", "high", "urgent"]).describe("Urgency level"),
 	nextActions: z.array(z.string()).describe("Recommended next steps, e.g. review, approve, request more info"),
 	blockers: z.array(z.string()).describe("Anything blocking the approval, e.g. missing documents"),

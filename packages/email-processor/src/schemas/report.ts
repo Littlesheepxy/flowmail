@@ -15,7 +15,7 @@ export const ReportExtractionSchema = z.object({
 			endDate: z.string().nullable().optional().describe("End date ISO 8601, or null"),
 		})
 		.describe("Reporting period"),
-	keyPoints: z.array(z.string()).max(5).describe("Key points, max 5"),
+	keyPoints: z.array(z.string()).transform((arr) => arr.slice(0, 5)).describe("Key points, max 5"),
 	completedItems: z.array(z.string()).describe("Completed items"),
 	inProgressItems: z.array(z.string()).describe("In-progress items"),
 	blockers: z.array(z.string()).describe("Blockers or risks"),
