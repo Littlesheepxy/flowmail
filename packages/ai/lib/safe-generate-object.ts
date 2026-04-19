@@ -32,7 +32,14 @@ export async function safeGenerateObject<T extends z.ZodType>(options: {
 			message.includes("output failed to parse") ||
 			message.includes("No object generated") ||
 			message.includes("could not parse") ||
-			message.includes("tool_use");
+			message.includes("tool_use") ||
+			// Zod 校验失败：LLM 给了 JSON 但字段类型不符（如 array<string> 给成 string）
+			// 走 fallback 才能用 coerceToSchema 修复
+			message.includes("invalid_type") ||
+			message.includes("Invalid input") ||
+			message.includes("expected array") ||
+			message.includes("expected string") ||
+			message.includes("expected object");
 
 		if (!isStructuredOutputFailure) {
 			throw err;
@@ -159,8 +166,31 @@ function coerceToSchema(data: Record<string, unknown>, schema: z.ZodType): Recor
 			}
 		}
 
-		if (ft === "array" && value === null) {
-			result[key] = [];
+		if (ft === "array") {
+			// LLM 时不时把 array<string> 拍扁成 "a; b; c" / "a, b" / 甚至单条字符串。
+			// Schema 用 .max(N) 约束的话，硬解析会拿到「expected array, received string」。
+			if (value === null || value === undefined) {
+				result[key] = [];
+			} else if (typeof value === "string") {
+				const trimmed = value.trim();
+				if (trimmed === "") {
+					result[key] = [];
+				} else {
+					// 优先按常见分隔符拆；都没有就当成单条
+					const parts = trimmed
+						.split(/[;；\n]|(?:^|[^0-9])[,，](?!\d{3}\b)/)
+						.map((s) => s.replace(/^[\s\-•·*\d.)]+/, "").trim())
+						.filter(Boolean);
+					result[key] = parts.length > 0 ? parts : [trimmed];
+				}
+			} else if (!Array.isArray(value)) {
+				// LLM 偶尔返回 { "0": "x", "1": "y" } 这种 object-as-array
+				if (typeof value === "object") {
+					result[key] = Object.values(value as Record<string, unknown>);
+				} else {
+					result[key] = [String(value)];
+				}
+			}
 		}
 	}
 
