@@ -114,8 +114,10 @@ jobs:
             # Restart nginx so it re-resolves upstream IPs after container recreate
             docker compose --env-file .deploy.env -f docker-compose.prod.yml restart nginx
 
-            # Cleanup old images
-            docker image prune -f
+            # Cleanup old images aggressively — dangling + any unused tag older than 72h
+            # 只 prune -f 只清 dangling，长期累积下旧 SHA tag 镜像会撑爆磁盘（曾导致 PG OOM/502）
+            docker image prune -af --filter "until=72h" || true
+            docker builder prune -af --filter "until=168h" || true
 
             # Health check with retry — use container IP since port is not published to host
             for i in 1 2 3 4 5 6; do
