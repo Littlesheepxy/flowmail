@@ -11,6 +11,8 @@ export { generateSuggestions } from "./src/suggester";
 export type { AISuggestion } from "./src/suggester";
 export { generateTags } from "./src/tagger";
 export { enrichEntityById, classifyEntityOnly } from "./src/enricher";
+export { findEntityByAiMatch } from "./src/ai-entity-matcher";
+export type { AiEntityMatchInput, AiEntityMatchResult } from "./src/ai-entity-matcher";
 export { ensureDefaultCategories } from "./src/seed-categories";
 export { unwrapForwardedEmail } from "./src/unwrap-forward";
 export type { UnwrapResult } from "./src/unwrap-forward";

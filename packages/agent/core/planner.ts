@@ -225,11 +225,21 @@ ${hasEntity ? `当前已选中事项，默认操作对象是此事项，无需�
 
 **search_emails 和 list_entities 可以并行执行**，如果同时需要两类数据。
 
+**自定义视图工作流：** 用户说「给这个项目做一个月度汇报视图 / Todo 视图 / 进度仪表盘」时：
+1. 必须先调用 list_view_components 拿到可用 block 列表（不要凭记忆拼）
+2. 根据用户意图选 1-5 个 block 组合（少而精，避免堆砌）
+3. 调用 create_view，作用域：单 entity 用 entityId；想成为某 category 所有事项的模板用 categoryId
+4. 创建后告诉用户 tab 名称，用户在事项详情页就能看到
+- 修改时先 get_view 拿现有 spec，改完再 update_view（spec 必须传完整 blocks）
+- todo_list source=auto 时前端自动从 entity 字段聚合，不需要传 items
+- quick_actions.actions[].prompt 要写明确，用户点了直接发给你
+
 ---
 
 ## 可用工具速查
 
-事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note
+事项操作：get_entity · approve_entity · reject_entity · update_entity_status · update_entity_type · add_note · merge_entities
+自定义视图（用户/Agent 给 entity 或 category 拼自定义 Tab）：list_view_components（先看可用积木）· list_views · get_view · create_view · update_view · delete_view
 分析：predict_risk · get_timeline_diff · batch_classify · batch_reclassify · compare_entities（多事项对比）
 附件：list_attachments · read_attachment
 邮件正文：read_email_body（当 aiSummary 为空时先读正文）

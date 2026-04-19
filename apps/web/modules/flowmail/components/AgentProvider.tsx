@@ -20,6 +20,11 @@ export interface SuggestionExecution {
 	severity: "info" | "warning" | "critical";
 }
 
+export interface AgentPromptTrigger {
+	text: string;
+	entityId?: string;
+}
+
 interface AgentState {
 	agentType: AgentType;
 	setAgentType: (type: AgentType) => void;
@@ -33,6 +38,9 @@ interface AgentState {
 	executeSuggestion: (exec: SuggestionExecution) => void;
 	pendingExecution: SuggestionExecution | null;
 	consumeExecution: () => SuggestionExecution | null;
+	triggerAgentPrompt: (trigger: AgentPromptTrigger) => void;
+	pendingPrompt: AgentPromptTrigger | null;
+	consumePrompt: () => AgentPromptTrigger | null;
 }
 
 const AgentContext = createContext<AgentState | undefined>(undefined);
@@ -44,6 +52,9 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 	const [isOpenClawConnected, setIsOpenClawConnected] = useState(false);
 	const [pendingExecution, setPendingExecution] = useState<SuggestionExecution | null>(null);
 	const pendingRef = useRef<SuggestionExecution | null>(null);
+
+	const [pendingPrompt, setPendingPrompt] = useState<AgentPromptTrigger | null>(null);
+	const pendingPromptRef = useRef<AgentPromptTrigger | null>(null);
 
 	const executeSuggestion = useCallback((exec: SuggestionExecution) => {
 		pendingRef.current = exec;
@@ -57,6 +68,22 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 		pendingRef.current = null;
 		setPendingExecution(null);
 		return exec;
+	}, []);
+
+	const triggerAgentPrompt = useCallback((trigger: AgentPromptTrigger) => {
+		pendingPromptRef.current = trigger;
+		setPendingPrompt(trigger);
+		if (trigger.entityId) {
+			setContextEntityId(trigger.entityId);
+		}
+		setIsFloatingOpen(true);
+	}, []);
+
+	const consumePrompt = useCallback(() => {
+		const t = pendingPromptRef.current;
+		pendingPromptRef.current = null;
+		setPendingPrompt(null);
+		return t;
 	}, []);
 
 	return (
@@ -74,6 +101,9 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 				executeSuggestion,
 				pendingExecution,
 				consumeExecution,
+				triggerAgentPrompt,
+				pendingPrompt,
+				consumePrompt,
 			}}
 		>
 			{children}

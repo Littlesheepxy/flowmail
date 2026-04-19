@@ -124,6 +124,12 @@ export const FlowEntityScalarFieldEnumSchema = z.enum(['id', 'organizationId', '
 
 export type FlowEntityScalarFieldEnum = z.infer<typeof FlowEntityScalarFieldEnumSchema>;
 
+// File: EntityViewScalarFieldEnum.schema.ts
+
+export const EntityViewScalarFieldEnumSchema = z.enum(['id', 'organizationId', 'entityId', 'categoryId', 'title', 'icon', 'spec', 'isPinned', 'sortOrder', 'createdById', 'createdAt', 'updatedAt'])
+
+export type EntityViewScalarFieldEnum = z.infer<typeof EntityViewScalarFieldEnumSchema>;
+
 // File: TimelineEventScalarFieldEnum.schema.ts
 
 export const TimelineEventScalarFieldEnumSchema = z.enum(['id', 'entityId', 'type', 'content', 'metadata', 'actorId', 'createdAt'])
@@ -567,6 +573,26 @@ export const FlowEntitySchema = z.object({
 });
 
 export type FlowEntityType = z.infer<typeof FlowEntitySchema>;
+
+
+// File: EntityView.schema.ts
+
+export const EntityViewSchema = z.object({
+  id: z.string(),
+  organizationId: z.string(),
+  entityId: z.string().nullish(),
+  categoryId: z.string().nullish(),
+  title: z.string(),
+  icon: z.string().default("LayoutDashboardIcon"),
+  spec: z.string().default("{\"blocks\":[]}"),
+  isPinned: z.boolean(),
+  sortOrder: z.number().int(),
+  createdById: z.string().nullish(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type EntityViewType = z.infer<typeof EntityViewSchema>;
 
 
 // File: TimelineEvent.schema.ts

@@ -9,6 +9,7 @@ import { extractApprovalFields, extractReportFields } from "./extractor";
 import { generateSuggestions } from "./suggester";
 import { summarizeThread } from "./summarizer";
 import { generateTags } from "./tagger";
+import { findEntityByAiMatch } from "./ai-entity-matcher";
 
 import type { EmailRecipient, RawEmailAttachment } from "./connectors/types";
 
@@ -66,7 +67,11 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 		let summary: string = input.content.slice(0, 200);
 		let requiresReview = true;
 
-		const hasAiKey = !!process.env.OPENAI_API_KEY;
+		const hasAiKey =
+			!!process.env.OPENAI_API_KEY ||
+			!!process.env.ANTHROPIC_AUTH_TOKEN ||
+			!!process.env.ANTHROPIC_API_KEY ||
+			!!process.env.AI_GATEWAY_API_KEY;
 
 		if (hasAiKey) {
 			const useDynamic = orgCategories.length > 0;
@@ -167,6 +172,33 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 			existingEntityId = existingByContact?.entityId ?? null;
 		}
 
+		// 层级3：AI 跨项目语义匹配（60天）
+		let mergedByAi: { reasoning: string; matchedTitle: string; confidence: number } | null = null;
+		if (!existingEntityId && hasAiKey) {
+			try {
+				const match = await findEntityByAiMatch({
+					organizationId: input.organizationId,
+					subject: input.subject,
+					sender: input.sender,
+					senderEmail: input.senderEmail,
+					content: input.content,
+				});
+				if (match) {
+					existingEntityId = match.entityId;
+					mergedByAi = {
+						reasoning: match.reasoning,
+						matchedTitle: match.matchedTitle,
+						confidence: match.confidence,
+					};
+				}
+			} catch (err) {
+				console.warn(
+					"[processEmail] AI entity match failed:",
+					err instanceof Error ? err.message : String(err),
+				);
+			}
+		}
+
 		// ─── 追加到已有 Entity ───
 		if (existingEntityId) {
 			const allParticipants = [
@@ -218,10 +250,18 @@ export async function processEmail(input: EmailInput): Promise<ProcessResult> {
 				data: {
 					entityId: existingEntityId,
 					type: "email_received",
-					content: `Follow-up email from ${input.sender}: ${input.subject}`,
+					content: `Follow-up email from ${input.sender}: ${input.subject}${mergedByAi ? `（AI 识别为同一项目：${mergedByAi.reasoning}）` : ""}`,
 					metadata: JSON.stringify({
 						sender: input.senderEmail,
 						subject: input.subject,
+						...(mergedByAi
+							? {
+									mergeReason: "ai_semantic_match",
+									aiReasoning: mergedByAi.reasoning,
+									matchedTitle: mergedByAi.matchedTitle,
+									aiConfidence: mergedByAi.confidence,
+								}
+							: {}),
 					}),
 				},
 			});
@@ -580,6 +620,38 @@ export async function processEmailRaw(input: EmailInput): Promise<ProcessResult>
 			existingEntityId = existingByContact?.entityId ?? null;
 		}
 
+		// 层级3：AI 跨项目语义匹配（60天）
+		let mergedByAi: { reasoning: string; matchedTitle: string; confidence: number } | null = null;
+		const rawHasAiKey =
+			!!process.env.OPENAI_API_KEY ||
+			!!process.env.ANTHROPIC_AUTH_TOKEN ||
+			!!process.env.ANTHROPIC_API_KEY ||
+			!!process.env.AI_GATEWAY_API_KEY;
+		if (!existingEntityId && rawHasAiKey) {
+			try {
+				const match = await findEntityByAiMatch({
+					organizationId: input.organizationId,
+					subject: input.subject,
+					sender: input.sender,
+					senderEmail: input.senderEmail,
+					content: input.content,
+				});
+				if (match) {
+					existingEntityId = match.entityId;
+					mergedByAi = {
+						reasoning: match.reasoning,
+						matchedTitle: match.matchedTitle,
+						confidence: match.confidence,
+					};
+				}
+			} catch (err) {
+				console.warn(
+					"[processEmailRaw] AI entity match failed:",
+					err instanceof Error ? err.message : String(err),
+				);
+			}
+		}
+
 		const allParticipants = [
 			input.senderEmail,
 			...(input.toRecipients?.map((r) => r.address) ?? []),
@@ -625,10 +697,18 @@ export async function processEmailRaw(input: EmailInput): Promise<ProcessResult>
 				data: {
 					entityId: existingEntityId,
 					type: "email_received",
-					content: `Follow-up email from ${input.sender}: ${input.subject}`,
+					content: `Follow-up email from ${input.sender}: ${input.subject}${mergedByAi ? `（AI 识别为同一项目：${mergedByAi.reasoning}）` : ""}`,
 					metadata: JSON.stringify({
 						sender: input.senderEmail,
 						subject: input.subject,
+						...(mergedByAi
+							? {
+									mergeReason: "ai_semantic_match",
+									aiReasoning: mergedByAi.reasoning,
+									matchedTitle: mergedByAi.matchedTitle,
+									aiConfidence: mergedByAi.confidence,
+								}
+							: {}),
 					}),
 				},
 			});

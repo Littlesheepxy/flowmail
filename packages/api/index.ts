@@ -16,6 +16,19 @@ export {
 	getOrCreateInboundAddress,
 	resolveOrganizationByInboundAddress,
 } from "./modules/email-connections/lib/inbound-address";
+export {
+	ViewSpecSchema,
+	ViewBlockSchema,
+	VIEW_COMPONENT_DOCS,
+	type ViewSpec,
+	type ViewBlock,
+	type SummaryBlock,
+	type KpiCardsBlock,
+	type TodoListBlock,
+	type TimelineBlock,
+	type TableBlock,
+	type QuickActionsBlock,
+} from "./modules/entity-views/types";
 
 export const app = new Hono()
 	.basePath("/api")

@@ -42,6 +42,7 @@ model User {
   assignedEntities   FlowEntity[]    @relation("AssignedEntities")
   timelineActions    TimelineEvent[] @relation("TimelineActor")
   notifications      Notification[]  @relation("UserNotifications")
+  createdEntityViews EntityView[]    @relation("EntityViewCreator")
 
   @@unique([email])
   @@unique([username])
@@ -158,6 +159,7 @@ model Organization {
   notifications       Notification[]
   agentMemories       AgentMemory[]
   memoryObjects       MemoryObject[]
+  entityViews         EntityView[]
 
   @@unique([slug])
   @@map("organization")
@@ -350,6 +352,7 @@ model Category {
   sortOrder      Int          @default(0)
   isDefault      Boolean      @default(false)
   entities       FlowEntity[]
+  views          EntityView[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -424,6 +427,7 @@ model FlowEntity {
   timeline        TimelineEvent[]
   notifications   Notification[]
   tags            EntityTag[]
+  views           EntityView[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -433,6 +437,37 @@ model FlowEntity {
   @@index([organizationId, isFiltered])
   @@index([assigneeId])
   @@map("flow_entity")
+}
+
+// ─── Flowmail: Custom Entity / Category Views ───
+//
+// 让 Agent / 用户用「积木」拼出自定义视图（Tab）。
+// 数据契约：spec 是 JSON，结构 { blocks: [{ type, ...props }] }
+// 作用域：entityId 非空 = 单 entity 独享；categoryId 非空 = 该 category 下所有 entity 共享模板。
+// 二者至少一个非空（应用层校验）。
+
+model EntityView {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  entityId       String?
+  entity         FlowEntity?  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  categoryId     String?
+  category       Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title          String
+  icon           String       @default("LayoutDashboardIcon")
+  spec           String       @db.Text @default("{\"blocks\":[]}")
+  isPinned       Boolean      @default(false)
+  sortOrder      Int          @default(0)
+  createdById    String?
+  createdBy      User?        @relation("EntityViewCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([entityId])
+  @@index([categoryId])
+  @@map("entity_view")
 }
 
 // ─── Flowmail: Timeline Event ───

@@ -661,7 +661,7 @@ export function AgentPanel({
 	const { messages, sendMessage, status, setMessages, error, clearError, stop } = useChat({
 		transport,
 	});
-	const { pendingExecution, consumeExecution } = useAgent();
+	const { pendingExecution, consumeExecution, pendingPrompt, consumePrompt } = useAgent();
 	const chatHistory = useChatHistory();
 	const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -775,6 +775,17 @@ export function AgentPanel({
 
 		sendMessage({ text: instruction });
 	}, [pendingExecution, isLoading, consumeExecution, sendMessage]);
+
+	useEffect(() => {
+		if (!pendingPrompt || isLoading) {
+			return;
+		}
+		const t = consumePrompt();
+		if (!t) {
+			return;
+		}
+		sendMessage({ text: t.text });
+	}, [pendingPrompt, isLoading, consumePrompt, sendMessage]);
 
 	function handleSubmit(e: FormEvent) {
 		e.preventDefault();

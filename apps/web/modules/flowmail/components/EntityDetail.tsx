@@ -3,9 +3,13 @@
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { Spinner } from "@repo/ui";
 import { orpc } from "@shared/lib/orpc-query-utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAgent } from "./AgentProvider";
+import { ViewRenderer, aggregateAutoTodos, TodoListBlock } from "./view-blocks";
+import type { ViewBlock, ViewSpec } from "@repo/api";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -35,10 +39,13 @@ import {
 	ForwardIcon,
 	SparklesIcon,
 	Trash2Icon,
+	PlusIcon,
+	LayoutDashboardIcon,
+	CheckSquareIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { getEntityTypeBadgeStatus, getEntityTypeLabel, getStatusLabel } from "../lib/entity-type-config";
 import { EntityTimeline } from "./EntityTimeline";
@@ -429,7 +436,7 @@ export function EntityDetail() {
 
 				<div className="flex gap-2">
 					<Button
-						variant={entity.aiSummary ? "outline" : "default"}
+						variant={entity.aiSummary ? "outline" : "primary"}
 						disabled={enrichMutation.isPending}
 						onClick={() => enrichMutation.mutate({ entityId })}
 					>
@@ -496,116 +503,350 @@ export function EntityDetail() {
 				</div>
 			</div>
 
-			<div className="grid gap-6 lg:grid-cols-3">
-				{/* Main content — left 2/3 */}
-				<div className="space-y-6 lg:col-span-2">
-					{entity.aiSummary && (
-						<Card className="p-4">
-							<div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-								<BotIcon className="size-4" />
-								AI 摘要
-							</div>
-							<p className="text-sm leading-relaxed">{entity.aiSummary}</p>
-						</Card>
-					)}
+			<EntityTabs
+				entityId={entityId}
+				entity={entity}
+				fields={fields}
+				replyThreadId={replyThreadId}
+				replyMode={replyMode}
+				openReply={openReply}
+				handleSend={handleSend}
+				setReplyThreadId={setReplyThreadId}
+				isSending={sendMutation.isPending}
+			/>
+		</div>
+	);
+}
 
-					{Object.keys(fields).length > 0 && (
-						<Card className="p-4">
-							<h3 className="mb-3 text-sm font-medium text-muted-foreground">
-								提取字段
-							</h3>
-							<FieldGrid fields={fields} />
-						</Card>
-					)}
+// entity 来自 useQuery，复杂泛型推断不稳定，这里用 any 简化（仅 prop 传递用，渲染逻辑不依赖具体类型）
+type AnyEntity = any;
 
-					{/* Email threads */}
-					{entity.threads && entity.threads.length > 0 && (
-						<Card className="p-4">
-							<h3 className="mb-3 text-sm font-medium text-muted-foreground">
-								关联邮件（{entity.threads.length}）
-							</h3>
-							<div className="space-y-3">
-								{entity.threads.map((thread) => (
-									<div key={thread.id}>
-										<div className="flex items-start gap-3 rounded-md border p-3">
-											<MailIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-											<div className="flex-1 min-w-0">
-												<p className="text-sm font-medium truncate">{thread.subject}</p>
-												<p className="text-xs text-muted-foreground">
-													From: {thread.sender} &middot;{" "}
-													{new Date(thread.receivedAt).toLocaleString("zh-CN")}
-												</p>
-												{thread.snippet && (
-													<p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-														{thread.snippet}
+interface EntityTabsProps {
+	entityId: string;
+	entity: AnyEntity;
+	fields: Record<string, unknown>;
+	replyThreadId: string | null;
+	replyMode: ReplyMode;
+	openReply: (threadId: string, mode: ReplyMode) => void;
+	handleSend: (data: { mode: ReplyMode; html: string; text: string }) => Promise<void>;
+	setReplyThreadId: (id: string | null) => void;
+	isSending: boolean;
+}
+
+function EntityTabs(props: EntityTabsProps) {
+	const {
+		entityId,
+		entity,
+		fields,
+		replyThreadId,
+		replyMode,
+		openReply,
+		handleSend,
+		setReplyThreadId,
+		isSending,
+	} = props;
+
+	const queryClient = useQueryClient();
+	const { triggerAgentPrompt } = useAgent();
+
+	const { data: customViews = [] } = useQuery({
+		...orpc.entityViews.list.queryOptions({ input: { entityId } }),
+	});
+
+	const [activeTab, setActiveTab] = useState<string>("timeline");
+
+	const deleteViewMutation = useMutation(
+		orpc.entityViews.delete.mutationOptions({
+			onSuccess: () => {
+				queryClient.invalidateQueries({
+					queryKey: orpc.entityViews.list.key({ input: { entityId } }),
+				});
+				setActiveTab("timeline");
+				toast.success("已删除视图");
+			},
+			onError: (err) => {
+				toast.error(`删除失败：${err.message}`);
+			},
+		}),
+	);
+
+	const todoCount = useMemo(() => {
+		const items = aggregateAutoTodos({
+			id: entity.id,
+			extractedFields: entity.extractedFields as string | null,
+			timeline: entity.timeline ?? undefined,
+		});
+		return items.filter((i) => i.status !== "completed").length;
+	}, [entity]);
+
+	function handleNewView() {
+		triggerAgentPrompt({
+			text: `请为「${entity.title}」(ID: ${entityId}) 创建一个自定义视图。先调用 list_view_components 看看可用的积木类型，然后根据这个事项的特点（类别、邮件类型、当前阶段）拼出一个有用的视图，例如月度汇报视图、Todo 视图、关键指标视图等。完成后调用 create_view 工具保存。`,
+			entityId,
+		});
+	}
+
+	const timelineEvents = (entity.timeline ?? []).map((e: any) => ({
+		...e,
+		createdAt: e.createdAt.toString(),
+		actor: e.actor
+			? { id: e.actor.id, name: e.actor.name ?? "", image: e.actor.image }
+			: null,
+	}));
+
+	return (
+		<Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+			<TabsList className="w-full justify-start overflow-x-auto">
+				<TabsTrigger value="timeline" className="gap-1.5">
+					<ClockIcon className="size-3.5" />
+					时间线
+				</TabsTrigger>
+				<TabsTrigger value="todo" className="gap-1.5">
+					<CheckSquareIcon className="size-3.5" />
+					Todo
+					{todoCount > 0 && (
+						<span className="ml-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground leading-none">
+							{todoCount}
+						</span>
+					)}
+				</TabsTrigger>
+				{customViews.map((v) => (
+					<TabsTrigger key={v.id} value={v.id} className="gap-1.5">
+						<LayoutDashboardIcon className="size-3.5" />
+						{v.title}
+						{v.categoryId && !v.entityId && (
+							<span className="ml-1 text-[9px] text-muted-foreground uppercase">模板</span>
+						)}
+					</TabsTrigger>
+				))}
+				<button
+					type="button"
+					onClick={handleNewView}
+					className="-mb-0.5 inline-flex items-center justify-center whitespace-nowrap border-transparent border-b-2 px-3 py-2 font-medium text-foreground/40 text-sm hover:text-foreground/80 transition-colors"
+					title="让 Agent 创建自定义视图"
+				>
+					<PlusIcon className="size-3.5 mr-1" />
+					新视图
+				</button>
+			</TabsList>
+
+			<TabsContent value="timeline" className="mt-4">
+				<div className="grid gap-6 lg:grid-cols-3">
+					<div className="space-y-6 lg:col-span-2">
+						{entity.aiSummary && (
+							<Card className="p-4">
+								<div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+									<BotIcon className="size-4" />
+									AI 摘要
+								</div>
+								<p className="text-sm leading-relaxed">{entity.aiSummary}</p>
+							</Card>
+						)}
+
+						{Object.keys(fields).length > 0 && (
+							<Card className="p-4">
+								<h3 className="mb-3 text-sm font-medium text-muted-foreground">
+									提取字段
+								</h3>
+								<FieldGrid fields={fields} />
+							</Card>
+						)}
+
+						{entity.threads && entity.threads.length > 0 && (
+							<Card className="p-4">
+								<h3 className="mb-3 text-sm font-medium text-muted-foreground">
+									关联邮件（{entity.threads.length}）
+								</h3>
+								<div className="space-y-3">
+									{entity.threads.map((thread: any) => (
+										<div key={thread.id}>
+											<div className="flex items-start gap-3 rounded-md border p-3">
+												<MailIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+												<div className="flex-1 min-w-0">
+													<p className="text-sm font-medium truncate">{thread.subject}</p>
+													<p className="text-xs text-muted-foreground">
+														From: {thread.sender} &middot;{" "}
+														{new Date(thread.receivedAt).toLocaleString("zh-CN")}
 													</p>
-												)}
-												<div className="mt-2 flex items-center gap-1.5">
-													<Button
-														variant="secondary"
-														size="sm"
-														className="h-6 px-2 gap-1 text-xs"
-														onClick={() => openReply(thread.id, "reply")}
-													>
-														<ReplyIcon className="size-3" />
-														回复
-													</Button>
-													<Button
-														variant="secondary"
-														size="sm"
-														className="h-6 px-2 gap-1 text-xs"
-														onClick={() => openReply(thread.id, "forward")}
-													>
-														<ForwardIcon className="size-3" />
-														转发
-													</Button>
+													{thread.snippet && (
+														<p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+															{thread.snippet}
+														</p>
+													)}
+													<div className="mt-2 flex items-center gap-1.5">
+														<Button
+															variant="secondary"
+															size="sm"
+															className="h-6 px-2 gap-1 text-xs"
+															onClick={() => openReply(thread.id, "reply")}
+														>
+															<ReplyIcon className="size-3" />
+															回复
+														</Button>
+														<Button
+															variant="secondary"
+															size="sm"
+															className="h-6 px-2 gap-1 text-xs"
+															onClick={() => openReply(thread.id, "forward")}
+														>
+															<ForwardIcon className="size-3" />
+															转发
+														</Button>
+													</div>
 												</div>
 											</div>
+
+											{replyThreadId === thread.id && (
+												<div className="mt-2 rounded-md border overflow-hidden">
+													<ReplyComposer
+														senderName={thread.senderName ?? undefined}
+														senderEmail={thread.sender ?? ""}
+														subject={thread.subject ?? ""}
+														defaultMode={replyMode}
+														onSend={handleSend}
+														onClose={() => setReplyThreadId(null)}
+														isSending={isSending}
+													/>
+												</div>
+											)}
 										</div>
+									))}
+								</div>
+							</Card>
+						)}
 
-										{replyThreadId === thread.id && (
-											<div className="mt-2 rounded-md border overflow-hidden">
-												<ReplyComposer
-													senderName={thread.senderName ?? undefined}
-													senderEmail={thread.sender ?? ""}
-													subject={thread.subject ?? ""}
-													defaultMode={replyMode}
-													onSend={handleSend}
-													onClose={() => setReplyThreadId(null)}
-													isSending={sendMutation.isPending}
-												/>
-											</div>
-										)}
-									</div>
-								))}
-							</div>
+						<RiskPanel entityId={entityId} />
+					</div>
+
+					<div>
+						<Card className="p-4">
+							<EntityTimeline
+								entityId={entityId}
+								entityTitle={entity.title}
+								events={timelineEvents}
+								entityType={entity.type}
+								status={entity.status}
+								extractedFields={entity.extractedFields as string | null}
+							/>
 						</Card>
-					)}
-
-					{/* Risk prediction — expandable */}
-					<RiskPanel entityId={entityId} />
+					</div>
 				</div>
+			</TabsContent>
 
-				{/* Timeline sidebar — right 1/3 */}
-				<div>
-					<Card className="p-4">
-						<EntityTimeline
-							entityId={entityId}
-							entityTitle={entity.title}
-							events={(entity.timeline ?? []).map((e) => ({
-								...e,
-								createdAt: e.createdAt.toString(),
-								actor: e.actor
-									? { id: e.actor.id, name: e.actor.name ?? "", image: e.actor.image }
-									: null,
-							}))}
-							entityType={entity.type}
-							status={entity.status}
-							extractedFields={entity.extractedFields as string | null}
-						/>
-					</Card>
+			<TabsContent value="todo" className="mt-4">
+				<TodoListBlock
+					block={{
+						type: "todo_list",
+						title: "待办与阻塞（自动聚合）",
+						source: "auto",
+						groupBy: "status",
+					}}
+					entityId={entityId}
+					autoItems={aggregateAutoTodos({
+						id: entity.id,
+						extractedFields: entity.extractedFields as string | null,
+						timeline: entity.timeline ?? undefined,
+					})}
+				/>
+			</TabsContent>
+
+			{customViews.map((v) => (
+				<TabsContent key={v.id} value={v.id} className="mt-4">
+					<CustomViewTabContent
+						viewId={v.id}
+						viewTitle={v.title}
+						entityId={entityId}
+						entityTitle={entity.title}
+						entityForTodos={{
+							id: entity.id,
+							extractedFields: entity.extractedFields as string | null,
+							timeline: entity.timeline ?? undefined,
+						}}
+						onDelete={() => deleteViewMutation.mutate({ viewId: v.id })}
+						onEdit={() =>
+							triggerAgentPrompt({
+								text: `请修改事项「${entity.title}」(ID: ${entityId}) 的视图「${v.title}」(viewId: ${v.id})。先调用 get_view 看现有内容，再用 update_view 更新。`,
+								entityId,
+							})
+						}
+					/>
+				</TabsContent>
+			))}
+		</Tabs>
+	);
+}
+
+function CustomViewTabContent({
+	viewId,
+	viewTitle,
+	entityId,
+	entityTitle,
+	entityForTodos,
+	onDelete,
+	onEdit,
+}: {
+	viewId: string;
+	viewTitle: string;
+	entityId: string;
+	entityTitle: string;
+	entityForTodos: { id: string; extractedFields: string | null; timeline?: typeof undefined | { id: string; type: string; metadata: string | null; createdAt: string | Date }[] };
+	onDelete: () => void;
+	onEdit: () => void;
+}) {
+	const { data: view, isLoading } = useQuery({
+		...orpc.entityViews.get.queryOptions({ input: { viewId } }),
+	});
+
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center py-10">
+				<Spinner className="size-5" />
+			</div>
+		);
+	}
+	if (!view) {
+		return null;
+	}
+
+	const blocks = (view.spec as ViewSpec).blocks as ViewBlock[];
+
+	return (
+		<div className="space-y-3">
+			<div className="flex items-center justify-between">
+				<h3 className="text-sm font-semibold text-muted-foreground">{viewTitle}</h3>
+				<div className="flex gap-1">
+					<Button variant="ghost" size="sm" onClick={onEdit}>
+						<SparklesIcon className="size-3.5 mr-1" />
+						改视图
+					</Button>
+					<AlertDialog>
+						<AlertDialogTrigger asChild>
+							<Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+								<Trash2Icon className="size-3.5 mr-1" />
+								删除
+							</Button>
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>删除视图「{viewTitle}」？</AlertDialogTitle>
+								<AlertDialogDescription>
+									仅删除视图本身，不影响事项内容、邮件、时间线。
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>取消</AlertDialogCancel>
+								<AlertDialogAction onClick={onDelete}>删除</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</div>
 			</div>
+			<ViewRenderer
+				blocks={blocks}
+				entityId={entityId}
+				entityTitle={entityTitle}
+				entity={entityForTodos}
+			/>
 		</div>
 	);
 }

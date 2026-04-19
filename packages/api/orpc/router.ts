@@ -5,6 +5,7 @@ import { approvalsRouter } from "../modules/approvals/router";
 import { categoriesRouter } from "../modules/categories/router";
 import { contactRouter } from "../modules/contact/router";
 import { emailConnectionsRouter } from "../modules/email-connections/router";
+import { entityViewsRouter } from "../modules/entity-views/router";
 import { flowEntitiesRouter } from "../modules/flow-entities/router";
 import { memoryRouter } from "../modules/memory/router";
 import { newsletterRouter } from "../modules/newsletter/router";
@@ -24,6 +25,7 @@ export const router = publicProcedure.router({
 	users: usersRouter,
 	payments: paymentsRouter,
 	flowEntities: flowEntitiesRouter,
+	entityViews: entityViewsRouter,
 	memory: memoryRouter,
 	approvals: approvalsRouter,
 	emailConnections: emailConnectionsRouter,

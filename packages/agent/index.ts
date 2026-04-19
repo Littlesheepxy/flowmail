@@ -17,6 +17,7 @@ export {
 export { createSandboxTools } from "./tools/sandbox-tools";
 export { createReplyTools } from "./tools/reply-tools";
 export { createMemoryTools } from "./tools/memory-tools";
+export { createViewTools } from "./tools/view-tools";
 
 export {
 	MEMORY_CATEGORIES,
