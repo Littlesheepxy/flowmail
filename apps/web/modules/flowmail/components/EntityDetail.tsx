@@ -224,11 +224,21 @@ export function EntityDetail() {
 
 	const backPath = pathname.split("/").slice(0, -1).join("/");
 
-	const { data: entity, isLoading } = useQuery({
+	const {
+		data: entity,
+		isLoading,
+		isError,
+		error,
+		refetch,
+	} = useQuery({
 		...orpc.flowEntities.get.queryOptions({
 			input: { entityId },
 		}),
 		staleTime: 30_000,
+		// 部署/网络抖动时 fetch 可能被 abort，react-query 默认对 AbortError 不重试，
+		// 会把 isLoading 永远卡在 true（2026-04-19 用户「右侧无限转圈」事件）。
+		retry: (failureCount) => failureCount < 2,
+		retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
 	});
 
 	const approveMutation = useMutation(
@@ -409,8 +419,28 @@ export function EntityDetail() {
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center py-20">
+			<div className="flex flex-col items-center justify-center py-20 gap-3">
 				<Spinner className="size-6 text-primary" />
+				<button
+					type="button"
+					onClick={() => refetch()}
+					className="text-xs text-muted-foreground underline hover:text-foreground"
+				>
+					加载较慢，点此重试
+				</button>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="py-20 text-center space-y-3">
+				<div className="text-destructive text-sm">
+					加载失败：{error instanceof Error ? error.message : String(error)}
+				</div>
+				<Button variant="outline" size="sm" onClick={() => refetch()}>
+					重试
+				</Button>
 			</div>
 		);
 	}
