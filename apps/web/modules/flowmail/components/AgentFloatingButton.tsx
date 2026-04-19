@@ -5,6 +5,7 @@ import type { AiEyesPosition } from "@ai-eyes/react";
 import type { HelpSuggestion } from "@ai-eyes/core";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useActiveOrganization } from "@saas/organizations/hooks/use-active-organization";
 import { useAgent } from "./AgentProvider";
 import { AgentPanel } from "./AgentPanel";
 
@@ -51,6 +52,7 @@ export function AgentFloatingButton() {
 	const pathname = usePathname();
 	const { isFloatingOpen, toggleFloating, setIsFloatingOpen } = useAgent();
 	const { setMood } = useAiEyes();
+	const { activeOrganization } = useActiveOrganization();
 
 	const [eyePos, setEyePos] = useState<AiEyesPosition>({ x: 0, y: 0 });
 	const [panelPrefill, setPanelPrefill] = useState("");
@@ -226,7 +228,11 @@ export function AgentFloatingButton() {
 						top: panelPos.top,
 					}}
 				>
-					<AgentPanel entityId={null} initialMessage={panelPrefill || undefined} />
+					<AgentPanel
+						entityId={null}
+						organizationId={activeOrganization?.id}
+						initialMessage={panelPrefill || undefined}
+					/>
 				</div>
 			)}
 

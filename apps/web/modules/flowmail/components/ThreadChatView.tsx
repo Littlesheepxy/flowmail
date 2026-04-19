@@ -100,6 +100,7 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 			input: { entityId: entityId ?? "" },
 		}),
 		enabled: !!entityId,
+		staleTime: 30_000,
 	});
 	const [showComposer, setShowComposer] = useState(false);
 	const [composerMode, setComposerMode] = useState<ReplyMode>("reply");

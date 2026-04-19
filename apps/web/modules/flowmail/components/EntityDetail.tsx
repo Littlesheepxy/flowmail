@@ -228,7 +228,7 @@ export function EntityDetail() {
 		...orpc.flowEntities.get.queryOptions({
 			input: { entityId },
 		}),
-		refetchInterval: 5000,
+		staleTime: 30_000,
 	});
 
 	const approveMutation = useMutation(

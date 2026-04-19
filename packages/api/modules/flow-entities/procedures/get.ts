@@ -70,5 +70,26 @@ export const getEntity = protectedProcedure
 
 		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
-		return { ...entity, threads };
+		// Cap per-thread body size to keep first-paint payload small.
+		// Forwarded marketing emails frequently embed inline base64 images that
+		// blow up bodyHtml to several MB and slow the detail view dramatically.
+		// Clients can fetch full bodies on demand via emailThreads.getBody.
+		const BODY_SOFT_LIMIT = 80_000; // ~80KB per body field
+		const trimmedThreads = threads.map((t) => {
+			const htmlLen = t.bodyHtml?.length ?? 0;
+			const textLen = t.bodyText?.length ?? 0;
+			const htmlTruncated = htmlLen > BODY_SOFT_LIMIT;
+			const textTruncated = textLen > BODY_SOFT_LIMIT;
+			return {
+				...t,
+				bodyHtml: htmlTruncated && t.bodyHtml ? t.bodyHtml.slice(0, BODY_SOFT_LIMIT) : t.bodyHtml,
+				bodyText: textTruncated && t.bodyText ? t.bodyText.slice(0, BODY_SOFT_LIMIT) : t.bodyText,
+				bodyHtmlTruncated: htmlTruncated,
+				bodyTextTruncated: textTruncated,
+				bodyHtmlLength: htmlLen,
+				bodyTextLength: textLen,
+			};
+		});
+
+		return { ...entity, threads: trimmedThreads };
 	});

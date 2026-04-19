@@ -417,6 +417,7 @@ export function SmartInbox() {
 						<div className="flex-1 flex flex-col overflow-hidden min-w-0">
 							<AgentPanel
 								entityId={selectedEntityId}
+								organizationId={activeOrganization?.id}
 								onClose={() => setAgentManualToggle(false)}
 							/>
 						</div>
@@ -430,6 +431,7 @@ export function SmartInbox() {
 					<SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0 [&>.absolute]:hidden">
 						<AgentPanel
 							entityId={selectedEntityId}
+							organizationId={activeOrganization?.id}
 							onClose={() => setMobileAgentOpen(false)}
 						/>
 					</SheetContent>
