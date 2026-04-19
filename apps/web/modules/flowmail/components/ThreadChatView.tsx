@@ -106,6 +106,9 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 		}),
 		enabled: !!entityId,
 		staleTime: 30_000,
+		// AI 分析是 fire-and-forget 后台跑，10s 轮询让时间线/aiSummary 自动更新；
+		// 后续优化点：检测有 in-flight analyze 才轮询，否则停掉。
+		refetchInterval: 10_000,
 	});
 	const [showComposer, setShowComposer] = useState(false);
 	const [composerMode, setComposerMode] = useState<ReplyMode>("reply");
@@ -215,7 +218,7 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 			onSuccess: () => {
 				queryClient.invalidateQueries({
 					queryKey: orpc.flowEntities.get.key({
-						input: { entityId: entityId ?? "", includeBodies: true },
+						input: { entityId: entityId ?? "" },
 					}),
 				});
 				toast.success("AI 重新分析完成");
@@ -230,17 +233,16 @@ export function ThreadChatView({ entityId, onBack }: ThreadChatViewProps) {
 			onSuccess: (result) => {
 				queryClient.invalidateQueries({
 					queryKey: orpc.flowEntities.get.key({
-						input: { entityId: entityId ?? "", includeBodies: true },
+						input: { entityId: entityId ?? "" },
 					}),
 				});
-				if (typeof result?.analyzed === "number") {
-					toast.success(
-						`已分析 ${result.analyzed} 封邮件${
-							result.failures ? `（${result.failures} 封失败）` : ""
-						}`,
-					);
+				// pending_only/all/single 是 fire-and-forget，立即返回 started=true
+				if (result?.started) {
+					toast.success("AI 分析已启动，几十秒后自动刷新时间线");
+				} else if (result?.narrativeRefreshed) {
+					toast.success("整体摘要已刷新");
 				} else {
-					toast.success("AI 摘要已刷新");
+					toast.success("操作已完成");
 				}
 			},
 			onError: (err) => toast.error(`AI 分析失败：${err.message}`),

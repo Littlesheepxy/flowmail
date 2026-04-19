@@ -47,69 +47,69 @@ export const analyzeEmails = protectedProcedure
 
 		await requireOrgMembershipForResource(entity.organizationId, context.user.id);
 
-		let result: {
-			mode: string;
-			analyzed?: number;
-			total?: number;
-			skipped?: number;
-			failures?: number;
-			created?: boolean;
-			narrativeRefreshed?: boolean;
-			noteCount?: number;
-		} = { mode: input.mode };
-
+		// narrative 模式快（单次 LLM），同步返回结果。
 		if (input.mode === "narrative") {
 			const r = await regenerateEntityNarrative(input.entityId);
-			result = {
+			return {
 				mode: input.mode,
+				started: false,
 				narrativeRefreshed: r.updated,
 				noteCount: r.noteCount,
 			};
-			return result;
 		}
 
-		if (input.mode === "single") {
-			if (!input.threadId) {
-				throw new ORPCError("BAD_REQUEST", {
-					message: "single 模式必须传 threadId",
-				});
-			}
-			const r = await analyzeIndividualEmail({
-				entityId: input.entityId,
-				threadId: input.threadId,
-				force: true,
+		// pending_only / all / single：可能跑几十秒到 1-2 分钟（每封邮件一次 LLM），
+		// Cloudflare 100s 会切断，nginx 504，前端 oRPC 解析报 MALFORMED_ORPC_ERROR_RESPONSE。
+		// 改为 fire-and-forget：立即返回，后台跑。前端通过 entity.get 5s 轮询看到时间线增量。
+		const entityId = input.entityId;
+		const mode = input.mode;
+		const threadId = input.threadId;
+		const alsoRefreshNarrative = input.alsoRefreshNarrative;
+
+		if (mode === "single" && !threadId) {
+			throw new ORPCError("BAD_REQUEST", {
+				message: "single 模式必须传 threadId",
 			});
-			result = { mode: input.mode, created: r.created };
-		} else {
-			// pending_only / all
-			if (input.mode === "all") {
-				// 删除已有 ai_note，让它全部重跑
-				await db.timelineEvent.deleteMany({
-					where: { entityId: input.entityId, type: "email_ai_note" },
-				});
-			}
-			const r = await analyzeAllPendingEmails(input.entityId);
-			result = {
-				mode: input.mode,
-				analyzed: r.analyzed,
-				total: r.total,
-				skipped: r.skipped,
-				failures: r.failures,
-			};
 		}
 
-		if (input.alsoRefreshNarrative) {
+		// 启动后台任务（不 await）。错误只打日志，不影响 HTTP 响应。
+		void (async () => {
 			try {
-				const r = await regenerateEntityNarrative(input.entityId);
-				result.narrativeRefreshed = r.updated;
-				result.noteCount = r.noteCount;
+				if (mode === "single") {
+					await analyzeIndividualEmail({
+						entityId,
+						threadId: threadId as string,
+						force: true,
+					});
+				} else {
+					if (mode === "all") {
+						await db.timelineEvent.deleteMany({
+							where: { entityId, type: "email_ai_note" },
+						});
+					}
+					await analyzeAllPendingEmails(entityId);
+				}
+
+				if (alsoRefreshNarrative) {
+					try {
+						await regenerateEntityNarrative(entityId);
+					} catch (err) {
+						console.warn(
+							`[analyzeEmails] narrative refresh failed entity=${entityId}:`,
+							err instanceof Error ? err.message : String(err),
+						);
+					}
+				}
 			} catch (err) {
-				console.warn(
-					`[analyzeEmails] narrative refresh failed entity=${input.entityId}:`,
+				console.error(
+					`[analyzeEmails] background task failed entity=${entityId} mode=${mode}:`,
 					err instanceof Error ? err.message : String(err),
 				);
 			}
-		}
+		})();
 
-		return result;
+		return {
+			mode,
+			started: true,
+		};
 	});

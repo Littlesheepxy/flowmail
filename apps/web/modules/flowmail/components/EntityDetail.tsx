@@ -283,15 +283,11 @@ export function EntityDetail() {
 	// fire-and-forget，跑完静默刷新时间线，不打扰用户。
 	const backfillMutation = useMutation(
 		orpc.flowEntities.analyzeEmails.mutationOptions({
-			onSuccess: (result) => {
-				if (result?.analyzed && result.analyzed > 0) {
-					queryClient.invalidateQueries({
-						queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
-					});
-					toast.success(
-						`已补齐 ${result.analyzed} 封邮件的 AI 提炼${result.failures ? `（${result.failures} 封失败）` : ""}`,
-					);
-				}
+			// fire-and-forget：API 立即返回 started=true，时间线靠 entity get 自动刷新
+			onSuccess: () => {
+				queryClient.invalidateQueries({
+					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
+				});
 			},
 		}),
 	);
@@ -696,14 +692,13 @@ function EntityTabs(props: EntityTabsProps) {
 				queryClient.invalidateQueries({
 					queryKey: orpc.flowEntities.get.key({ input: { entityId } }),
 				});
-				const parts = [];
-				if (result?.analyzed) {
-					parts.push(`新增 ${result.analyzed} 条邮件提炼`);
+				if (result?.started) {
+					toast.success("AI 分析已启动，几十秒后自动刷新");
+				} else if (result?.narrativeRefreshed) {
+					toast.success("整体摘要已刷新");
+				} else {
+					toast.success("已完成");
 				}
-				if (result?.narrativeRefreshed) {
-					parts.push("叙事已刷新");
-				}
-				toast.success(parts.length > 0 ? parts.join("；") : "已完成");
 			},
 			onError: (err) => {
 				toast.error(`AI 提炼失败：${err.message}`);
