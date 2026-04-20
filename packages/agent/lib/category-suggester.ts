@@ -1,4 +1,4 @@
-import { fastModel, safeGenerateObject } from "@repo/ai";
+import { fastModel, safeGenerateObject, zArray, zNonNegInt } from "@repo/ai";
 import { z } from "zod";
 
 const SAMPLE_ICONS = [
@@ -38,13 +38,20 @@ export const SuggestedCategorySchema = z.object({
 	color: z.enum(SAMPLE_COLORS),
 	description: z.string().min(5).max(80),
 	aiPrompt: z.string().min(20).max(500),
-	matchedExamples: z.array(z.string().max(120)).max(5),
+	matchedExamples: zArray(z.string().transform((s) => s.slice(0, 120)), {
+		max: 5,
+		describe: "匹配示例（每条 <= 120 字）",
+	}),
 });
 
 export const CategorySuggestionSchema = z.object({
-	suggestions: z.array(SuggestedCategorySchema).min(2).max(6),
-	reasoning: z.string().max(400),
-	uncoveredCount: z.number().int().min(0),
+	suggestions: zArray(SuggestedCategorySchema, {
+		min: 2,
+		max: 6,
+		describe: "建议的新分类",
+	}),
+	reasoning: z.string().transform((s) => s.slice(0, 400)),
+	uncoveredCount: zNonNegInt(),
 });
 
 export type SuggestedCategory = z.infer<typeof SuggestedCategorySchema>;

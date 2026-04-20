@@ -1,5 +1,5 @@
 import { db } from "@repo/database";
-import { fastModel, safeGenerateObject } from "@repo/ai";
+import { fastModel, safeGenerateObject, zConfidence } from "@repo/ai";
 import { z } from "zod";
 
 /**
@@ -24,7 +24,7 @@ const MatchResultSchema = z.object({
 		.string()
 		.nullable()
 		.describe("命中的 entity id；若都不是同一项目则返回 null"),
-	confidence: z.number().min(0).max(1),
+	confidence: zConfidence(),
 	reasoning: z.string().transform((s) => s.slice(0, 300)),
 });
 

@@ -1,4 +1,4 @@
-import { tool, textModel, fastModel, safeGenerateObject } from "@repo/ai";
+import { tool, textModel, fastModel, safeGenerateObject, zArray, zConfidence } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
 
@@ -59,7 +59,7 @@ export function createAnalysisTools(deps?: {
 							daysRemaining: z.number().nullable(),
 							isAtRisk: z.boolean(),
 						}),
-						confidence: z.number().min(0).max(1),
+						confidence: zConfidence(),
 					}),
 					prompt: `请用简体中文分析以下事项的风险。所有文本字段（riskFactors, predictedOutcome, suggestedActions）必须使用中文。
 
@@ -148,7 +148,7 @@ ${eventsText}
 				"确认后再调用 batch_enrich 进行深度分析。每次最多处理 20 个。",
 			inputSchema: z.object({
 				organizationId: z.string().describe("组织 ID"),
-				entityIds: z.array(z.string()).min(1).max(20).describe("待分类的事项 ID 列表"),
+				entityIds: zArray(z.string(), { min: 1, max: 20, describe: "待分类的事项 ID 列表" }),
 			}),
 			execute: async (input: { organizationId: string; entityIds: string[] }) => {
 				if (!deps?.classifyEntityOnly) {

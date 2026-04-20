@@ -1,6 +1,71 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 
+// ── Bedrock 兼容性：从请求体里递归删除它拒绝的 JSON Schema 约束字段 ──
+//
+// 触发场景：
+//   "ValidationException: For 'number' type, properties maximum, minimum are not supported"
+//   "ValidationException: For 'array' type, 'minItems' values other than 0 or 1 are not supported"
+//
+// 我们走的是 Anthropic 协议，但底层路由到 AWS Bedrock 的 Claude。Bedrock 对 tool
+// inputSchema 和 Output.object 的 JSON Schema 限制比 Anthropic 原生 API 更严格。
+//
+// 策略：只删 LLM 用不到、Bedrock 又不接受的「数值范围/长度」约束，保留 type/required/
+// properties 等结构信息。这样 Bedrock 不会拒，LLM 不会迷惑，业务侧 zod 校验仍生效。
+const STRIPPED_KEYS = new Set([
+	"minimum",
+	"maximum",
+	"exclusiveMinimum",
+	"exclusiveMaximum",
+	"minItems",
+	"maxItems",
+	"minLength",
+	"maxLength",
+	"minProperties",
+	"maxProperties",
+	"multipleOf",
+]);
+
+function stripJsonSchemaConstraints(node: unknown): unknown {
+	if (!node || typeof node !== "object") return node;
+	if (Array.isArray(node)) {
+		for (const item of node) stripJsonSchemaConstraints(item);
+		return node;
+	}
+	const obj = node as Record<string, unknown>;
+	for (const key of Object.keys(obj)) {
+		if (STRIPPED_KEYS.has(key)) {
+			delete obj[key];
+		} else {
+			stripJsonSchemaConstraints(obj[key]);
+		}
+	}
+	return obj;
+}
+
+export function __test_sanitizeAnthropicBody(init: RequestInit | undefined): RequestInit | undefined {
+	return sanitizeAnthropicBody(init);
+}
+
+function sanitizeAnthropicBody(init: RequestInit | undefined): RequestInit | undefined {
+	if (!init?.body || typeof init.body !== "string") return undefined;
+	try {
+		const parsed = JSON.parse(init.body) as Record<string, unknown>;
+		// 只处理可能含 schema 的字段：tools[i].input_schema 和顶层 output_config（如有）
+		const tools = parsed.tools;
+		if (Array.isArray(tools)) {
+			for (const t of tools as Array<Record<string, unknown>>) {
+				if (t.input_schema) stripJsonSchemaConstraints(t.input_schema);
+			}
+		}
+		if (parsed.output_config) stripJsonSchemaConstraints(parsed.output_config);
+		// AI SDK 的 Output.object 也会以特殊 tool 形式塞进 tools，已被上面循环覆盖
+		return { ...init, body: JSON.stringify(parsed) };
+	} catch {
+		return undefined;
+	}
+}
+
 // ─── Provider 选择逻辑 ───
 //
 // 优先级：
@@ -70,7 +135,64 @@ function getProvider() {
 				// 某些 proxy 的 content_block_start/delta 从 index:1 开始而非 index:0，
 				// AI SDK 解析时找不到 slot 导致输出为空。通过 fetch wrapper 在响应流里重写。
 				fetch: async (url, init) => {
-					const response = await fetch(url, init);
+					// ── 上行 sanitize：剥掉 Bedrock 不接受的 schema 约束 ──
+					// AWS Bedrock 拒绝以下字段：
+					//   - number 上的 minimum/maximum
+					//   - array 上的 minItems（除了 0/1）和 maxItems
+					//   - 也观察到对 string 的 minLength/maxLength 不友好
+					// 这些字段在客户端 zod 仍生效（防呆），只是不传给 LLM/Bedrock。
+					// 比改 N 处业务 schema 更稳，覆盖所有 tool inputSchema + Output.object schema。
+					const effectiveInit = sanitizeAnthropicBody(init) ?? init;
+					// 代理偶发 422 / 5xx：自动重试最多 3 次，指数退避（800ms → 2s → 4s）
+					// 背景：yxai.anthropic.edu.pl 等代理在 tool calling + 较长 prompt 时
+					// 会反复 504 Gateway Time-out / 422 "Upstream request failed"。
+					// AI SDK 默认认为 422 不可重试；这里在 fetch 层兜底，对调用方透明。
+					const RETRYABLE = new Set([408, 422, 425, 429, 500, 502, 503, 504]);
+					const BACKOFFS_MS = [800, 2000, 4000];
+					let response = await fetch(url, effectiveInit);
+					let firstErrBody = "";
+					for (let attempt = 0; attempt < BACKOFFS_MS.length; attempt++) {
+						if (!RETRYABLE.has(response.status)) {
+							break;
+						}
+						const errBody = await response.clone().text().catch(() => "");
+						if (attempt === 0) firstErrBody = errBody;
+						const wait = BACKOFFS_MS[attempt];
+						console.warn(
+							`[anthropic-proxy] ${response.status} (attempt ${attempt + 1}/${BACKOFFS_MS.length + 1}), retrying after ${wait}ms. body=${errBody.slice(0, 160)}`,
+						);
+						await new Promise((r) => setTimeout(r, wait));
+						response = await fetch(url, effectiveInit);
+						if (response.ok) {
+							console.log(`[anthropic-proxy] retry attempt ${attempt + 1} succeeded`);
+							break;
+						}
+					}
+					if (!response.ok && RETRYABLE.has(response.status)) {
+						console.error(`[anthropic-proxy] all ${BACKOFFS_MS.length + 1} attempts failed with ${response.status}`);
+						// 422 Vertex schema 错误：dump request body 中的 tool_use 内容用于排查
+						if (response.status === 422 && firstErrBody.includes("tool_use.input") && effectiveInit?.body) {
+							try {
+								const bodyStr = typeof effectiveInit.body === "string" ? effectiveInit.body : "";
+								if (bodyStr) {
+									const parsed = JSON.parse(bodyStr);
+									const msgs = (parsed.messages ?? []) as Array<{ role: string; content: unknown }>;
+									msgs.forEach((m, i) => {
+										if (!Array.isArray(m.content)) return;
+										(m.content as Array<{ type: string; id?: string; name?: string; input?: unknown }>).forEach((c, j) => {
+											if (c.type === "tool_use") {
+												const inputType = typeof c.input;
+												const inputPreview = JSON.stringify(c.input).slice(0, 300);
+												console.error(`[anthropic-proxy] DUMP msg[${i}].content[${j}] tool_use name=${c.name} id=${c.id} inputType=${inputType} input=${inputPreview}`);
+											}
+										});
+									});
+								}
+							} catch (e) {
+								console.error(`[anthropic-proxy] DUMP failed: ${e instanceof Error ? e.message : String(e)}`);
+							}
+						}
+					}
 					const contentType = response.headers.get("content-type") ?? "";
 					if (!response.body || !contentType.includes("text/event-stream")) {
 						return response;

@@ -1,4 +1,4 @@
-import { fastModel, safeGenerateObject } from "@repo/ai";
+import { fastModel, safeGenerateObject, zConfidence } from "@repo/ai";
 import { z } from "zod";
 
 const SubProjectSchema = z.object({
@@ -14,7 +14,7 @@ export const MultiProjectDetectionSchema = z.object({
 	hasMultipleProjects: z
 		.boolean()
 		.describe("邮件正文/附件是否包含 2 个或以上明显独立的子项目/事项"),
-	confidence: z.number().min(0).max(1),
+	confidence: zConfidence(),
 	reasoning: z.string().describe("判断依据，1-2 句话"),
 	subProjects: z
 		.array(SubProjectSchema)

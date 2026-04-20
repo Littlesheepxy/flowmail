@@ -1,4 +1,4 @@
-import { fastModel, safeGenerateObject, tool } from "@repo/ai";
+import { fastModel, safeGenerateObject, tool, zArray, zConfidence } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
 
@@ -181,16 +181,13 @@ export function createEntityTools(deps: {
 				"向用户提问并提供可选选项。当 Agent 需要用户确认、选择分类、决定下一步操作等场景使用。必须提供 2-5 个选项让用户点选。",
 			inputSchema: z.object({
 				question: z.string().describe("要问用户的问题"),
-				options: z
-					.array(
-						z.object({
-							label: z.string().describe("选项显示文本"),
-							value: z.string().describe("选项值，用户选择后会作为回复发送"),
-						}),
-					)
-					.min(2)
-					.max(5)
-					.describe("供用户选择的选项列表"),
+				options: zArray(
+					z.object({
+						label: z.string().describe("选项显示文本"),
+						value: z.string().describe("选项值，用户选择后会作为回复发送"),
+					}),
+					{ min: 2, max: 5, describe: "供用户选择的选项列表" },
+				),
 				context: z.string().optional().describe("补充说明，帮助用户理解为什么需要选择"),
 			}),
 			execute: async (input: {
@@ -856,6 +853,10 @@ export function createEntityTools(deps: {
 				const cutoff = new Date(
 					Date.now() - lookbackDays * 24 * 60 * 60 * 1000,
 				);
+				const t0 = Date.now();
+				console.log(`[find_merge_candidates] start org=${input.organizationId} lookback=${lookbackDays}d max=${maxEntities}`);
+
+				try {
 
 				const entities = await db.flowEntity.findMany({
 					where: {
@@ -906,12 +907,10 @@ export function createEntityTools(deps: {
 					groups: z
 						.array(
 							z.object({
-								entityIds: z
-									.array(z.string())
-									.min(2)
-									.describe(
-										"应该被合并到一起的事项 id 列表（必须都在输入清单里）",
-									),
+								entityIds: zArray(z.string(), {
+									min: 2,
+									describe: "应该被合并到一起的事项 id 列表（必须都在输入清单里）",
+								}),
 								primaryEntityId: z
 									.string()
 									.describe(
@@ -921,7 +920,7 @@ export function createEntityTools(deps: {
 									.string()
 									.transform((s) => s.slice(0, 250))
 									.describe("为什么觉得这几个是同一件事（业务理由）"),
-								confidence: z.number().min(0).max(1),
+								confidence: zConfidence(),
 							}),
 						)
 						.transform((arr) => arr.slice(0, 10))
@@ -994,6 +993,7 @@ ${lines.join("\n\n")}
 						};
 					});
 
+				console.log(`[find_merge_candidates] done in ${Date.now() - t0}ms scanned=${entities.length} groups=${cleanGroups.length}`);
 				return {
 					scanned: entities.length,
 					lookbackDays,
@@ -1004,6 +1004,18 @@ ${lines.join("\n\n")}
 							? "AI 没找到明显的合并候选；如果你心里有具体目标，可以告诉我（比如「检查 Blue Sky 相关」）"
 							: `找到 ${cleanGroups.length} 组建议合并。请向用户展示后调用 ask_user 让其逐组确认，确认后用 merge_entities 一次只合一对（target=primaryEntityId, source=其他每个 id）。`,
 				};
+				} catch (err) {
+					const msg = err instanceof Error ? err.message : String(err);
+					const stack = err instanceof Error ? err.stack ?? "" : "";
+					console.error(`[find_merge_candidates] FAILED in ${Date.now() - t0}ms: ${msg}\n${stack.split("\n").slice(0, 5).join("\n")}`);
+					return {
+						ok: false,
+						error: msg.slice(0, 500),
+						scanned: 0,
+						groups: [],
+						hint: `合并候选扫描失败：${msg.slice(0, 200)}。可以稍后重试，或缩小范围（比如 lookbackDays=14, maxEntities=20）。`,
+					};
+				}
 			},
 		}),
 
@@ -1108,7 +1120,7 @@ ${lines.join("\n\n")}
 						.array(
 							z.object({
 								entityId: z.string(),
-								confidence: z.number().min(0).max(1),
+								confidence: zConfidence(),
 								reason: z.string().transform((s) => s.slice(0, 200)),
 							}),
 						)
@@ -1177,12 +1189,14 @@ ${lines.join("\n\n")}
 					.describe("pending_only 只补缺；all 强制全部重跑（仅第一次调用时生效，会删除已有 ai_note）"),
 				batchSize: z
 					.number()
-					.int()
-					.min(1)
-					.max(10)
 					.optional()
 					.default(3)
-					.describe("本次调用最多分析多少封，默认 3"),
+					.transform((n) => {
+						if (n === undefined) return 3;
+						const v = Math.round(n);
+						return Math.max(1, Math.min(10, Number.isFinite(v) ? v : 3));
+					})
+					.describe("本次调用最多分析多少封（1-10 之间整数），默认 3"),
 				alsoRefreshNarrative: z
 					.boolean()
 					.default(false)
@@ -1271,7 +1285,7 @@ ${lines.join("\n\n")}
 				"批量对未经 AI 分析的事项执行 AI 分类和摘要。先用 list_entities(unanalyzed=true) 获取待分析列表，再调用本工具传入 entityId 数组。每次最多处理 10 个。",
 			inputSchema: z.object({
 				organizationId: z.string().describe("组织 ID"),
-				entityIds: z.array(z.string()).min(1).max(10).describe("待分析的事项 ID 列表，最多 10 个"),
+				entityIds: zArray(z.string(), { min: 1, max: 10, describe: "待分析的事项 ID 列表，最多 10 个" }),
 			}),
 			execute: async (input: { organizationId: string; entityIds: string[] }) => {
 				if (!deps.enrichEntityById) {

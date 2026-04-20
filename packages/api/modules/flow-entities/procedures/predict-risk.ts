@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/client";
 import { db } from "@repo/database";
-import { textModel, safeGenerateObject } from "@repo/ai";
+import { textModel, safeGenerateObject, zConfidence } from "@repo/ai";
 import { z } from "zod";
 import { requireOrgMembershipForResource } from "../../../lib/require-org-membership";
 import { protectedProcedure } from "../../../orpc/procedures";
@@ -20,7 +20,7 @@ const riskPredictionSchema = z.object({
 		daysRemaining: z.number().nullable(),
 		isAtRisk: z.boolean(),
 	}),
-	confidence: z.number().min(0).max(1),
+	confidence: zConfidence(),
 });
 
 export const predictEntityRisk = protectedProcedure

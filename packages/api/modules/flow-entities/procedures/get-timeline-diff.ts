@@ -20,7 +20,11 @@ const diffResultSchema = z.object({
 		significance: z.enum(["low", "medium", "high", "critical"]),
 	})),
 	riskSignals: z.array(z.string()).describe("Risk signals detected between versions"),
-	progressDelta: z.number().min(-100).max(100).nullable().describe("Progress change as percentage, null if not applicable"),
+	progressDelta: z
+		.number()
+		.nullable()
+		.transform((n) => (n === null || !Number.isFinite(n) ? null : Math.max(-100, Math.min(100, n))))
+		.describe("Progress change as percentage in [-100,100], null if not applicable"),
 	recommendation: z.string().nullable().describe("AI recommendation based on changes"),
 });
 

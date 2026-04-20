@@ -1,5 +1,62 @@
-import type { z } from "zod";
+import { z } from "zod";
 import { generateText, Output } from "ai";
+
+/**
+ * 0~1 之间的置信度，**不带 min/max 约束**。
+ *
+ * 为什么不直接用 z.number().min(0).max(1)：
+ * 当 schema 通过 Output.object/tool-calling 传给 AWS Bedrock 时，会被序列化成
+ * JSON Schema { type: "number", minimum: 0, maximum: 1 } —— Bedrock 拒绝
+ * "For 'number' type, properties maximum, minimum are not supported"。
+ * 用 transform 在客户端 clamp，保留运行期保护，绕开 schema 限制。
+ */
+export const zConfidence = (description = "0~1 之间的置信度") =>
+	z
+		.number()
+		.transform((n) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0)))
+		.describe(description);
+
+/**
+ * 整数计数（≥0），不带 min/max 约束（同 zConfidence 的理由）。
+ */
+export const zNonNegInt = (description?: string) => {
+	const base = z
+		.number()
+		.transform((n) => Math.max(0, Math.floor(Number.isFinite(n) ? n : 0)));
+	return description ? base.describe(description) : base;
+};
+
+/**
+ * 数组（带数量约束），但不会把 minItems/maxItems 写进 JSON Schema。
+ *
+ * Bedrock 限制：array 的 minItems 只允许 0/1，maxItems 任意值都不接受。
+ *   `For 'array' type, 'minItems' values other than 0 or 1 are not supported`
+ *
+ * 解决方式：用 transform 在客户端做截断（max）和填充检查（min 改成 describe 提示），
+ * 然后用 describe 把数量要求写进 prompt 给 LLM 看到。
+ *
+ * 用法：
+ *   zArray(z.string(), { min: 2, max: 5, describe: "选项列表" })
+ */
+export const zArray = <T extends z.ZodType>(
+	item: T,
+	opts: { min?: number; max?: number; describe?: string } = {},
+) => {
+	const { min, max, describe } = opts;
+	const hint = [
+		min !== undefined ? `至少 ${min} 项` : null,
+		max !== undefined ? `最多 ${max} 项` : null,
+	]
+		.filter(Boolean)
+		.join("，");
+	const fullDesc = [describe, hint].filter(Boolean).join("（") + (hint ? "）" : "");
+	const base = z
+		.array(item)
+		.transform((arr) =>
+			max !== undefined && arr.length > max ? arr.slice(0, max) : arr,
+		);
+	return fullDesc ? base.describe(fullDesc) : base;
+};
 
 /**
  * Wraps generateText + Output.object with a fallback for providers/proxies
@@ -10,12 +67,20 @@ import { generateText, Output } from "ai";
  * 2. On failure, retry with explicit JSON instructions in the prompt
  *    and parse the text response manually with zod validation
  */
+// 默认走 Output.object（tool-calling 结构化输出），最稳。
+// 如果代理不支持 tool-calling（实测某些代理会持续 422 / "No object generated"），
+// 设 AI_SKIP_OUTPUT_OBJECT=1 直接走 prompt-based，省掉每次失败的 10-40s。
+const SKIP_OUTPUT_OBJECT = process.env.AI_SKIP_OUTPUT_OBJECT === "1";
+
 export async function safeGenerateObject<T extends z.ZodType>(options: {
 	model: Parameters<typeof generateText>[0]["model"];
 	schema: T;
 	prompt: string;
 	system?: string;
 }): Promise<z.infer<T>> {
+	if (SKIP_OUTPUT_OBJECT) {
+		return generatePromptBasedJson(options);
+	}
 	try {
 		const { output } = await generateText({
 			model: options.model,
@@ -50,55 +115,64 @@ export async function safeGenerateObject<T extends z.ZodType>(options: {
 			message.slice(0, 120),
 		);
 
-		const schemaExample = schemaToExample(options.schema);
-		const jsonPrompt = `${options.prompt}
+		return generatePromptBasedJson(options);
+	}
+}
+
+async function generatePromptBasedJson<T extends z.ZodType>(options: {
+	model: Parameters<typeof generateText>[0]["model"];
+	schema: T;
+	prompt: string;
+	system?: string;
+}): Promise<z.infer<T>> {
+	const schemaExample = schemaToExample(options.schema);
+	const jsonPrompt = `${options.prompt}
 
 CRITICAL INSTRUCTION: You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no explanation, no extra text — ONLY the raw JSON object.
 
 You MUST follow this EXACT JSON structure (use the same field names and types):
 ${schemaExample}`;
 
-		const { text } = await generateText({
-			model: options.model,
-			prompt: jsonPrompt,
-			system: options.system,
-		});
+	const { text } = await generateText({
+		model: options.model,
+		prompt: jsonPrompt,
+		system: options.system,
+	});
 
-		const parsed = extractJson(text);
-		const result = options.schema.safeParse(parsed);
-		if (result.success) {
-			return result.data;
-		}
-
-		console.warn("[AI] Strict parse failed, attempting coercion:", result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
-		const coerced = coerceToSchema(parsed as Record<string, unknown>, options.schema);
-		const coercedResult = options.schema.safeParse(coerced);
-		if (coercedResult.success) {
-			return coercedResult.data;
-		}
-
-		// Coercion 仍失败：用 schema 默认骨架填充缺失字段，最后再尝试 parse。
-		// 宁可拿到字段为空的结果，也比让整个 enrich 流程 500 强。
-		console.warn(
-			"[AI] Coercion still failed, attempting default-skeleton fill:",
-			coercedResult.error.issues
-				.map((i) => `${i.path.join(".")}: ${i.message}`)
-				.join("; "),
-		);
-		const skeleton = buildDefaultObject(options.schema);
-		const merged = { ...skeleton, ...(coerced as Record<string, unknown>) };
-		// 把 skeleton 里缺的字段（coerce 后 array 是 string 之类）再 coerce 一遍
-		const finalCoerced = coerceToSchema(merged, options.schema);
-		const finalResult = options.schema.safeParse(finalCoerced);
-		if (finalResult.success) {
-			return finalResult.data;
-		}
-		throw new Error(
-			`AI output parse failed after coercion + skeleton fill: ${finalResult.error.issues
-				.map((i) => `${i.path.join(".")}: ${i.message}`)
-				.join("; ")}`,
-		);
+	const parsed = extractJson(text);
+	const result = options.schema.safeParse(parsed);
+	if (result.success) {
+		return result.data;
 	}
+
+	console.warn(
+		"[AI] Strict parse failed, attempting coercion:",
+		result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+	);
+	const coerced = coerceToSchema(parsed as Record<string, unknown>, options.schema);
+	const coercedResult = options.schema.safeParse(coerced);
+	if (coercedResult.success) {
+		return coercedResult.data;
+	}
+
+	console.warn(
+		"[AI] Coercion still failed, attempting default-skeleton fill:",
+		coercedResult.error.issues
+			.map((i) => `${i.path.join(".")}: ${i.message}`)
+			.join("; "),
+	);
+	const skeleton = buildDefaultObject(options.schema);
+	const merged = { ...skeleton, ...(coerced as Record<string, unknown>) };
+	const finalCoerced = coerceToSchema(merged, options.schema);
+	const finalResult = options.schema.safeParse(finalCoerced);
+	if (finalResult.success) {
+		return finalResult.data;
+	}
+	throw new Error(
+		`AI output parse failed after coercion + skeleton fill: ${finalResult.error.issues
+			.map((i) => `${i.path.join(".")}: ${i.message}`)
+			.join("; ")}`,
+	);
 }
 
 function extractJson(text: string): unknown {

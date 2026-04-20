@@ -12,7 +12,7 @@
  * UI 在 EntityTimeline.tsx 通过 metadata.threadId 锚定到对应邮件节点展示。
  */
 
-import { fastModel, generateText, safeGenerateObject, textModel } from "@repo/ai";
+import { fastModel, generateText, safeGenerateObject, textModel, zArray } from "@repo/ai";
 import { db } from "@repo/database";
 import { z } from "zod";
 // 注意：本模块走"per-email 关键路径"，附件只读已落库的 extractedText，
@@ -28,17 +28,17 @@ export const EmailAiNoteSchema = z.object({
 		.string()
 		.describe("1 行短描述，<= 40 字。突出本封邮件最重要的信息（语言跟邮件一致）"),
 
-	keyPoints: z
-		.array(z.string())
-		.max(6)
-		.describe("本封邮件的要点 3-5 条，每条 <= 40 字"),
+	keyPoints: zArray(z.string(), {
+		max: 6,
+		describe: "本封邮件的要点 3-5 条，每条 <= 40 字",
+	}),
 
 	namedEntities: z
 		.object({
-			people: z.array(z.string()).max(8).describe("提到的人名"),
-			orgs: z.array(z.string()).max(8).describe("提到的机构/项目名"),
-			money: z.array(z.string()).max(8).describe("提到的金额/数字（带单位）"),
-			dates: z.array(z.string()).max(8).describe("提到的日期/截止时间"),
+			people: zArray(z.string(), { max: 8, describe: "提到的人名" }),
+			orgs: zArray(z.string(), { max: 8, describe: "提到的机构/项目名" }),
+			money: zArray(z.string(), { max: 8, describe: "提到的金额/数字（带单位）" }),
+			dates: zArray(z.string(), { max: 8, describe: "提到的日期/截止时间" }),
 		})
 		.describe("结构化实体抽取，字段没有就填空数组"),
 
@@ -61,34 +61,31 @@ export const EmailAiNoteSchema = z.object({
 				.describe(
 					"相比上封邮件的变化简述。如果是 first_email 就写「该事项首封邮件」",
 				),
-			newFacts: z
-				.array(z.string())
-				.max(5)
-				.describe("本封新出现的事实，每条 <= 40 字"),
-			changedFacts: z
-				.array(
-					z.object({
-						fact: z.string(),
-						from: z.string(),
-						to: z.string(),
-					}),
-				)
-				.max(5)
-				.describe("已知事实的变更（如：金额从 X 改为 Y）"),
+			newFacts: zArray(z.string(), {
+				max: 5,
+				describe: "本封新出现的事实，每条 <= 40 字",
+			}),
+			changedFacts: zArray(
+				z.object({
+					fact: z.string(),
+					from: z.string(),
+					to: z.string(),
+				}),
+				{ max: 5, describe: "已知事实的变更（如：金额从 X 改为 Y）" },
+			),
 		})
 		.describe("Delta 是核心字段，叙事价值最大"),
 
 	actionability: z
 		.object({
 			hasDecisionPoint: z.boolean().describe("是否需要某个决策"),
-			suggestedActions: z
-				.array(
-					z.object({
-						label: z.string().describe("行动短描述，<= 30 字"),
-						why: z.string().describe("为什么建议，<= 40 字"),
-					}),
-				)
-				.max(4),
+			suggestedActions: zArray(
+				z.object({
+					label: z.string().describe("行动短描述，<= 30 字"),
+					why: z.string().describe("为什么建议，<= 40 字"),
+				}),
+				{ max: 4 },
+			),
 			mentionsDeadline: z
 				.string()
 				.nullable()
@@ -98,10 +95,13 @@ export const EmailAiNoteSchema = z.object({
 
 	importance: z
 		.number()
-		.int()
-		.min(1)
-		.max(5)
-		.describe("重要性 1-5。参考标准：5=阻塞/重大决策；4=关键状态变化；3=普通进展；2=补充说明；1=寒暄/客套"),
+		.transform((n) => {
+			const v = Math.round(Number.isFinite(n) ? n : 3);
+			return Math.max(1, Math.min(5, v));
+		})
+		.describe(
+			"重要性 1-5 整数。参考标准：5=阻塞/重大决策；4=关键状态变化；3=普通进展；2=补充说明；1=寒暄/客套",
+		),
 
 	sentiment: z
 		.enum(["positive", "neutral", "concern", "blocker"])
