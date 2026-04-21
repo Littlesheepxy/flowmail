@@ -184,7 +184,8 @@
 			"title": "Create an account",
 			"inviteCode": "Invite code",
 			"inviteCodePlaceholder": "Enter your invite code",
-			"inviteCodeRequired": "Invite code is required."
+			"inviteCodeRequired": "Invite code is required.",
+			"passwordTooShort": "Password must be at least 8 characters."
 		},
 		"verify": {
 			"title": "Verify your account",

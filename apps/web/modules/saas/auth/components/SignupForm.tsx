@@ -59,7 +59,9 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 			z.object({
 					name: z.string().min(1),
 					email: z.string().email(),
-					password: z.string(),
+					password: z
+						.string()
+						.min(8, t("auth.signup.passwordTooShort")),
 					inviteCode: requireInviteField
 						? z
 								.string()
@@ -259,49 +261,49 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 								)}
 							/>
 
-							{authConfig.enablePasswordLogin && (
-								<FormField
-									control={form.control}
-									name="password"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>
-												{t("auth.signup.password")}
-											</FormLabel>
-											<FormControl>
-												<div className="relative">
-													<Input
-														type={
-															showPassword
-																? "text"
-																: "password"
-														}
-														className="pr-10"
-														{...field}
-														autoComplete="new-password"
-													/>
-													<button
-														type="button"
-														onClick={() =>
-															setShowPassword(
-																!showPassword,
-															)
-														}
-														className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary text-xl"
-													>
-														{showPassword ? (
-															<EyeOffIcon className="size-4" />
-														) : (
-															<EyeIcon className="size-4" />
-														)}
-													</button>
-												</div>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							)}
+							{/* 注册始终需要密码字段：better-auth emailAndPassword.enabled=true。
+							    enablePasswordLogin 只控制登录页的密码入口，不影响注册。 */}
+							<FormField
+								control={form.control}
+								name="password"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											{t("auth.signup.password")}
+										</FormLabel>
+										<FormControl>
+											<div className="relative">
+												<Input
+													type={
+														showPassword
+															? "text"
+															: "password"
+													}
+													className="pr-10"
+													{...field}
+													autoComplete="new-password"
+												/>
+												<button
+													type="button"
+													onClick={() =>
+														setShowPassword(
+															!showPassword,
+														)
+													}
+													className="absolute inset-y-0 right-0 flex items-center pr-4 text-primary text-xl"
+												>
+													{showPassword ? (
+														<EyeOffIcon className="size-4" />
+													) : (
+														<EyeIcon className="size-4" />
+													)}
+												</button>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 
 							<Button
 								variant="primary"

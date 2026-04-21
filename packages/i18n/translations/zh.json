@@ -94,7 +94,8 @@
 			"signIn": "登录",
 			"inviteCode": "邀请码",
 			"inviteCodePlaceholder": "请输入邀请码",
-			"inviteCodeRequired": "请填写邀请码。"
+			"inviteCodeRequired": "请填写邀请码。",
+			"passwordTooShort": "密码至少 8 位。"
 		},
 		"forgotPassword": {
 			"title": "忘记密码？",
