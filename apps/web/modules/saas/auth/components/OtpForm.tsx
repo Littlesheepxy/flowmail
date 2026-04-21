@@ -18,7 +18,7 @@ import {
 	InputOTPSeparator,
 	InputOTPSlot,
 } from "@repo/ui/components/input-otp";
-import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
+import { extractAuthErrorCode, useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { useRouter } from "@shared/hooks/router";
 import { AlertTriangleIcon, ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
@@ -65,11 +65,7 @@ export function OtpForm() {
 			router.replace(redirectPath);
 		} catch (e) {
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message: getAuthErrorMessage(extractAuthErrorCode(e)),
 			});
 		}
 	});

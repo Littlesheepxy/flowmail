@@ -65,7 +65,8 @@
 			"invalidInviteCode": "邀请码无效或未填写。如需开通请联系我们。",
 			"sessionExpired": "会话已过期。",
 			"failedToUnlinkLastAccount": "无法解绑最后一个账号。",
-			"accountNotFound": "未找到账号。"
+			"accountNotFound": "未找到账号。",
+			"tooManyRequests": "操作过于频繁，请稍后再试。"
 		},
 		"login": {
 			"title": "欢迎回来",

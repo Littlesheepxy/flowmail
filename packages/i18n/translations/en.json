@@ -120,7 +120,8 @@
 			"invalidInviteCode": "Invalid or missing invite code. Contact us if you need access.",
 			"sessionExpired": "The session has expired.",
 			"failedToUnlinkLastAccount": "Failed to unlink account",
-			"accountNotFound": "Account not found"
+			"accountNotFound": "Account not found",
+			"tooManyRequests": "Too many attempts. Please wait and try again."
 		},
 		"forgotPassword": {
 			"backToSignin": "Back to signin",

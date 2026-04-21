@@ -13,7 +13,7 @@ import {
 	FormLabel,
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
-import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
+import { extractAuthErrorCode, useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { sessionQueryKey } from "@saas/auth/lib/api";
 import { OrganizationInvitationAlert } from "@saas/organizations/components/OrganizationInvitationAlert";
 import { useRouter } from "@shared/hooks/router";
@@ -135,11 +135,7 @@ export function LoginForm() {
 			}
 		} catch (e) {
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message: getAuthErrorMessage(extractAuthErrorCode(e)),
 			});
 		}
 	});
@@ -151,11 +147,7 @@ export function LoginForm() {
 			router.replace(redirectPath);
 		} catch (e) {
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message: getAuthErrorMessage(extractAuthErrorCode(e)),
 			});
 		}
 	};

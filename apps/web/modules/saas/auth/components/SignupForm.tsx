@@ -14,7 +14,7 @@ import {
 	FormMessage,
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
-import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
+import { extractAuthErrorCode, useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { OrganizationInvitationAlert } from "@saas/organizations/components/OrganizationInvitationAlert";
 import {
 	AlertTriangleIcon,
@@ -154,12 +154,9 @@ export function SignupForm({ prefillEmail }: { prefillEmail?: string }) {
 			// 注册成功后 better-auth 会发验证邮件，session 不会立即建立。
 			// isSubmitSuccessful 会触发成功 Alert，无需手动跳转。
 		} catch (e) {
+			const code = extractAuthErrorCode(e);
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message: getAuthErrorMessage(code),
 			});
 		}
 		},

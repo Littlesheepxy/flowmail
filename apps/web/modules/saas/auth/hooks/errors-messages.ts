@@ -1,6 +1,63 @@
 import type { AuthClientErrorCodes } from "@repo/auth/client";
 import { useTranslations } from "next-intl";
 
+/**
+ * better-auth 的 client 错误对象有多种形状：
+ * - throw 出来的 APIError：{ code, message, status }
+ * - fetch 层包装：{ error: { code, message, status } }
+ * - 旧 / BetterFetchError：{ status, statusText, message }
+ * - 有时直接给 { message: "Password too short" } 而无 code
+ *
+ * 从任意一种里把 ERROR_CODE（全大写下划线）提取出来；拿不到就回退到
+ * 从 message 文本推断（最后兜底，避免前端只显示 "unknown"）。
+ */
+export function extractAuthErrorCode(err: unknown): string | undefined {
+	if (!err || typeof err !== "object") {
+		return undefined;
+	}
+	const obj = err as Record<string, unknown>;
+	if (typeof obj.code === "string" && obj.code) {
+		return obj.code;
+	}
+	if (obj.error && typeof obj.error === "object") {
+		const ec = (obj.error as Record<string, unknown>).code;
+		if (typeof ec === "string" && ec) {
+			return ec;
+		}
+	}
+	const innerMsg =
+		obj.error &&
+		typeof obj.error === "object" &&
+		typeof (obj.error as Record<string, unknown>).message === "string"
+			? ((obj.error as Record<string, unknown>).message as string)
+			: "";
+	const msg = [typeof obj.message === "string" ? obj.message : "", innerMsg]
+		.join(" ")
+		.toLowerCase();
+	if (!msg) {
+		return undefined;
+	}
+	if (msg.includes("password") && msg.includes("short")) {
+		return "PASSWORD_TOO_SHORT";
+	}
+	if (msg.includes("password") && msg.includes("long")) {
+		return "PASSWORD_TOO_LONG";
+	}
+	if (msg.includes("already exists") || msg.includes("already registered")) {
+		return "USER_ALREADY_EXISTS";
+	}
+	if (msg.includes("invalid email")) {
+		return "INVALID_EMAIL";
+	}
+	if (msg.includes("invalid") && msg.includes("invite")) {
+		return "INVALID_INVITE_CODE";
+	}
+	if (msg.includes("too many requests")) {
+		return "TOO_MANY_REQUESTS";
+	}
+	return undefined;
+}
+
 export function useAuthErrorMessages() {
 	const t = useTranslations();
 
@@ -41,7 +98,9 @@ export function useAuthErrorMessages() {
 			"auth.errors.failedToUnlinkLastAccount",
 		),
 		ACCOUNT_NOT_FOUND: t("auth.errors.accountNotFound"),
-	};
+		// 非 better-auth 官方 code，我们自己兜底识别出来的
+		TOO_MANY_REQUESTS: t("auth.errors.tooManyRequests"),
+	} as Record<string, string>;
 
 	const getAuthErrorMessage = (errorCode: string | undefined) => {
 		return (

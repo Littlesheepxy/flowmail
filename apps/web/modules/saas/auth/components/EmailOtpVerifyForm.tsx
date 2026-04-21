@@ -17,7 +17,7 @@ import {
 	InputOTPSeparator,
 	InputOTPSlot,
 } from "@repo/ui/components/input-otp";
-import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
+import { extractAuthErrorCode, useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { sessionQueryKey } from "@saas/auth/lib/api";
 import { useRouter } from "@shared/hooks/router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -74,11 +74,7 @@ export function EmailOtpVerifyForm() {
 			router.replace(redirectPath);
 		} catch (e) {
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message: getAuthErrorMessage(extractAuthErrorCode(e)),
 			});
 		}
 	});
@@ -106,11 +102,7 @@ export function EmailOtpVerifyForm() {
 			}, 1000);
 		} catch (e) {
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message: getAuthErrorMessage(extractAuthErrorCode(e)),
 			});
 		}
 	};

@@ -13,7 +13,7 @@ import {
 	FormMessage,
 } from "@repo/ui/components/form";
 import { PasswordInput } from "@repo/ui/components/password-input";
-import { useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
+import { extractAuthErrorCode, useAuthErrorMessages } from "@saas/auth/hooks/errors-messages";
 import { useSession } from "@saas/auth/hooks/use-session";
 import { useRouter } from "@shared/hooks/router";
 import { AlertTriangleIcon, ArrowLeftIcon, MailboxIcon } from "lucide-react";
@@ -59,11 +59,7 @@ export function ResetPasswordForm() {
 			}
 		} catch (e) {
 			form.setError("root", {
-				message: getAuthErrorMessage(
-					e && typeof e === "object" && "code" in e
-						? (e.code as string)
-						: undefined,
-				),
+				message: getAuthErrorMessage(extractAuthErrorCode(e)),
 			});
 		}
 	});
