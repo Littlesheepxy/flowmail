@@ -1,14 +1,14 @@
 {
 	"dependencies": {
-		"@better-auth/passkey": "1.4.7",
+		"@better-auth/passkey": "1.7.7",
 		"@repo/database": "workspace:*",
 		"@repo/i18n": "workspace:*",
 		"@repo/logs": "workspace:*",
 		"@repo/mail": "workspace:*",
 		"@repo/payments": "workspace:*",
 		"@repo/utils": "workspace:*",
-		"better-auth": "1.4.7",
-		"cookie": "^1.0.2"
+		"better-auth": "1.7.7",
+		"cookie": "^2.0.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.13",

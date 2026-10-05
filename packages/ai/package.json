@@ -1,17 +1,17 @@
 {
 	"dependencies": {
-		"@ai-sdk/anthropic": "^3.0.0",
-		"@ai-sdk/mcp": "^1.0.0",
-		"@ai-sdk/openai": "^3.0.0",
-		"@ai-sdk/react": "^3.0.0",
-		"ai": "^6.0.0",
-		"openai": "^6.9.0",
-		"zod": "^4.3.6"
+		"@ai-sdk/anthropic": "^4.0.71",
+		"@ai-sdk/mcp": "^2.0.66",
+		"@ai-sdk/openai": "^4.0.83",
+		"@ai-sdk/react": "^4.0.130",
+		"ai": "^7.0.127",
+		"openai": "^7.27.0",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.13",
 		"@repo/tsconfig": "workspace:*",
-		"@types/react": "19.2.3",
+		"@types/react": "19.3.0",
 		"typescript": "5.9.3",
 		"vitest": "^4.1.4"
 	},
